@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { BotDifficulty, ClubBotPersonality, LeagueState } from '../types/league';
 import { calculateClubStrength } from '../engine/botAI';
+import { formatMillionsBRL } from '../data/seedData';
 import { BrasileiraoTrophyLogo, ClubCrest, ControllerTag } from './ClubBadge';
 
 interface LobbyAndAdminViewProps {
@@ -192,14 +193,16 @@ export const LobbyAndAdminView: React.FC<LobbyAndAdminViewProps> = ({
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenLoginModal('new_career')}
-              className="w-full py-2.5 px-3 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 text-amber-200 font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Começar Nova Carreira do Zero (20 Clubes Série A)
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => onOpenLoginModal('new_career')}
+                className="w-full py-2.5 px-3 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 text-amber-200 font-bold text-[11px] flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Começar Nova Carreira do Zero (20 Clubes Série A)
+              </button>
+            )}
           </div>
         )}
 
@@ -383,8 +386,8 @@ export const LobbyAndAdminView: React.FC<LobbyAndAdminViewProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-1.5 border-t border-white/[0.06]">
-                    <span className="text-xs font-extrabold text-emerald-400 tabular-nums">
-                      €{club.finances.budget.toFixed(0)}M
+                    <span className="text-[11px] font-extrabold text-emerald-400 tabular-nums">
+                      {formatMillionsBRL(club.finances.budget)}
                     </span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -469,7 +472,7 @@ export const LobbyAndAdminView: React.FC<LobbyAndAdminViewProps> = ({
                           {club.isAdmin && <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
                         </div>
                         <div className="text-[11px] text-slate-400 truncate">
-                          {club.managerName} • {club.stadium} • €{club.finances.budget.toFixed(0)}M
+                          {club.managerName} • {club.stadium} • {formatMillionsBRL(club.finances.budget)}
                         </div>
                         <div className="text-[10px] text-emerald-300/90 font-semibold tabular-nums mt-0.5">
                           OVR {str.overall} • ATA {str.attack} • MEI {str.midfield} • DEF {str.defense}
@@ -513,7 +516,7 @@ export const LobbyAndAdminView: React.FC<LobbyAndAdminViewProps> = ({
                       <div className="min-w-0">
                         <div className="text-xs font-semibold text-white truncate">{club.name}</div>
                         <div className="text-[10px] text-slate-400 tabular-nums truncate">
-                          OVR {str.overall} • €{club.finances.budget.toFixed(0)}M
+                          OVR {str.overall} • {formatMillionsBRL(club.finances.budget)}
                         </div>
                         <div className="text-[9px] text-slate-500 tabular-nums">
                           A{str.attack} M{str.midfield} D{str.defense}

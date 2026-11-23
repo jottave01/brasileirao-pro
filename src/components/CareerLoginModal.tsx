@@ -14,6 +14,7 @@ import { BrasileiraoTrophyLogo, ClubCrest } from './ClubBadge';
 
 interface CareerLoginModalProps {
   league: LeagueState;
+  isAdminUser: boolean;
   authError: string | null;
   canDismiss: boolean;
   initialMode?: 'login' | 'new_career';
@@ -35,6 +36,7 @@ const CAREER_PRESETS = [
 
 export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
   league,
+  isAdminUser,
   authError,
   canDismiss,
   initialMode = 'login',
@@ -44,9 +46,12 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
   onStartFreshCareer,
   onOpenAdvancedCreator,
 }) => {
-  const [mode, setMode] = useState<'login' | 'new_career'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'new_career'>(
+    isAdminUser ? initialMode : 'login'
+  );
+  const activeMode: 'login' | 'new_career' = isAdminUser ? mode : 'login';
 
-  // Login / entrar na carreira atual ou por código de outro aparelho
+  // Login / entrar na carreira somente com Código da Sala + PIN de 4 dígitos
   const [joinInviteCode, setJoinInviteCode] = useState(() => {
     if (typeof window === 'undefined') return '';
     return new URLSearchParams(window.location.search).get('invite')?.toUpperCase() ?? '';
@@ -55,7 +60,7 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
   const [loginPin, setLoginPin] = useState('');
   const [joiningRemote, setJoiningRemote] = useState(false);
 
-  // Começar nova carreira do zero
+  // Começar nova carreira do zero (exclusivo Admin)
   const [newLeagueName, setNewLeagueName] = useState('Brasileirão Série A 2026');
   const [adminName, setAdminName] = useState('Você (Admin)');
   const [adminPin, setAdminPin] = useState('1234');
@@ -64,7 +69,7 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = joinInviteCode.trim().toUpperCase();
-    if (cleanCode && cleanCode !== league.inviteCode.toUpperCase() && onJoinByInviteCode) {
+    if (onJoinByInviteCode) {
       setJoiningRemote(true);
       try {
         await onJoinByInviteCode(cleanCode, loginName.trim(), loginPin.trim());
@@ -128,65 +133,78 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
             </div>
           </div>
 
-          {/* Seletor de Modo */}
-          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-[#06090E]/90 border border-white/[0.08] mt-4">
-            <button
-              type="button"
-              onClick={() => setMode('login')}
-              className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition ${
-                mode === 'login'
-                  ? 'bg-emerald-500 text-slate-950 shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
+          {/* Seletor de Modo (Nova Carreira apenas para Admin) */}
+          {isAdminUser ? (
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-[#06090E]/90 border border-white/[0.08] mt-4">
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition ${
+                  activeMode === 'login'
+                    ? 'bg-emerald-500 text-slate-950 shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Entrar na Carreira
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('new_career')}
+                className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition ${
+                  activeMode === 'new_career'
+                    ? 'bg-amber-400 text-slate-950 shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Nova Carreira do 0
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4 py-2 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-300 flex items-center justify-center gap-1.5">
               <LogIn className="w-3.5 h-3.5" />
-              Entrar na Carreira
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('new_career')}
-              className={`py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition ${
-                mode === 'new_career'
-                  ? 'bg-amber-400 text-slate-950 shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Nova Carreira do 0
-            </button>
-          </div>
+              Entrar na Sala (Código + PIN Obrigatórios)
+            </div>
+          )}
         </div>
 
         <div className="p-5">
-          {mode === 'login' ? (
+          {activeMode === 'login' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
-              {/* Info da Liga Ativa */}
-              <div className="bg-[#06090E] border border-white/[0.08] rounded-2xl p-3.5 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                    Sala Atual • {league.inviteCode}
+              {/* Info da Liga Ativa (só exibe código/vagas após autenticado) */}
+              {canDismiss ? (
+                <div className="bg-[#06090E] border border-white/[0.08] rounded-2xl p-3.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                      Sala Atual • {league.inviteCode}
+                    </div>
+                    <div className="font-display text-lg font-bold text-white uppercase truncate">
+                      {league.config.name}
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Temporada {league.season} • {league.clubs.length} Clubes Série A
+                    </div>
                   </div>
-                  <div className="font-display text-lg font-bold text-white uppercase truncate">
-                    {league.config.name}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    Temporada {league.season} • {league.clubs.length} Clubes Série A
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] text-slate-400">Humanos</div>
+                    <div className="font-display text-lg font-extrabold text-emerald-300 tabular-nums">
+                      {league.participants.length}/{league.config.humanCount}
+                    </div>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-[10px] text-slate-400">Humanos</div>
-                  <div className="font-display text-lg font-extrabold text-emerald-300 tabular-nums">
-                    {league.participants.length}/{league.config.humanCount}
-                  </div>
+              ) : (
+                <div className="bg-[#06090E] border border-emerald-500/20 rounded-2xl p-3 text-[11px] text-slate-300 leading-relaxed">
+                  Digite o <strong className="text-emerald-300">Código da Sala</strong> enviado pelo Admin, seu nome de técnico e seu <strong className="text-amber-300">PIN de 4 dígitos</strong> (no retorno à sala, use sempre o mesmo PIN).
                 </div>
-              </div>
+              )}
 
-              {/* Seleção rápida de participantes já cadastrados */}
-              {league.participants.length > 0 && (
+              {/* Seleção rápida somente quando já logado trocando/conferindo */}
+              {canDismiss && league.participants.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="text-[11px] text-slate-400 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5 text-emerald-400" />
-                    Toque no seu técnico ou digite um novo nome:
+                    Participantes conectados na sala:
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {league.participants.map((p) => {
@@ -230,13 +248,14 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
               <div className="space-y-3">
                 <div>
                   <label className="block text-[11px] text-slate-400 mb-1">
-                    Código da Sala (se estiver entrando de outro aparelho)
+                    Código da Sala *
                   </label>
                   <input
                     type="text"
+                    required
                     value={joinInviteCode}
                     onChange={(e) => setJoinInviteCode(e.target.value.toUpperCase())}
-                    placeholder={`Atual: ${league.inviteCode}`}
+                    placeholder="Digite o código enviado pelo Admin"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#06090E] border border-white/10 text-xs font-mono uppercase text-emerald-300 focus:outline-none focus:border-emerald-500"
                   />
                 </div>

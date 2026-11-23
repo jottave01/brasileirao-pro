@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   ArrowLeftRight,
   Clock,
-  Play,
   Radio,
   Sliders,
   Trophy,
@@ -22,6 +21,7 @@ import {
   FORMATION_LAYOUT,
   getPositionFit,
 } from '../engine/botAI';
+import { formatMillionsBRL } from '../data/seedData';
 import {
   BrasileiraoTrophyLogo,
   ClubCrest,
@@ -35,7 +35,7 @@ interface CompetitionViewProps {
   league: LeagueState;
   liveRoundRunning: boolean;
   onStartLiveRound: () => void;
-  onAdvanceRound: () => void;
+  onAdvanceRound?: () => void;
   onUpdateTactics: (clubId: string, formation: Formation, mentality: TacticalMentality) => void;
   onAssignSlotPlayer: (clubId: string, slotIndex: number, playerId: string) => void;
   onMakeLiveSubstitution: (
@@ -59,7 +59,6 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
   league,
   liveRoundRunning,
   onStartLiveRound,
-  onAdvanceRound,
   onUpdateTactics,
   onAssignSlotPlayer,
   onMakeLiveSubstitution,
@@ -194,8 +193,13 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
     return p && getPositionFit(p, slot.role).penalty < 0;
   }).length;
 
-  const scheduledDate = roundMatches[0]?.scheduledAt
-    ? new Date(roundMatches[0].scheduledAt).toLocaleString('pt-BR', {
+  const nextRoundMatch =
+    isCurrentRoundFinished && league.currentRound < league.totalRounds
+      ? league.matches.find((m) => m.round === league.currentRound + 1)
+      : roundMatches[0];
+  const scheduledDate = nextRoundMatch?.scheduledAt
+    ? new Date(nextRoundMatch.scheduledAt).toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
         day: '2-digit',
         month: '2-digit',
         hour: '2-digit',
@@ -253,8 +257,8 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                   {c && <ClubCrest club={c} size="xs" />}
                   <span className="font-semibold text-white">{pr.clubName}</span>
                 </div>
-                <span className="font-display text-sm font-bold text-emerald-400 tabular-nums">
-                  +€{pr.prize}M
+                <span className="font-display text-xs sm:text-sm font-bold text-emerald-400 tabular-nums">
+                  +{formatMillionsBRL(pr.prize)}
                 </span>
               </div>
             );
@@ -284,32 +288,32 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                 <Radio className="w-3.5 h-3.5" />
                 AO VIVO
               </div>
-            ) : isAdmin ? (
-              <button
-                type="button"
-                onClick={onStartLiveRound}
-                className="px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0 bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white shadow-lg shadow-rose-500/25 transition"
-              >
-                <Radio className="w-3.5 h-3.5" />
-                Iniciar Rodada
-              </button>
+            ) : league.currentRound === 1 ? (
+              isAdmin ? (
+                <button
+                  type="button"
+                  onClick={onStartLiveRound}
+                  className="px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0 bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white shadow-lg shadow-rose-500/25 transition"
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  Iniciar 1ª Rodada
+                </button>
+              ) : (
+                <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-semibold text-slate-300 shrink-0">
+                  Aguardando Admin (1ª Rodada)
+                </div>
+              )
             ) : (
-              <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-semibold text-slate-300 shrink-0">
-                Aguardando Admin
+              <div className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-[11px] font-bold text-emerald-300 shrink-0">
+                Início Automático
               </div>
             )
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                onAdvanceRound();
-                setSelectedMatchId('');
-              }}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:brightness-110 text-slate-950 font-extrabold text-xs flex items-center gap-1 cursor-pointer shrink-0 shadow-lg shadow-emerald-500/20"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              Rodada {league.currentRound + 1}
-            </button>
+            <div className="px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/35 text-[11px] font-bold text-amber-300 shrink-0">
+              {league.currentRound < league.totalRounds
+                ? 'Próx. Rodada Automática'
+                : 'Temporada Encerrada'}
+            </div>
           )}
         </div>
 
@@ -317,10 +321,10 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-white/[0.07] text-[11px]">
           <span className="inline-flex items-center gap-1.5 text-slate-300 font-medium whitespace-nowrap">
             <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            2 rodadas/dia ({league.config.dailyScheduleTimes.join(' & ')})
+            Automático • {league.config.dailyScheduleTimes.join(' & ')} (Brasília)
           </span>
           <span className="px-2.5 py-0.5 rounded-lg bg-[#06090E] border border-white/10 text-amber-300 font-semibold tabular-nums whitespace-nowrap">
-            Próxima: {scheduledDate}
+            Próxima: {scheduledDate} (BRT)
           </span>
         </div>
 
@@ -368,6 +372,11 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                 <div className="flex items-center gap-2 text-xs font-bold text-white">
                   <Sliders className="w-3.5 h-3.5 text-emerald-400" />
                   Tática Ao Vivo • {activeClub.shortName}
+                  <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-[9px] font-semibold text-slate-300">
+                    {userMatch.manualControlClubs?.includes(activeClub.id)
+                      ? 'Manual'
+                      : 'IA ativa se offline'}
+                  </span>
                 </div>
                 <button
                   type="button"

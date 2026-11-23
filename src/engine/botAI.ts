@@ -18,8 +18,11 @@ import {
   TransferDisputeBid,
 } from '../types/league';
 import {
+  calcAgentMinimumSalary,
   calcMarketValue,
   calcMonthlySalary,
+  formatMillionsBRL,
+  formatMonthlySalary,
   generateWorldMarketPool,
 } from '../data/seedData';
 
@@ -625,28 +628,118 @@ function getPersonalityAuctionProfile(personality: ClubBotPersonality) {
 export interface FifaOfferEvaluation {
   outcome: 'aceita' | 'contraproposta' | 'recusada';
   counterCash?: number;
+  counterSalary?: number;
   nextPatience: number;
   locked: boolean;
   message: string;
 }
 
-/** Negociação estilo FIFA (console/PC) com barra de paciência (até 3 tentativas) */
+/** Negociação realista completa: Clube Vendedor (passe) + Empresário/Atleta (salário & projeto) */
 export function evaluateFifaBotOffer(params: {
   targetPlayer: Player;
   sellerClub?: Club;
+  buyerClub?: Club;
+  originType?: 'europa' | 'bot' | 'livre';
   offerCash: number;
+  proposedMonthlySalary?: number;
   swapPlayer?: Player;
   currentPatience: number;
 }): FifaOfferEvaluation {
-  const { targetPlayer, sellerClub, offerCash, swapPlayer, currentPatience } = params;
+  const {
+    targetPlayer,
+    sellerClub,
+    buyerClub,
+    originType,
+    offerCash,
+    proposedMonthlySalary,
+    swapPlayer,
+    currentPatience,
+  } = params;
 
   if (currentPatience <= 0) {
     return {
       outcome: 'recusada',
       nextPatience: 0,
       locked: true,
-      message: 'Negociação encerrada nesta janela por falta de paciência do clube.',
+      message: 'Negociação encerrada nesta janela por falta de paciência do clube e empresário.',
     };
+  }
+
+  const minBaseSalary = calcAgentMinimumSalary(targetPlayer, buyerClub);
+  const starterRivals =
+    buyerClub?.squad.filter(
+      (p) =>
+        p.isStarter &&
+        (p.position === targetPlayer.position ||
+          (targetPlayer.ambidextrous && (p.position === 'PE' || p.position === 'PD')))
+    ) ?? [];
+  const hasHardCompetition = starterRivals.some((p) => p.overall >= targetPlayer.overall + 2);
+  const effectiveMinSalary = hasHardCompetition
+    ? Math.max(40, Math.round((minBaseSalary * 1.08) / 5) * 5)
+    : minBaseSalary;
+
+  const offeredSalary =
+    proposedMonthlySalary ?? targetPlayer.monthlySalary ?? calcMonthlySalary(targetPlayer.overall);
+  const salaryRatio = effectiveMinSalary > 0 ? offeredSalary / effectiveMinSalary : 1;
+
+  const evaluateAgentResponse = (clubAgreed: boolean): FifaOfferEvaluation => {
+    const agreedFeeText = `${formatMillionsBRL(offerCash)}${swapPlayer ? ` + ${swapPlayer.knownName}` : ''}`;
+    if (salaryRatio < 0.78) {
+      const nextPatience = Math.max(0, currentPatience - 2);
+      const locked = nextPatience <= 0;
+      const prefix = clubAgreed ? `O clube aceitou o passe (${agreedFeeText}), mas a` : 'A';
+      return {
+        outcome: 'recusada',
+        counterCash: offerCash,
+        counterSalary: effectiveMinSalary,
+        nextPatience,
+        locked,
+        message: locked
+          ? `Conduta reprovada! O empresário de ${targetPlayer.knownName} encerrou as conversas após oferta salarial ofensiva (${formatMonthlySalary(offeredSalary)}).`
+          : `${prefix} proposta salarial (${formatMonthlySalary(offeredSalary)}) ofendeu o empresário de ${targetPlayer.knownName}. Mínimo exigido: ${formatMonthlySalary(effectiveMinSalary)} (Paciência: ${nextPatience}/3).`,
+      };
+    }
+
+    if (salaryRatio < 1.0) {
+      const nextPatience = Math.max(0, currentPatience - 1);
+      const locked = nextPatience <= 0;
+      if (locked) {
+        return {
+          outcome: 'recusada',
+          nextPatience: 0,
+          locked: true,
+          message: `Paciência esgotada! O empresário de ${targetPlayer.knownName} recusou ${formatMonthlySalary(offeredSalary)} e encerrou a negociação.`,
+        };
+      }
+      const msgStart = clubAgreed
+        ? `O clube aceitou o passe (${agreedFeeText}), mas o`
+        : 'O';
+      return {
+        outcome: 'contraproposta',
+        counterCash: offerCash,
+        counterSalary: effectiveMinSalary,
+        nextPatience,
+        locked: false,
+        message: `${msgStart} empresário de ${targetPlayer.knownName} recusou ${formatMonthlySalary(offeredSalary)} e exige ${formatMonthlySalary(effectiveMinSalary)} para fechar contrato.`,
+      };
+    }
+
+    return {
+      outcome: 'aceita',
+      nextPatience: currentPatience,
+      locked: false,
+      message: clubAgreed
+        ? `Acordo completo! Clube (${agreedFeeText}) e empresário (${formatMonthlySalary(offeredSalary)}) aceitaram liberar ${targetPlayer.knownName}!`
+        : `Contrato aceito! ${targetPlayer.knownName} e seu empresário aprovaram ${formatMonthlySalary(offeredSalary)}.`,
+    };
+  };
+
+  const isFreeAgent =
+    originType === 'livre' ||
+    (!sellerClub && (!targetPlayer.currentClubName || targetPlayer.currentClubName === 'Livre'));
+
+  if (isFreeAgent) {
+    return evaluateAgentResponse(false);
   }
 
   if (sellerClub && sellerClub.squad.length <= 13 && !swapPlayer) {
@@ -663,31 +756,19 @@ export function evaluateFifaBotOffer(params: {
   const totalOffer = Math.round((offerCash + swapValue) * 10) / 10;
   const ratio = fairValue > 0 ? totalOffer / fairValue : 1;
 
-  // 100%+ do valor FIFA -> libera na hora!
+  // 100%+ do valor do passe -> clube libera e passa para avaliação do empresário/atleta
   if (ratio >= 1.0) {
-    return {
-      outcome: 'aceita',
-      nextPatience: currentPatience,
-      locked: false,
-      message: `Proposta aceita! Valor integral (€${fairValue.toFixed(1)}M) atingido e ${targetPlayer.knownName} liberado.`,
-    };
+    return evaluateAgentResponse(true);
   }
 
   const sellerStarterPenalty = sellerClub && targetPlayer.isStarter ? 0.12 : 0;
   const diffFactor = sellerClub ? getDifficultyFactor(sellerClub.botDifficulty) : 1.0;
 
-  // 85% a 99% do valor FIFA -> chance aleatória ponderada de aceitar ou pedir contraproposta
+  // 85% a 99% do valor -> chance ponderada do clube aceitar ou fazer contraproposta
   if (ratio >= 0.85) {
     const acceptProb = Math.max(0.18, Math.min(0.65, (ratio - 0.82) * 3.1 - sellerStarterPenalty - (diffFactor - 1) * 0.25));
     if (Math.random() < acceptProb) {
-      return {
-        outcome: 'aceita',
-        nextPatience: currentPatience,
-        locked: false,
-        message: `${sellerClub?.shortName ?? targetPlayer.currentClubName ?? 'Clube'} aceitou €${offerCash.toFixed(1)}M${
-          swapPlayer ? ` + ${swapPlayer.knownName}` : ''
-        } por ${targetPlayer.knownName}!`,
-      };
+      return evaluateAgentResponse(true);
     }
 
     const nextPatience = Math.max(0, currentPatience - 1);
@@ -707,14 +788,20 @@ export function evaluateFifaBotOffer(params: {
       };
     }
 
+    const salaryNote =
+      salaryRatio < 1.0
+        ? ` e o empresário exige salário de ${formatMonthlySalary(effectiveMinSalary)}`
+        : '';
+
     return {
       outcome: 'contraproposta',
       counterCash: needed,
+      counterSalary: salaryRatio < 1.0 ? effectiveMinSalary : undefined,
       nextPatience,
       locked: false,
-      message: `${sellerClub?.shortName ?? targetPlayer.currentClubName ?? 'Clube'} pede €${needed.toFixed(1)}M${
+      message: `${sellerClub?.shortName ?? targetPlayer.currentClubName ?? 'Clube'} pede ${formatMillionsBRL(needed)}${
         swapPlayer ? ` + ${swapPlayer.knownName}` : ''
-      } (valor FIFA: €${fairValue.toFixed(1)}M).`,
+      }${salaryNote} (passe avaliado em ${formatMillionsBRL(fairValue)}).`,
     };
   }
 
@@ -728,8 +815,8 @@ export function evaluateFifaBotOffer(params: {
     nextPatience,
     locked,
     message: locked
-      ? `Oferta muito baixa (€${totalOffer.toFixed(1)}M vs €${fairValue.toFixed(1)}M). O clube encerrou as negociações!`
-      : `Recusada! Oferta muito abaixo do valor FIFA (€${fairValue.toFixed(1)}M). Paciência restante: ${nextPatience}/3.`,
+      ? `Conduta reprovada: oferta muito baixa (${formatMillionsBRL(totalOffer)} vs ${formatMillionsBRL(fairValue)}). O clube encerrou as negociações!`
+      : `Recusada! Oferta muito abaixo do valor de mercado (${formatMillionsBRL(fairValue)}). Paciência restante: ${nextPatience}/3.`,
   };
 }
 
@@ -816,7 +903,7 @@ export function runBotMarketCycle(league: LeagueState): {
             category: 'mercado',
             actorName: bot.shortName,
             actorType: 'bot',
-            message: `Contratou ${pick.knownName} (${pick.position}, ${pick.overall}) por €${totalCost}M.`,
+            message: `Contratou ${pick.knownName} (${pick.position}, ${pick.overall}) por ${formatMillionsBRL(totalCost)}.`,
             timestamp: nowStr,
           });
         }
@@ -853,58 +940,114 @@ function getTacticalModifiers(
 }
 
 function computeBotLiveAdaptation(
-  botClub: Club,
+  club: Club,
   oppStrengthOverall: number,
   goalDiff: number,
   prevMin: number,
-  nextMin: number
+  nextMin: number,
+  allowAIControl: boolean
 ): { formation: Formation; mentality: TacticalMentality; note?: string } | null {
-  if (botClub.controller !== 'bot') return null;
+  if (!allowAIControl) return null;
 
   const crossed60 = prevMin < 60 && nextMin >= 60;
   const crossed72 = prevMin < 72 && nextMin >= 72;
   const crossed80 = prevMin < 80 && nextMin >= 80;
   if (!crossed60 && !crossed72 && !crossed80) return null;
 
-  // Bot perdendo no 2º tempo -> abre o time buscando o empate
+  const actorTag = club.controller === 'bot' ? 'Bot' : 'IA';
+
+  // Time perdendo no 2º tempo -> abre o time buscando o empate
   if (goalDiff <= -1 && goalDiff >= -2) {
-    if (crossed80 && botClub.mentality !== 'Tudo ou Nada') {
+    if (crossed80 && club.mentality !== 'Tudo ou Nada') {
       const nextForm: Formation =
-        botClub.formation === '5-3-2' || botClub.formation === '4-4-2' ? '3-4-3' : '4-3-3';
+        club.formation === '5-3-2' || club.formation === '4-4-2' ? '3-4-3' : '4-3-3';
       return {
         formation: nextForm,
         mentality: 'Tudo ou Nada',
-        note: `📋 Bot ${botClub.shortName} vai para o Tudo ou Nada (${nextForm})!`,
+        note: `📋 ${actorTag} ${club.shortName} vai para o Tudo ou Nada (${nextForm})!`,
       };
     }
-    if ((crossed60 || crossed72) && botClub.mentality !== 'Ofensiva' && botClub.mentality !== 'Tudo ou Nada') {
+    if ((crossed60 || crossed72) && club.mentality !== 'Ofensiva' && club.mentality !== 'Tudo ou Nada') {
       const nextForm: Formation =
-        botClub.formation === '5-3-2' ? '4-3-3' : botClub.formation;
+        club.formation === '5-3-2' ? '4-3-3' : club.formation;
       return {
         formation: nextForm,
         mentality: 'Ofensiva',
-        note: `📋 Bot ${botClub.shortName} adianta as linhas para postura Ofensiva (${nextForm}).`,
+        note: `📋 ${actorTag} ${club.shortName} adianta as linhas para postura Ofensiva (${nextForm}).`,
       };
     }
   }
 
-  // Bot vencendo por 1 gol contra rival forte após os 70' -> fecha a casinha
-  const botOvr = calculateClubStrength(botClub).overall;
-  if (goalDiff === 1 && (crossed72 || crossed80) && oppStrengthOverall >= botOvr - 2) {
-    if (crossed80 && botClub.mentality !== 'Retranca') {
+  // Time vencendo por 1 gol contra rival forte após os 70' -> fecha a casinha
+  const clubOvr = calculateClubStrength(club).overall;
+  if (goalDiff === 1 && (crossed72 || crossed80) && oppStrengthOverall >= clubOvr - 2) {
+    if (crossed80 && club.mentality !== 'Retranca') {
       const nextForm: Formation =
-        botClub.formation === '3-4-3' || botClub.formation === '4-3-3' ? '5-3-2' : botClub.formation;
+        club.formation === '3-4-3' || club.formation === '4-3-3' ? '5-3-2' : club.formation;
       return {
         formation: nextForm,
         mentality: 'Retranca',
-        note: `📋 Bot ${botClub.shortName} fecha o time na Retranca (${nextForm}) para segurar o placar.`,
+        note: `📋 ${actorTag} ${club.shortName} fecha o time na Retranca (${nextForm}) para segurar o placar.`,
       };
     }
-    if (crossed72 && botClub.mentality !== 'Contra-Ataque' && botClub.mentality !== 'Retranca') {
+    if (crossed72 && club.mentality !== 'Contra-Ataque' && club.mentality !== 'Retranca') {
       return {
-        formation: botClub.formation,
+        formation: club.formation,
         mentality: 'Contra-Ataque',
-        note: `📋 Bot ${botClub.shortName} recua para jogar no Contra-Ataque!`,
+        note: `📋 ${actorTag} ${club.shortName} recua para jogar no Contra-Ataque!`,
+      };
+    }
+  }
+
+  return null;
+}
+
+function computeAutoLiveSubstitution(
+  club: Club,
+  subsUsed: number,
+  subbedOutIds: string[],
+  prevMin: number,
+  nextMin: number
+): { slotIndex: number; outPlayer: Player; inPlayer: Player } | null {
+  const crossedWindow =
+    (prevMin < 62 && nextMin >= 62) ||
+    (prevMin < 74 && nextMin >= 74) ||
+    (prevMin < 82 && nextMin >= 82);
+  if (!crossedWindow || subsUsed >= 5) return null;
+
+  const tiredStarters = (club.lineupSlots ?? [])
+    .map((slot, slotIndex) => {
+      const starter = club.squad.find((p) => p.id === slot.playerId);
+      return { slotIndex, slot, starter };
+    })
+    .filter(
+      (item): item is { slotIndex: number; slot: LineupSlot; starter: Player } =>
+        Boolean(item.starter) && item.starter!.position !== 'GOL' && item.starter!.stamina <= 58
+    )
+    .sort((a, b) => a.starter.stamina - b.starter.stamina);
+
+  if (tiredStarters.length === 0) return null;
+
+  const benchPool = club.squad.filter(
+    (p) => !p.isStarter && !subbedOutIds.includes(p.id) && p.stamina >= 78 && p.position !== 'GOL'
+  );
+  if (benchPool.length === 0) return null;
+
+  for (const target of tiredStarters) {
+    const starterFitOvr = getPositionFit(target.starter, target.slot.role).effectiveOvr;
+    const bestBench = benchPool
+      .map((bench) => ({
+        bench,
+        fitOvr: getPositionFit(bench, target.slot.role).effectiveOvr,
+      }))
+      .filter((cand) => cand.fitOvr >= starterFitOvr - 5)
+      .sort((a, b) => b.fitOvr - a.fitOvr || b.bench.stamina - a.bench.stamina)[0];
+
+    if (bestBench) {
+      return {
+        slotIndex: target.slotIndex,
+        outPlayer: target.starter,
+        inPlayer: bestBench.bench,
       };
     }
   }
@@ -1007,6 +1150,8 @@ export function simulateMatchMinuteStep(
   awayPlayerDrains?: Record<string, number>;
   homeTacticUpdate?: { formation: Formation; mentality: TacticalMentality };
   awayTacticUpdate?: { formation: Formation; mentality: TacticalMentality };
+  homeAutoSub?: { slotIndex: number; outPlayerId: string; inPlayerId: string };
+  awayAutoSub?: { slotIndex: number; outPlayerId: string; inPlayerId: string };
 } {
   if (match.status === 'finalizada') {
     return { match, homeStaminaDrain: 0, awayStaminaDrain: 0 };
@@ -1052,31 +1197,75 @@ export function simulateMatchMinuteStep(
   const baseHomeStr = calculateClubStrength(homeClub);
   const baseAwayStr = calculateClubStrength(awayClub);
 
-  // Adaptação tática dos Bots no 2º tempo
+  const manualList = match.manualControlClubs ?? [];
+  const homeAllowAI = homeClub.controller === 'bot' || !manualList.includes(homeClub.id);
+  const awayAllowAI = awayClub.controller === 'bot' || !manualList.includes(awayClub.id);
+
+  // Adaptação tática automática (Bots + players humanos offline no momento)
   const homeAdapt = computeBotLiveAdaptation(
     homeClub,
     baseAwayStr.overall,
     match.homeGoals - match.awayGoals,
     prevMin,
-    nextMinute
+    nextMinute,
+    homeAllowAI
   );
   const awayAdapt = computeBotLiveAdaptation(
     awayClub,
     baseHomeStr.overall,
     match.awayGoals - match.homeGoals,
     prevMin,
-    nextMinute
+    nextMinute,
+    awayAllowAI
   );
 
-  const effHomeClub: Club = homeAdapt
+  const homeSubPick = homeAllowAI
+    ? computeAutoLiveSubstitution(
+        homeClub,
+        match.homeSubsUsed,
+        match.homeSubbedOutIds,
+        prevMin,
+        nextMinute
+      )
+    : null;
+  const awaySubPick = awayAllowAI
+    ? computeAutoLiveSubstitution(
+        awayClub,
+        match.awaySubsUsed,
+        match.awaySubbedOutIds,
+        prevMin,
+        nextMinute
+      )
+    : null;
+
+  const applyClubSubSnapshot = (
+    club: Club,
+    sub: { slotIndex: number; outPlayer: Player; inPlayer: Player } | null
+  ): Club => {
+    if (!sub) return club;
+    const nextSlots = (club.lineupSlots ?? []).map((s, idx) =>
+      idx === sub.slotIndex ? { ...s, playerId: sub.inPlayer.id } : s
+    );
+    const starterIds = new Set(nextSlots.map((s) => s.playerId));
+    return {
+      ...club,
+      lineupSlots: nextSlots,
+      squad: club.squad.map((p) => ({ ...p, isStarter: starterIds.has(p.id) })),
+    };
+  };
+
+  let effHomeClub: Club = homeAdapt
     ? { ...homeClub, formation: homeAdapt.formation, mentality: homeAdapt.mentality }
     : homeClub;
-  const effAwayClub: Club = awayAdapt
+  effHomeClub = applyClubSubSnapshot(effHomeClub, homeSubPick);
+
+  let effAwayClub: Club = awayAdapt
     ? { ...awayClub, formation: awayAdapt.formation, mentality: awayAdapt.mentality }
     : awayClub;
+  effAwayClub = applyClubSubSnapshot(effAwayClub, awaySubPick);
 
-  const homeStr = homeAdapt ? calculateClubStrength(effHomeClub) : baseHomeStr;
-  const awayStr = awayAdapt ? calculateClubStrength(effAwayClub) : baseAwayStr;
+  const homeStr = homeAdapt || homeSubPick ? calculateClubStrength(effHomeClub) : baseHomeStr;
+  const awayStr = awayAdapt || awaySubPick ? calculateClubStrength(effAwayClub) : baseAwayStr;
   const homeReadout = evaluateTacticalMatchup(effHomeClub, effAwayClub);
   const awayReadout = evaluateTacticalMatchup(effAwayClub, effHomeClub);
 
@@ -1299,6 +1488,27 @@ export function simulateMatchMinuteStep(
     playPhase = 'meio_campo';
   }
 
+  if (homeSubPick) {
+    const desc = `🔄 IA (${effHomeClub.shortName}): entra ${homeSubPick.inPlayer.knownName}, sai ${homeSubPick.outPlayer.knownName}`;
+    newEvents.push({
+      minute: nextMinute,
+      type: 'substituicao',
+      clubId: effHomeClub.id,
+      playerName: homeSubPick.inPlayer.knownName,
+      description: desc,
+    });
+  }
+  if (awaySubPick) {
+    const desc = `🔄 IA (${effAwayClub.shortName}): entra ${awaySubPick.inPlayer.knownName}, sai ${awaySubPick.outPlayer.knownName}`;
+    newEvents.push({
+      minute: nextMinute,
+      type: 'substituicao',
+      clubId: effAwayClub.id,
+      playerName: awaySubPick.inPlayer.knownName,
+      description: desc,
+    });
+  }
+
   const homePlayerDrains = computeClubPlayerDrains(
     effHomeClub,
     stepMinutes,
@@ -1321,6 +1531,14 @@ export function simulateMatchMinuteStep(
       isHalftime: enteredHalftime,
       halftimeRemainingSec: enteredHalftime ? 30 : 0,
       status: nextMinute >= 90 ? 'finalizada' : 'ao_vivo',
+      homeSubsUsed: homeSubPick ? match.homeSubsUsed + 1 : match.homeSubsUsed,
+      awaySubsUsed: awaySubPick ? match.awaySubsUsed + 1 : match.awaySubsUsed,
+      homeSubbedOutIds: homeSubPick
+        ? [...match.homeSubbedOutIds, homeSubPick.outPlayer.id]
+        : match.homeSubbedOutIds,
+      awaySubbedOutIds: awaySubPick
+        ? [...match.awaySubbedOutIds, awaySubPick.outPlayer.id]
+        : match.awaySubbedOutIds,
       ballX: Math.round(ballX),
       ballY: Math.round(ballY),
       activePlayerId,
@@ -1347,6 +1565,20 @@ export function simulateMatchMinuteStep(
       : undefined,
     awayTacticUpdate: awayAdapt
       ? { formation: awayAdapt.formation, mentality: awayAdapt.mentality }
+      : undefined,
+    homeAutoSub: homeSubPick
+      ? {
+          slotIndex: homeSubPick.slotIndex,
+          outPlayerId: homeSubPick.outPlayer.id,
+          inPlayerId: homeSubPick.inPlayer.id,
+        }
+      : undefined,
+    awayAutoSub: awaySubPick
+      ? {
+          slotIndex: awaySubPick.slotIndex,
+          outPlayerId: awaySubPick.outPlayer.id,
+          inPlayerId: awaySubPick.inPlayer.id,
+        }
       : undefined,
   };
 }
@@ -1417,10 +1649,27 @@ export function applySeasonEndAndPrepareNext(
 
     const evolvedSquad = c.squad.map((p) => {
       const nextAge = p.age + 1;
-      const ovrDelta = nextAge <= 23 ? (Math.random() < 0.55 ? 2 : 1) : nextAge >= 33 ? -1 : 0;
+      const contrib = (p.goals ?? 0) + (p.assists ?? 0);
+      const perfDelta =
+        contrib >= 20
+          ? 2
+          : contrib >= 12
+          ? 1
+          : p.isStarter && p.position !== 'GOL' && contrib === 0 && nextAge >= 28
+          ? -1
+          : 0;
+      const ageDelta = nextAge <= 23 ? (Math.random() < 0.55 ? 2 : 1) : nextAge >= 33 ? -1 : 0;
+      const ovrDelta = Math.max(-2, Math.min(3, ageDelta + perfDelta));
       const nextOvr = Math.min(94, Math.max(65, p.overall + ovrDelta));
       const nextVal = calcMarketValue(nextOvr);
-      const nextSalary = calcMonthlySalary(nextOvr);
+      const baseCur = calcMonthlySalary(p.overall);
+      const baseNext = calcMonthlySalary(nextOvr);
+      const curSalary = p.monthlySalary ?? baseCur;
+      const nextSalary =
+        nextOvr === p.overall
+          ? curSalary
+          : Math.max(40, Math.round((curSalary * (baseNext / Math.max(40, baseCur))) / 5) * 5);
+
       return {
         ...p,
         age: nextAge,
@@ -1538,7 +1787,7 @@ export function resolveTransferDispute(
     const win = finalists[0];
     return {
       winnerBid: win.bid,
-      reason: `${win.club.shortName} apresentou a maior proposta (€${win.totalFee.toFixed(1)}M) e levou ${targetPlayer.knownName}!`,
+      reason: `${win.club.shortName} apresentou a maior proposta (${formatMillionsBRL(win.totalFee)}) e levou ${targetPlayer.knownName}!`,
     };
   }
 
@@ -1608,14 +1857,11 @@ export function resolveTransferDispute(
       : scoredFinalists[0];
 
   const wasRandomTiebreak = tiedTop.length > 1;
-  const salaryLabel =
-    chosen.bid.proposedMonthlySalary >= 1000
-      ? `€${(chosen.bid.proposedMonthlySalary / 1000).toFixed(2)}M/mês`
-      : `€${Math.round(chosen.bid.proposedMonthlySalary)}k/mês`;
+  const salaryLabel = formatMonthlySalary(chosen.bid.proposedMonthlySalary);
 
   const reason = wasRandomTiebreak
-    ? `Empate técnico nas ofertas e projetos por ${targetPlayer.knownName}: sorteio definiu o ${chosen.club.shortName} (€${chosen.totalFee.toFixed(1)}M • ${salaryLabel}).`
-    : `${targetPlayer.knownName} analisou salário (${salaryLabel}), projeto do clube e titularidade e escolheu o ${chosen.club.shortName} (€${chosen.totalFee.toFixed(1)}M)!`;
+    ? `Empate técnico nas ofertas e projetos por ${targetPlayer.knownName}: sorteio definiu o ${chosen.club.shortName} (${formatMillionsBRL(chosen.totalFee)} • ${salaryLabel}).`
+    : `${targetPlayer.knownName} analisou salário (${salaryLabel}), projeto do clube e titularidade e escolheu o ${chosen.club.shortName} (${formatMillionsBRL(chosen.totalFee)})!`;
 
   return { winnerBid: chosen.bid, reason };
 }

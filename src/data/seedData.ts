@@ -1,4 +1,4 @@
-import { Player, PlayerAppearance, PlayerPosition } from '../types/league';
+import { Club, Player, PlayerAppearance, PlayerPosition } from '../types/league';
 import realPlayersData from './realPlayers.json';
 
 export interface ClubTemplate {
@@ -683,7 +683,28 @@ export function calcMarketValue(overall: number): number {
   return 1.0;
 }
 
-/** Salário mensal realista em € mil/mês (ex.: 450 = €450k/mês) */
+const BRL_FORMATTER = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function formatCurrencyBRL(valueInReais: number): string {
+  return BRL_FORMATTER.format(Number.isFinite(valueInReais) ? valueInReais : 0);
+}
+
+/** Formata valores armazenados em milhões (ex.: 81.5 -> R$ 81.500.000,00) */
+export function formatMillionsBRL(millions?: number): string {
+  return formatCurrencyBRL(Math.round((millions ?? 0) * 1_000_000));
+}
+
+/** Formata valores armazenados em milhares (ex.: 1615 -> R$ 1.615.000,00) */
+export function formatThousandsBRL(thousands?: number): string {
+  return formatCurrencyBRL(Math.round((thousands ?? 0) * 1_000));
+}
+
+/** Salário mensal realista em R$ mil/mês (ex.: 450 = R$ 450.000,00/mês) */
 export function calcMonthlySalary(overall: number): number {
   if (overall >= 92) return 1800;
   if (overall >= 90) return 1500;
@@ -701,11 +722,26 @@ export function calcMonthlySalary(overall: number): number {
 }
 
 export function formatMonthlySalary(salaryK?: number): string {
-  const safe = salaryK ?? 80;
-  if (safe >= 1000) {
-    return `€${(safe / 1000).toFixed(2)}M/mês`;
-  }
-  return `€${Math.round(safe)}k/mês`;
+  return `${formatThousandsBRL(salaryK ?? 80)}/mês`;
+}
+
+/** Salário mensal mínimo exigido pelo empresário/atleta para mudar de clube (em R$ mil/mês) */
+export function calcAgentMinimumSalary(
+  player: Pick<Player, 'overall' | 'monthlySalary'>,
+  buyerClub?: Pick<Club, 'tier'>
+): number {
+  const baseSalary = player.monthlySalary ?? calcMonthlySalary(player.overall);
+  const starFactor =
+    player.overall >= 85
+      ? 0.18
+      : player.overall >= 80
+      ? 0.14
+      : player.overall >= 76
+      ? 0.10
+      : 0.07;
+  const tierFactor = buyerClub ? (buyerClub.tier - 1) * 0.03 : 0;
+  const rawMin = baseSalary * (1 + starFactor + tierFactor);
+  return Math.max(40, Math.round(rawMin / 5) * 5);
 }
 
 export function calcWage(marketValue: number): number {

@@ -47,7 +47,7 @@ export const LeagueCreatorView: React.FC<LeagueCreatorViewProps> = ({
   const [format, setFormat] = useState<LeagueFormat>('pontos_corridos');
   const [homeAndAway, setHomeAndAway] = useState(true);
   const [timeSlot1, setTimeSlot1] = useState('12:00');
-  const [timeSlot2, setTimeSlot2] = useState('20:00');
+  const [timeSlot2, setTimeSlot2] = useState('22:00');
 
   const [windowOpen, setWindowOpen] = useState(true);
   const [windowHours, setWindowHours] = useState(24);
@@ -266,13 +266,13 @@ export const LeagueCreatorView: React.FC<LeagueCreatorViewProps> = ({
               onChange={(e) => setUseRealisticBudgets(e.target.checked)}
               className="rounded accent-emerald-500"
             />
-            Orçamentos Realistas por Clube (FLA €160M, PAL €155M, VIT €58M...)
+            Orçamentos Realistas por Clube (FLA R$ 180.000.000,00, PAL R$ 175.000.000,00...)
           </label>
 
           <div className="grid grid-cols-2 gap-3">
             {!useRealisticBudgets && (
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Orçamento Fixo (€M)</label>
+                <label className="block text-[11px] text-slate-400 mb-1">Orçamento Fixo (R$ Milhões)</label>
                 <input
                   type="number"
                   min={50}

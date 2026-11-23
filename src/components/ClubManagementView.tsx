@@ -15,6 +15,7 @@ import {
 } from '../engine/botAI';
 import {
   calcMonthlySalary,
+  formatMillionsBRL,
   formatMonthlySalary,
 } from '../data/seedData';
 import {
@@ -31,7 +32,6 @@ interface ClubManagementViewProps {
   onAssignSlotPlayer: (clubId: string, slotIndex: number, playerId: string) => void;
   onAutoPickLineup: (clubId: string) => void;
   onToggleListForSale: (clubId: string, playerId: string) => void;
-  onUpdatePlayerSalary: (clubId: string, playerId: string, newMonthlySalary: number) => void;
   onConfirmSquadAndStartMatches: () => void;
 }
 
@@ -41,7 +41,6 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
   onAssignSlotPlayer,
   onAutoPickLineup,
   onToggleListForSale,
-  onUpdatePlayerSalary,
   onConfirmSquadAndStartMatches,
 }) => {
   const [subTab, setSubTab] = useState<'campinho' | 'elenco' | 'financas'>('campinho');
@@ -142,7 +141,9 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
               </div>
               <div className="text-[11px] text-slate-400">
                 OVR <strong className="text-amber-300">{strength.overall}</strong> •{' '}
-                <strong className="text-emerald-400 tabular-nums">€{club.finances.budget.toFixed(1)}M</strong>
+                <strong className="text-emerald-400 tabular-nums">
+                  {formatMillionsBRL(club.finances.budget)}
+                </strong>
               </div>
             </div>
           </div>
@@ -533,7 +534,6 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
 
           {sortedSquadForSlot.map((p) => {
             const curSalary = p.monthlySalary ?? calcMonthlySalary(p.overall);
-            const step = curSalary >= 500 ? 50 : 25;
             return (
               <div
                 key={p.id}
@@ -599,7 +599,7 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
                   </div>
                 </div>
 
-                {/* Controle de Salário Mensal do Jogador */}
+                {/* Salário Mensal do Jogador (automático conforme evolução de OVR) */}
                 <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-white/[0.04] text-[10px]">
                   <span className="text-slate-400">
                     Salário mensal:{' '}
@@ -607,30 +607,7 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
                       {formatMonthlySalary(curSalary)}
                     </strong>
                   </span>
-                  {isOwned && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={curSalary <= 30}
-                        onClick={() =>
-                          onUpdatePlayerSalary(club.id, p.id, Math.max(30, curSalary - step))
-                        }
-                        className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-35 text-slate-200 font-bold cursor-pointer"
-                      >
-                        −
-                      </button>
-                      <button
-                        type="button"
-                        disabled={curSalary >= 3000}
-                        onClick={() =>
-                          onUpdatePlayerSalary(club.id, p.id, Math.min(3000, curSalary + step))
-                        }
-                        className="px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-35 text-emerald-300 font-bold cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
+                  <span className="text-[10px] text-slate-500">Varia com o OVR</span>
                 </div>
               </div>
             );
@@ -643,11 +620,11 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
         <div className="bg-[#0D121A] border border-white/[0.08] rounded-2xl p-4 space-y-3">
           <div className="p-4 rounded-xl bg-[#06090E] border border-white/[0.06]">
             <div className="text-xs text-slate-400">Saldo Disponível</div>
-            <div className="font-display text-3xl font-extrabold text-emerald-400 tabular-nums">
-              €{club.finances.budget.toFixed(1)}M
+            <div className="font-display text-2xl sm:text-3xl font-extrabold text-emerald-400 tabular-nums">
+              {formatMillionsBRL(club.finances.budget)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5">
-              Orçamento base realista (Porte {club.tier}): €{club.finances.initialBudget}M
+              Orçamento base realista (Porte {club.tier}): {formatMillionsBRL(club.finances.initialBudget)}
             </div>
           </div>
 
@@ -660,23 +637,33 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
             </div>
             <div className="flex justify-between py-1.5 border-b border-white/[0.05]">
               <span className="text-slate-400">Desconto salarial / rodada</span>
-              <span className="font-semibold text-amber-300">-€{club.finances.wageBill.toFixed(1)}M</span>
+              <span className="font-semibold text-amber-300 tabular-nums">
+                -{formatMillionsBRL(club.finances.wageBill)}
+              </span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-white/[0.05]">
               <span className="text-slate-400">Compras no mercado</span>
-              <span className="font-semibold text-rose-300">-€{club.finances.transferSpent.toFixed(1)}M</span>
+              <span className="font-semibold text-rose-300 tabular-nums">
+                -{formatMillionsBRL(club.finances.transferSpent)}
+              </span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-white/[0.05]">
               <span className="text-slate-400">Vendas realizadas</span>
-              <span className="font-semibold text-emerald-400">+€{club.finances.transferIncome.toFixed(1)}M</span>
+              <span className="font-semibold text-emerald-400 tabular-nums">
+                +{formatMillionsBRL(club.finances.transferIncome)}
+              </span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-white/[0.05]">
               <span className="text-slate-400">Premiações Modo Carreira</span>
-              <span className="font-semibold text-amber-300">+€{club.finances.prizeIncome.toFixed(1)}M</span>
+              <span className="font-semibold text-amber-300 tabular-nums">
+                +{formatMillionsBRL(club.finances.prizeIncome)}
+              </span>
             </div>
             <div className="flex justify-between py-1.5">
               <span className="text-slate-400">Bilheteria & resultados</span>
-              <span className="font-semibold text-emerald-400">+€{club.finances.matchIncome.toFixed(1)}M</span>
+              <span className="font-semibold text-emerald-400 tabular-nums">
+                +{formatMillionsBRL(club.finances.matchIncome)}
+              </span>
             </div>
           </div>
         </div>

@@ -14,8 +14,41 @@ import {
   X,
 } from 'lucide-react';
 import { Club, LeagueState, Player, PlayerPosition } from '../types/league';
-import { calcMonthlySalary, formatMonthlySalary } from '../data/seedData';
+import {
+  calcAgentMinimumSalary,
+  calcMonthlySalary,
+  formatCurrencyBRL,
+  formatMillionsBRL,
+  formatMonthlySalary,
+  formatThousandsBRL,
+} from '../data/seedData';
 import { ClubCrest, CountryFlag, PlayerAvatar, POSITION_STYLE, WorldClubCrest } from './ClubBadge';
+
+interface CurrencyReaisInputProps {
+  valueReais: number;
+  onChangeReais: (nextReais: number) => void;
+  className?: string;
+}
+
+const CurrencyReaisInput: React.FC<CurrencyReaisInputProps> = ({
+  valueReais,
+  onChangeReais,
+  className = '',
+}) => {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={formatCurrencyBRL(valueReais)}
+      onChange={(e) => {
+        const digits = e.target.value.replace(/\D/g, '');
+        const parsed = digits ? parseInt(digits, 10) / 100 : 0;
+        onChangeReais(Math.max(0, parsed));
+      }}
+      className={className}
+    />
+  );
+};
 
 interface MarketEntry {
   player: Player;
@@ -25,7 +58,7 @@ interface MarketEntry {
 
 interface TransferMarketViewProps {
   league: LeagueState;
-  onBuyFreeAgent: (clubId: string, playerId: string) => void;
+  onBuyFreeAgent?: (clubId: string, playerId: string) => void;
   onAttemptFifaBotNegotiation: (
     buyerClubId: string,
     targetPlayerId: string,
@@ -145,7 +178,6 @@ function getMarketReopenInfo(league: LeagueState): MarketReopenInfo {
 
 export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
   league,
-  onBuyFreeAgent,
   onAttemptFifaBotNegotiation,
   onSendHumanOffer,
   onRespondHumanOffer,
@@ -264,20 +296,25 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
     const existingPatience = league.botPatienceMap[key];
     const baseSalary =
       entry.player.monthlySalary ?? calcMonthlySalary(entry.player.overall);
+    const minAgentSalary = calcAgentMinimumSalary(entry.player, activeClub);
     const activeDispute = activeDisputes.find((d) => d.targetPlayerId === entry.player.id);
     const topBidCash = activeDispute
       ? Math.max(...activeDispute.bids.map((b) => b.offerCash), entry.player.marketValue)
       : entry.player.marketValue;
     const topBidSalary = activeDispute
-      ? Math.max(...activeDispute.bids.map((b) => b.proposedMonthlySalary), baseSalary)
-      : baseSalary;
+      ? Math.max(...activeDispute.bids.map((b) => b.proposedMonthlySalary), minAgentSalary, baseSalary)
+      : minAgentSalary;
 
     setOfferCash(
       activeDispute
         ? Number((topBidCash + 0.5).toFixed(1))
-        : existingPatience?.lastCounter ?? entry.player.marketValue
+        : existingPatience?.lastCounter ??
+          (entry.originType === 'livre' ? 0 : entry.player.marketValue)
     );
-    setProposedSalary(activeDispute ? Math.round(topBidSalary * 1.05) : baseSalary);
+    setProposedSalary(
+      existingPatience?.lastCounterSalary ??
+        (activeDispute ? Math.round(topBidSalary * 1.05) : minAgentSalary)
+    );
     setSwapPlayerId('');
   };
 
@@ -387,16 +424,16 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   <Wallet className="w-3 h-3 text-emerald-400 shrink-0" />
                   Caixa Livre
                 </div>
-                <div className="font-display text-xl font-extrabold text-emerald-400 tabular-nums leading-tight mt-0.5">
-                  €{availableBudget.toFixed(1)}M
+                <div className="font-display text-base sm:text-lg font-extrabold text-emerald-400 tabular-nums leading-tight mt-0.5 truncate">
+                  {formatMillionsBRL(availableBudget)}
                 </div>
                 {reservedCash > 0 ? (
                   <div className="text-[10px] text-amber-300 tabular-nums truncate">
-                    €{reservedCash.toFixed(1)}M em disputa 3h
+                    {formatMillionsBRL(reservedCash)} em disputa 3h
                   </div>
                 ) : (
-                  <div className="text-[10px] text-slate-500 tabular-nums">
-                    Total: €{activeClub.finances.budget.toFixed(1)}M
+                  <div className="text-[10px] text-slate-500 tabular-nums truncate">
+                    Total: {formatMillionsBRL(activeClub.finances.budget)}
                   </div>
                 )}
               </div>
@@ -404,14 +441,14 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
 
             <div className="rounded-xl bg-[#070B11]/90 border border-white/[0.08] px-3 py-2 flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 truncate">
                   Folha Mensal ({activeClub.squad.length} atl.)
                 </div>
-                <div className="font-display text-xl font-extrabold text-sky-300 tabular-nums leading-tight mt-0.5">
+                <div className="font-display text-base sm:text-lg font-extrabold text-sky-300 tabular-nums leading-tight mt-0.5 truncate">
                   {formatMonthlySalary(monthlyPayroll)}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  comprometidos/mês
+                  salários automáticos
                 </div>
               </div>
             </div>
@@ -598,8 +635,8 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                           <span className="inline-flex items-center gap-1 text-amber-300 font-bold">
                             <Flame className="w-3 h-3" />
                             Disputa ({activeDispute.bids.length} clubes •{' '}
-                            {formatRemainingWindow(activeDispute.expiresAt, nowMs)}) • Topo €
-                            {topBidCash.toFixed(1)}M
+                            {formatRemainingWindow(activeDispute.expiresAt, nowMs)}) • Topo{' '}
+                            {formatMillionsBRL(topBidCash)}
                           </span>
                         )}
                       </div>
@@ -607,20 +644,11 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   </div>
 
                   <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                    <div className="font-display text-base font-extrabold text-emerald-400 tabular-nums leading-none">
-                      €{player.marketValue.toFixed(1)}M
+                    <div className="font-display text-xs sm:text-sm font-extrabold text-emerald-400 tabular-nums leading-none">
+                      {originType === 'livre' ? 'Passe Livre' : formatMillionsBRL(player.marketValue)}
                     </div>
                     {pat?.locked && !activeDispute ? (
                       <span className="text-[10px] text-rose-400 font-semibold">Bloqueado</span>
-                    ) : originType === 'livre' && !activeDispute && humanClubsCount <= 1 ? (
-                      <button
-                        type="button"
-                        disabled={!isMarketOpen || availableBudget < player.marketValue}
-                        onClick={() => onBuyFreeAgent(activeClub.id, player.id)}
-                        className="px-3 py-1 rounded-lg bg-emerald-500 disabled:bg-white/5 disabled:text-slate-600 text-slate-950 font-bold text-[11px] cursor-pointer"
-                      >
-                        Contratar
-                      </button>
                     ) : activeDispute ? (
                       <button
                         type="button"
@@ -709,7 +737,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                               {isMine && ' (Você)'}
                             </span>
                             <span className="tabular-nums">
-                              €{bid.offerCash.toFixed(1)}M • {formatMonthlySalary(bid.proposedMonthlySalary)}
+                              {formatMillionsBRL(bid.offerCash)} • {formatMonthlySalary(bid.proposedMonthlySalary)}
                             </span>
                           </div>
                         );
@@ -741,8 +769,8 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                       <div className="font-bold text-white">
                         {fromClub?.name} ({fromClub?.managerName}) quer {neg.targetPlayerName}
                       </div>
-                      <div className="text-[11px] text-emerald-400 font-semibold">
-                        Oferta: €{neg.offerCash.toFixed(1)}M
+                      <div className="text-[11px] text-emerald-400 font-semibold tabular-nums">
+                        Oferta: {formatMillionsBRL(neg.offerCash)}
                         {neg.swapPlayerName ? ` + ${neg.swapPlayerName}` : ''}
                         {neg.proposedMonthlySalary
                           ? ` • Salário proposto: ${formatMonthlySalary(neg.proposedMonthlySalary)}`
@@ -805,7 +833,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   </div>
                   {neg.proposedMonthlySalary && (
                     <div className="text-[10px] text-slate-400 tabular-nums">
-                      Oferta: €{neg.offerCash.toFixed(1)}M • Salário:{' '}
+                      Oferta: {formatMillionsBRL(neg.offerCash)} • Salário:{' '}
                       {formatMonthlySalary(neg.proposedMonthlySalary)}
                     </div>
                   )}
@@ -817,7 +845,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
         </div>
       )}
 
-      {/* Modal de Negociação FIFA (com Paciência, Salário Mensal e Disputa 3h) */}
+      {/* Modal de Negociação Realista (Clube + Empresário + Disputa 3h + Máscara R$) */}
       {negotiatingEntry && (() => {
         const modalDispute = activeDisputes.find(
           (d) => d.targetPlayerId === negotiatingEntry.player.id
@@ -825,6 +853,26 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
         const modalBaseSalary =
           negotiatingEntry.player.monthlySalary ??
           calcMonthlySalary(negotiatingEntry.player.overall);
+        const minBaseAgentSalary = calcAgentMinimumSalary(negotiatingEntry.player, activeClub);
+        const starterRivals = activeClub.squad.filter(
+          (p) =>
+            p.isStarter &&
+            (p.position === negotiatingEntry.player.position ||
+              (negotiatingEntry.player.ambidextrous &&
+                (p.position === 'PE' || p.position === 'PD')))
+        );
+        const hasHardCompetition = starterRivals.some(
+          (p) => p.overall >= negotiatingEntry.player.overall + 2
+        );
+        const effectiveMinSalary = hasHardCompetition
+          ? Math.max(40, Math.round((minBaseAgentSalary * 1.08) / 5) * 5)
+          : minBaseAgentSalary;
+        const salaryStatus =
+          proposedSalary > effectiveMinSalary
+            ? { label: 'Acima da pedida (Empresário satisfeito)', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+            : proposedSalary >= effectiveMinSalary
+            ? { label: 'No mínimo exigido', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' }
+            : { label: 'Abaixo do mínimo exigido (Risco de recusa)', cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30' };
 
         return (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -847,15 +895,15 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                       <CountryFlag nationality={negotiatingEntry.player.nationality} />
                       <span>{negotiatingEntry.player.knownName}</span>
                     </h2>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
+                    <div className="text-[11px] text-slate-400 mt-0.5 leading-snug">
                       {negotiatingEntry.player.position}
                       {negotiatingEntry.player.ambidextrous ? ' (Ambidestro PE/PD)' : ''} • OVR{' '}
-                      <strong className="text-amber-300">{negotiatingEntry.player.overall}</strong> • Valor:{' '}
+                      <strong className="text-amber-300">{negotiatingEntry.player.overall}</strong> • Passe:{' '}
                       <strong className="text-emerald-400">
-                        €{negotiatingEntry.player.marketValue.toFixed(1)}M
-                      </strong>{' '}
-                      • Salário:{' '}
-                      <strong className="text-sky-300">{formatMonthlySalary(modalBaseSalary)}</strong>
+                        {negotiatingEntry.originType === 'livre'
+                          ? 'Passe Livre'
+                          : formatMillionsBRL(negotiatingEntry.player.marketValue)}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -880,15 +928,50 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   </div>
                   <div className="text-[11px] text-slate-300">
                     Maior oferta até agora:{' '}
-                    <strong className="text-white">
-                      €{Math.max(...modalDispute.bids.map((b) => b.offerCash)).toFixed(1)}M
+                    <strong className="text-white tabular-nums">
+                      {formatMillionsBRL(Math.max(...modalDispute.bids.map((b) => b.offerCash)))}
                     </strong>{' '}
                     ({modalDispute.bids.length} clubes na briga).
                   </div>
                 </div>
               )}
 
-              {/* Campo de Salário Mensal Proposto */}
+              {/* Card de Exigência do Empresário & Atleta */}
+              {negotiatingEntry.originType !== 'human' && (
+                <div className="bg-[#06090E] border border-sky-500/25 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="font-bold text-sky-300 uppercase tracking-wider text-[10px]">
+                      Exigência do Empresário &amp; Atleta
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${salaryStatus.cls}`}
+                    >
+                      {salaryStatus.label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <div className="text-slate-500 text-[10px]">Salário Atual</div>
+                      <div className="font-bold text-slate-200 tabular-nums">
+                        {formatMonthlySalary(modalBaseSalary)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-slate-500 text-[10px]">Mínimo Exigido</div>
+                      <div className="font-bold text-amber-300 tabular-nums">
+                        {formatMonthlySalary(effectiveMinSalary)}
+                      </div>
+                    </div>
+                  </div>
+                  {hasHardCompetition && (
+                    <div className="text-[10px] text-amber-300/90 leading-snug">
+                      Obs.: você já possui titular forte nessa posição; o empresário pediu +8% para compensar disputa por vaga.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Campo de Salário Mensal Proposto com Máscara R$ */}
               <div className="bg-[#06090E] border border-white/[0.08] rounded-xl p-3 space-y-2">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-slate-400 font-semibold">Salário Mensal Proposto</span>
@@ -896,28 +979,25 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                     {formatMonthlySalary(proposedSalary)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <CurrencyReaisInput
+                  valueReais={Math.round(proposedSalary * 1000)}
+                  onChangeReais={(nextReais) => setProposedSalary(nextReais / 1000)}
+                  className="w-full px-3 py-2 rounded-lg bg-[#0D121A] border border-white/10 text-xs font-bold text-white text-center tabular-nums focus:outline-none focus:border-emerald-500"
+                />
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setProposedSalary((s) => Math.max(40, s - 25))}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-200 cursor-pointer"
+                    className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
                   >
-                    -€25k
+                    - {formatThousandsBRL(25)}
                   </button>
-                  <input
-                    type="number"
-                    min={40}
-                    step={25}
-                    value={proposedSalary}
-                    onChange={(e) => setProposedSalary(Math.max(40, Number(e.target.value) || 40))}
-                    className="flex-1 px-3 py-1.5 rounded-lg bg-[#0D121A] border border-white/10 text-xs text-white text-center tabular-nums"
-                  />
                   <button
                     type="button"
                     onClick={() => setProposedSalary((s) => s + 25)}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-200 cursor-pointer"
+                    className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
                   >
-                    +€25k
+                    + {formatThousandsBRL(25)}
                   </button>
                 </div>
                 {humanClubsCount > 1 && negotiatingEntry.originType !== 'human' && (
@@ -934,17 +1014,30 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   <div className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
                     Clube de <strong>{negotiatingEntry.sellerClub.managerName}</strong>. A compra só é concluída após autorização dele!
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
                     <div>
-                      <label className="block text-[10px] text-slate-400 mb-1">Oferta (€M)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={offerCash}
-                        onChange={(e) => setOfferCash(Math.max(0, Number(e.target.value) || 0))}
-                        className="w-full px-3 py-2.5 rounded-xl bg-[#06090E] border border-white/10 text-xs text-white"
+                      <label className="block text-[10px] text-slate-400 mb-1">Sua Proposta pelo Passe (R$)</label>
+                      <CurrencyReaisInput
+                        valueReais={Math.round(offerCash * 1_000_000)}
+                        onChangeReais={(nextReais) => setOfferCash(nextReais / 1_000_000)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-[#06090E] border border-white/10 text-xs font-bold text-white tabular-nums focus:outline-none focus:border-emerald-500"
                       />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOfferCash((v) => Math.max(0, Number((v - 0.5).toFixed(2))))}
+                        className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
+                      >
+                        - {formatCurrencyBRL(500_000)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOfferCash((v) => Number((v + 0.5).toFixed(2)))}
+                        className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
+                      >
+                        + {formatCurrencyBRL(500_000)}
+                      </button>
                     </div>
                     <div>
                       <label className="block text-[10px] text-slate-400 mb-1">Incluir Troca</label>
@@ -964,7 +1057,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   </div>
                   <button
                     type="button"
-                    disabled={offerCash > availableBudget}
+                    disabled={offerCash > availableBudget || proposedSalary < 40}
                     onClick={() => {
                       onSendHumanOffer(
                         activeClub.id,
@@ -982,45 +1075,67 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   </button>
                 </div>
               ) : (
-                /* Negociação FIFA com Bot (Europa, Série A ou Jogador Livre) */
+                /* Negociação Realista (Clube Vendedor + Empresário/Jogador) */
                 <div className="space-y-3">
-                  {negotiatingEntry.originType !== 'livre' && (
-                    <div className="bg-[#06090E] border border-white/[0.07] rounded-xl p-3 space-y-1.5">
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-400">Paciência do Clube</span>
-                        <span
-                          className={`font-bold ${
-                            patienceState.patience >= 3
-                              ? 'text-emerald-400'
-                              : patienceState.patience === 2
-                              ? 'text-amber-300'
-                              : 'text-rose-400'
-                          }`}
-                        >
-                          {patienceState.patience}/3
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {[1, 2, 3].map((bar) => (
-                          <div
-                            key={bar}
-                            className={`h-2 rounded-full ${
-                              patienceState.patience >= bar
-                                ? patienceState.patience >= 3
-                                  ? 'bg-emerald-500'
-                                  : patienceState.patience === 2
-                                  ? 'bg-amber-400'
-                                  : 'bg-rose-500'
-                                : 'bg-slate-800'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      {patienceState.lastMessage && (
-                        <div className="text-[11px] text-amber-200 pt-1">{patienceState.lastMessage}</div>
-                      )}
+                  <div className="bg-[#06090E] border border-white/[0.07] rounded-xl p-3 space-y-1.5">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">
+                        {negotiatingEntry.originType === 'livre'
+                          ? 'Paciência do Empresário'
+                          : 'Paciência (Clube & Empresário)'}
+                      </span>
+                      <span
+                        className={`font-bold ${
+                          patienceState.patience >= 3
+                            ? 'text-emerald-400'
+                            : patienceState.patience === 2
+                            ? 'text-amber-300'
+                            : 'text-rose-400'
+                        }`}
+                      >
+                        {patienceState.patience}/3
+                      </span>
                     </div>
-                  )}
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[1, 2, 3].map((bar) => (
+                        <div
+                          key={bar}
+                          className={`h-2 rounded-full ${
+                            patienceState.patience >= bar
+                              ? patienceState.patience >= 3
+                                ? 'bg-emerald-500'
+                                : patienceState.patience === 2
+                                ? 'bg-amber-400'
+                                : 'bg-rose-500'
+                              : 'bg-slate-800'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    {patienceState.lastMessage && (
+                      <div className="text-[11px] text-amber-200 pt-1 leading-snug">
+                        {patienceState.lastMessage}
+                      </div>
+                    )}
+                    {(patienceState.lastCounter !== undefined ||
+                      patienceState.lastCounterSalary !== undefined) &&
+                      !patienceState.locked && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (patienceState.lastCounter !== undefined) {
+                              setOfferCash(patienceState.lastCounter);
+                            }
+                            if (patienceState.lastCounterSalary !== undefined) {
+                              setProposedSalary(patienceState.lastCounterSalary);
+                            }
+                          }}
+                          className="mt-1 px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/35 text-sky-300 text-[10px] font-bold cursor-pointer"
+                        >
+                          Ajustar para pedida atual
+                        </button>
+                      )}
+                  </div>
 
                   {activeClub.squad.some((p) => p.id === negotiatingEntry.player.id) ? (
                     <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-xs text-emerald-200 font-bold flex items-center gap-2">
@@ -1032,7 +1147,10 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                       {negotiatingEntry.originType !== 'livre' && !modalDispute && (
                         <button
                           type="button"
-                          disabled={availableBudget < negotiatingEntry.player.marketValue}
+                          disabled={
+                            availableBudget < negotiatingEntry.player.marketValue ||
+                            proposedSalary < 40
+                          }
                           onClick={() => {
                             onAttemptFifaBotNegotiation(
                               activeClub.id,
@@ -1042,36 +1160,52 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                               negotiatingEntry.player.marketValue,
                               proposedSalary
                             );
-                            setNegotiatingEntry(null);
                           }}
                           className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 disabled:opacity-40 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Sparkles className="w-4 h-4" />
-                          Pagar Valor Integral (€{negotiatingEntry.player.marketValue.toFixed(1)}M)
+                          Pagar Valor Integral ({formatMillionsBRL(negotiatingEntry.player.marketValue)})
                         </button>
                       )}
 
-                      <div className="pt-2 border-t border-white/[0.06] space-y-2">
+                      <div className="pt-2 border-t border-white/[0.06] space-y-2.5">
                         <div className="text-[11px] text-slate-400">
                           {modalDispute
-                            ? `Cobrir lance na disputa (caixa livre: €${availableBudget.toFixed(1)}M):`
+                            ? `Cobrir lance na disputa (caixa livre: ${formatMillionsBRL(availableBudget)}):`
                             : negotiatingEntry.originType === 'livre'
-                            ? `Luvas + contrato (caixa livre: €${availableBudget.toFixed(1)}M):`
-                            : `Ou tente negociar abaixo do valor (caixa livre: €${availableBudget.toFixed(1)}M):`}
+                            ? `Luvas + contrato com empresário (caixa livre: ${formatMillionsBRL(availableBudget)}):`
+                            : `Negociar valores com clube e empresário (caixa livre: ${formatMillionsBRL(availableBudget)}):`}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
                           <div>
                             <label className="block text-[10px] text-slate-400 mb-1">
-                              {negotiatingEntry.originType === 'livre' ? 'Luvas / Bônus (€M)' : 'Sua Proposta (€M)'}
+                              {negotiatingEntry.originType === 'livre'
+                                ? 'Luvas / Bônus de Assinatura (R$)'
+                                : 'Sua Proposta pelo Passe (R$)'}
                             </label>
-                            <input
-                              type="number"
-                              min={0}
-                              step={0.5}
-                              value={offerCash}
-                              onChange={(e) => setOfferCash(Math.max(0, Number(e.target.value) || 0))}
-                              className="w-full px-3 py-2 rounded-xl bg-[#06090E] border border-white/10 text-xs text-white"
+                            <CurrencyReaisInput
+                              valueReais={Math.round(offerCash * 1_000_000)}
+                              onChangeReais={(nextReais) => setOfferCash(nextReais / 1_000_000)}
+                              className="w-full px-3 py-2 rounded-xl bg-[#06090E] border border-white/10 text-xs font-bold text-white tabular-nums focus:outline-none focus:border-emerald-500"
                             />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOfferCash((v) => Math.max(0, Number((v - 0.5).toFixed(2))))
+                              }
+                              className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
+                            >
+                              - {formatCurrencyBRL(500_000)}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setOfferCash((v) => Number((v + 0.5).toFixed(2)))}
+                              className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
+                            >
+                              + {formatCurrencyBRL(500_000)}
+                            </button>
                           </div>
                           <div>
                             <label className="block text-[10px] text-slate-400 mb-1">Troca (Opcional)</label>
@@ -1095,6 +1229,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                           type="button"
                           disabled={
                             offerCash > availableBudget ||
+                            proposedSalary < 40 ||
                             (negotiatingEntry.originType !== 'livre' && offerCash <= 0)
                           }
                           onClick={() => {
@@ -1111,15 +1246,12 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                               proposedSalary,
                               swapPlayerId || undefined
                             );
-                            if (modalDispute || negotiatingEntry.originType === 'livre') {
-                              setNegotiatingEntry(null);
-                            }
                           }}
-                          className="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 disabled:opacity-40 text-amber-200 font-bold text-xs cursor-pointer"
+                          className="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 disabled:opacity-40 text-amber-200 font-bold text-xs cursor-pointer tabular-nums"
                         >
                           {modalDispute
-                            ? `Registrar Lance (€${offerCash.toFixed(1)}M • ${formatMonthlySalary(proposedSalary)})`
-                            : `Enviar Oferta (€${offerCash.toFixed(1)}M • ${formatMonthlySalary(proposedSalary)})`}
+                            ? `Registrar Lance (${formatMillionsBRL(offerCash)} • ${formatMonthlySalary(proposedSalary)})`
+                            : `Enviar Oferta (${formatMillionsBRL(offerCash)} • ${formatMonthlySalary(proposedSalary)})`}
                         </button>
                       </div>
                     </>

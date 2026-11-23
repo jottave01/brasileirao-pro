@@ -96,7 +96,7 @@ export interface Player {
   isWorldMarket?: boolean;
   appearance?: PlayerAppearance;
   marketValue: number;
-  monthlySalary?: number; // € mil/mês (ex: 450 = €450k/mês)
+  monthlySalary?: number; // R$ mil/mês (ex: 1615 = R$ 1.615.000,00/mês)
   wage: number;
   stamina: number; // 0..100
   goals: number;
@@ -167,6 +167,7 @@ export interface BotNegotiationPatience {
   patience: number; // 3 -> 0
   locked: boolean;
   lastCounter?: number;
+  lastCounterSalary?: number;
   lastMessage?: string;
 }
 
@@ -216,6 +217,7 @@ export interface Match {
   awaySubsUsed: number;
   homeSubbedOutIds: string[];
   awaySubbedOutIds: string[];
+  manualControlClubs?: string[];
   ballX: number;
   ballY: number;
   activePlayerId?: string;
@@ -236,7 +238,7 @@ export interface TransferDisputeBid {
   swapPlayerId?: string;
   swapPlayerName?: string;
   swapValue: number;
-  proposedMonthlySalary: number; // €k/mês
+  proposedMonthlySalary: number; // R$ mil/mês
   submittedAt: string;
 }
 
@@ -266,6 +268,7 @@ export interface NegotiationOffer {
   swapPlayerName?: string;
   status: 'aguardando_amigo' | 'em_disputa' | 'aceita' | 'recusada' | 'contraproposta';
   counterCash?: number;
+  counterSalary?: number;
   botReason?: string;
   createdAt: string;
 }

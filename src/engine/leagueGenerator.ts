@@ -30,19 +30,94 @@ function resolveBotPersonality(mode: BotPersonality, index: number): ClubBotPers
   return mode;
 }
 
+function parseScheduleHours(timeStr: string): [number, number] {
+  const [hh, mm] = timeStr.split(':').map((n) => parseInt(n, 10) || 0);
+  return [hh, mm];
+}
+
+function getBrasiliaDateParts(ms: number): { year: number; month: number; day: number } {
+  const formatted = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(ms));
+  const [y, m, d] = formatted.split('-').map((n) => parseInt(n, 10));
+  return { year: y, month: m, day: d };
+}
+
+function buildBrasiliaSlotIso(year: number, month: number, dayOffset: number, hh: number, mm: number, day: number): string {
+  const baseUtc = Date.UTC(year, month - 1, day + dayOffset, hh + 3, mm, 0, 0);
+  return new Date(baseUtc).toISOString();
+}
+
+/** Gera próximos slots de 12:00 e 22:00 (Horário de Brasília, UTC-3) estritamente futuros após `afterMs` */
+export function getNextBrasiliaSlots(
+  count: number,
+  dailyScheduleTimes: [string, string] = ['12:00', '22:00'],
+  afterMs: number = Date.now()
+): string[] {
+  const { year, month, day } = getBrasiliaDateParts(afterMs);
+  const parsed = [
+    parseScheduleHours(dailyScheduleTimes[0] || '12:00'),
+    parseScheduleHours(dailyScheduleTimes[1] || '22:00'),
+  ].sort((a, b) => a[0] * 60 + a[1] - (b[0] * 60 + b[1]));
+
+  const slots: string[] = [];
+  let dayOffset = 0;
+  while (slots.length < count && dayOffset < count + 10) {
+    for (const [hh, mm] of parsed) {
+      const iso = buildBrasiliaSlotIso(year, month, dayOffset, hh, mm, day);
+      if (new Date(iso).getTime() > afterMs) {
+        slots.push(iso);
+        if (slots.length >= count) break;
+      }
+    }
+    dayOffset += 1;
+  }
+  return slots;
+}
+
 export function computeRoundScheduledAt(
   round: number,
-  dailyScheduleTimes: [string, string]
+  dailyScheduleTimes: [string, string] = ['12:00', '22:00'],
+  fromTimestampMs?: number
 ): string {
+  if (fromTimestampMs !== undefined) {
+    const slots = getNextBrasiliaSlots(round, dailyScheduleTimes, fromTimestampMs);
+    return slots[round - 1] ?? slots[slots.length - 1] ?? new Date().toISOString();
+  }
   const dayOffset = Math.floor((round - 1) / 2);
   const slotIdx = (round - 1) % 2;
-  const timeStr = dailyScheduleTimes[slotIdx] ?? (slotIdx === 0 ? '12:00' : '20:00');
-  const [hh, mm] = timeStr.split(':').map((n) => parseInt(n, 10) || 0);
+  const timeStr = dailyScheduleTimes[slotIdx] ?? (slotIdx === 0 ? '12:00' : '22:00');
+  const [hh, mm] = parseScheduleHours(timeStr);
+  const { year, month, day } = getBrasiliaDateParts(Date.now());
+  return buildBrasiliaSlotIso(year, month, dayOffset, hh, mm, day);
+}
 
-  const date = new Date();
-  date.setHours(hh, mm, 0, 0);
-  date.setDate(date.getDate() + dayOffset);
-  return date.toISOString();
+/** Reancora todas as rodadas a partir de `fromRound` para os próximos horários 12:00 e 22:00 (Brasília) */
+export function reanchorFutureRoundsSchedule(
+  matches: Match[],
+  fromRound: number,
+  dailyScheduleTimes: [string, string] = ['12:00', '22:00'],
+  afterMs: number = Date.now()
+): Match[] {
+  const futureRounds = Array.from(
+    new Set(matches.filter((m) => m.round >= fromRound).map((m) => m.round))
+  ).sort((a, b) => a - b);
+
+  if (futureRounds.length === 0) return matches;
+
+  const slots = getNextBrasiliaSlots(futureRounds.length, dailyScheduleTimes, afterMs);
+  const slotByRound = new Map<number, string>();
+  futureRounds.forEach((r, idx) => {
+    slotByRound.set(r, slots[idx] ?? slots[slots.length - 1]);
+  });
+
+  return matches.map((m) => {
+    const sched = slotByRound.get(m.round);
+    return sched ? { ...m, scheduledAt: sched } : m;
+  });
 }
 
 function makeInitialMatch(
@@ -94,7 +169,7 @@ export function generateSchedule(
 ): { matches: Match[]; totalRounds: number } {
   const n = clubs.length;
   const matches: Match[] = [];
-  const times: [string, string] = config.dailyScheduleTimes ?? ['12:00', '20:00'];
+  const times: [string, string] = config.dailyScheduleTimes ?? ['12:00', '22:00'];
 
   if (config.format === 'pontos_corridos') {
     const ids = clubs.map((c) => c.id);
@@ -250,7 +325,7 @@ export function createLeagueFromConfig(
     totalClubs: safeTotal,
     humanCount: safeHumans,
     botCount: safeBots,
-    dailyScheduleTimes: config.dailyScheduleTimes ?? ['12:00', '20:00'],
+    dailyScheduleTimes: config.dailyScheduleTimes ?? ['12:00', '22:00'],
     useRealisticBudgets: config.useRealisticBudgets ?? true,
   };
 

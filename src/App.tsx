@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Home,
+  LogOut,
   Plus,
   Shield,
   ShoppingBag,
@@ -24,10 +25,13 @@ import {
 import {
   createLeagueFromConfig,
   generateSchedule,
+  reanchorFutureRoundsSchedule,
 } from './engine/leagueGenerator';
 import {
   calcMonthlySalary,
   CLUB_TEMPLATES,
+  formatMillionsBRL,
+  formatMonthlySalary,
   generateBaseSquad,
   generateWorldMarketPool,
   PLAYER_OVERRIDES,
@@ -45,6 +49,7 @@ import {
 } from './engine/botAI';
 import {
   claimClubAtomically,
+  clearDeviceSession,
   dispatchLeagueAction,
   isSupabaseConfigured,
   LeagueRemoteAction,
@@ -79,7 +84,7 @@ const DEFAULT_CONFIG: LeagueConfig = {
   squadSize: 20,
   format: 'pontos_corridos',
   homeAndAway: true,
-  dailyScheduleTimes: ['12:00', '20:00'],
+  dailyScheduleTimes: ['12:00', '22:00'],
   transferRules: {
     windowOpen: true,
     windowHours: 24,
@@ -324,14 +329,34 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
     };
   });
 
-  if (!changed && state.transferDisputes) return state;
+  const needsScheduleMigration =
+    state.config.dailyScheduleTimes?.[0] !== '12:00' ||
+    state.config.dailyScheduleTimes?.[1] === '20:00';
+
+  if (!changed && !needsScheduleMigration && state.transferDisputes) return state;
   return {
     ...state,
+    config: needsScheduleMigration
+      ? {
+          ...state.config,
+          dailyScheduleTimes: ['12:00', '22:00'],
+        }
+      : state.config,
     clubs: nextClubs,
     worldMarket: migratedWorld,
     freeAgents: migratedFree,
     transferDisputes: state.transferDisputes ?? [],
   };
+}
+
+function markMatchManualControl(matches: Match[], round: number, clubId: string): Match[] {
+  return matches.map((m) => {
+    if (m.round !== round || m.status !== 'ao_vivo') return m;
+    if (m.homeClubId !== clubId && m.awayClubId !== clubId) return m;
+    const cur = m.manualControlClubs ?? [];
+    if (cur.includes(clubId)) return m;
+    return { ...m, manualControlClubs: [...cur, clubId] };
+  });
 }
 
 function getReservedDisputeCash(
@@ -345,12 +370,6 @@ function getReservedDisputeCash(
       const myBid = d.bids.find((b) => b.clubId === clubId);
       return sum + (myBid?.offerCash ?? 0);
     }, 0);
-}
-
-function formatSalaryLabel(salaryK: number): string {
-  return salaryK >= 1000
-    ? `€${(salaryK / 1000).toFixed(2)}M/mês`
-    : `€${Math.round(salaryK)}k/mês`;
 }
 
 function findDisputeTargetPlayer(
@@ -630,6 +649,7 @@ function applyUpdateTacticsState(
 ): LeagueState {
   return {
     ...prev,
+    matches: markMatchManualControl(prev.matches, prev.currentRound, clubId),
     clubs: prev.clubs.map((c) => {
       if (c.id !== clubId) return c;
 
@@ -700,6 +720,7 @@ function applyAssignSlotState(
 ): LeagueState {
   return {
     ...prev,
+    matches: markMatchManualControl(prev.matches, prev.currentRound, clubId),
     clubs: prev.clubs.map((c) => {
       if (c.id !== clubId) return c;
       const currentSlots = [...c.lineupSlots];
@@ -830,12 +851,14 @@ function applyLiveSubState(
     matches: prev.matches.map((m) => {
       if (m.id !== matchId) return m;
       const desc = `🔄 ${targetClub.shortName}: entra ${inPlayer.knownName}, sai ${outPlayer.knownName}`;
+      const manualClubs = m.manualControlClubs ?? [];
       return {
         ...m,
         homeSubsUsed: isHome ? m.homeSubsUsed + 1 : m.homeSubsUsed,
         awaySubsUsed: !isHome ? m.awaySubsUsed + 1 : m.awaySubsUsed,
         homeSubbedOutIds: isHome ? [...m.homeSubbedOutIds, outPlayer.id] : m.homeSubbedOutIds,
         awaySubbedOutIds: !isHome ? [...m.awaySubbedOutIds, outPlayer.id] : m.awaySubbedOutIds,
+        manualControlClubs: manualClubs.includes(clubId) ? manualClubs : [...manualClubs, clubId],
         lastPlayText: desc,
         events: [
           ...m.events,
@@ -898,21 +921,16 @@ function applyMarketBidState(
 
   const patienceKey = `${params.buyerClubId}:${params.targetPlayerId}`;
   const prevPatience = prev.botPatienceMap[patienceKey]?.patience ?? 3;
-  const evalRes =
-    params.originType === 'livre'
-      ? {
-          outcome: 'aceita' as const,
-          nextPatience: prevPatience,
-          locked: false,
-          message: `Proposta de contrato aceita por ${targetPlayer.knownName}!`,
-        }
-      : evaluateFifaBotOffer({
-          targetPlayer,
-          sellerClub,
-          offerCash: params.offerCash,
-          swapPlayer,
-          currentPatience: prevPatience,
-        });
+  const evalRes = evaluateFifaBotOffer({
+    targetPlayer,
+    sellerClub,
+    buyerClub: buyer,
+    originType: params.originType,
+    offerCash: params.offerCash,
+    proposedMonthlySalary: params.proposedMonthlySalary,
+    swapPlayer,
+    currentPatience: prevPatience,
+  });
 
   const updatedPatienceMap = {
     ...prev.botPatienceMap,
@@ -920,6 +938,7 @@ function applyMarketBidState(
       patience: evalRes.nextPatience,
       locked: evalRes.locked,
       lastCounter: evalRes.counterCash,
+      lastCounterSalary: evalRes.counterSalary,
       lastMessage: evalRes.message,
     },
   };
@@ -941,6 +960,7 @@ function applyMarketBidState(
           swapPlayerName: swapPlayer?.knownName,
           status: evalRes.outcome,
           counterCash: evalRes.counterCash,
+          counterSalary: evalRes.counterSalary,
           botReason: evalRes.message,
           createdAt: nowStr,
         },
@@ -989,7 +1009,7 @@ function applyMarketBidState(
           actorType: buyer.controller,
           message: `Contratou ${targetPlayer.knownName} (OVR ${targetPlayer.overall}) do ${
             sellerClub?.shortName ?? targetPlayer.currentClubName ?? 'Mercado'
-          } por €${params.offerCash.toFixed(1)}M (${formatSalaryLabel(params.proposedMonthlySalary)}).`,
+          } por ${formatMillionsBRL(params.offerCash)} (${formatMonthlySalary(params.proposedMonthlySalary)}).`,
           timestamp: nowStr,
         },
         ...prev.feed.slice(0, 24),
@@ -1064,7 +1084,7 @@ function applyMarketBidState(
         swapPlayerId: params.swapPlayerId,
         swapPlayerName: swapPlayer?.knownName,
         status: 'em_disputa',
-        botReason: `Disputa aberta! Lance de €${params.offerCash.toFixed(1)}M (${formatSalaryLabel(
+        botReason: `Disputa aberta! Lance de ${formatMillionsBRL(params.offerCash)} (${formatMonthlySalary(
           params.proposedMonthlySalary
         )}). Amigos podem cobrir até ${expiresFormatted}.`,
         createdAt: nowStr,
@@ -1078,8 +1098,8 @@ function applyMarketBidState(
         actorName: buyer.shortName,
         actorType: buyer.controller,
         message: existingDispute
-          ? `Cobriu oferta por ${targetPlayer.knownName} (€${params.offerCash.toFixed(1)}M • ${formatSalaryLabel(params.proposedMonthlySalary)}).`
-          : `Abriu disputa de 3h por ${targetPlayer.knownName} (€${params.offerCash.toFixed(1)}M • ${formatSalaryLabel(params.proposedMonthlySalary)}).`,
+          ? `Cobriu oferta por ${targetPlayer.knownName} (${formatMillionsBRL(params.offerCash)} • ${formatMonthlySalary(params.proposedMonthlySalary)}).`
+          : `Abriu disputa de 3h por ${targetPlayer.knownName} (${formatMillionsBRL(params.offerCash)} • ${formatMonthlySalary(params.proposedMonthlySalary)}).`,
         timestamp: nowStr,
       },
       ...prev.feed.slice(0, 24),
@@ -1147,7 +1167,7 @@ function applySendHumanOfferState(
         category: 'mercado',
         actorName: fromClub.shortName,
         actorType: 'human',
-        message: `Enviou proposta de €${params.offerCash.toFixed(1)}M ao ${toClub.shortName} por ${targetPlayer.knownName}.`,
+        message: `Enviou proposta de ${formatMillionsBRL(params.offerCash)} ao ${toClub.shortName} por ${targetPlayer.knownName}.`,
         timestamp: nowStr,
       },
       ...prev.feed.slice(0, 24),
@@ -1189,7 +1209,7 @@ function applyRespondHumanOfferState(
             status: decision,
             botReason:
               decision === 'aceita'
-                ? `${seller?.managerName} autorizou a venda por €${offer.offerCash.toFixed(1)}M.`
+                ? `${seller?.managerName} autorizou a venda por ${formatMillionsBRL(offer.offerCash)}.`
                 : `${seller?.managerName} recusou a proposta.`,
           }
         : n
@@ -1202,7 +1222,7 @@ function applyRespondHumanOfferState(
               category: 'mercado',
               actorName: seller.shortName,
               actorType: 'human',
-              message: `Autorizou venda de ${offer.targetPlayerName} para o ${buyer.shortName} (€${offer.offerCash.toFixed(1)}M).`,
+              message: `Autorizou venda de ${offer.targetPlayerName} para o ${buyer.shortName} (${formatMillionsBRL(offer.offerCash)}).`,
               timestamp: nowStr,
             },
             ...nextState.feed.slice(0, 24),
@@ -1309,7 +1329,10 @@ function createInitialLeague(): LeagueState {
         };
       }
     }
-    return saved;
+    return {
+      ...saved,
+      currentUserId: '',
+    };
   }
 
   const fresh = createLeagueFromConfig(DEFAULT_CONFIG, 'Você (Admin)', false, '1234');
@@ -1318,6 +1341,70 @@ function createInitialLeague(): LeagueState {
     saveDeviceSession({ participantId: admin.id, name: admin.name, pin: admin.pin });
   }
   return fresh;
+}
+
+function advanceToNextRoundState(
+  prev: LeagueState,
+  nowStr: string
+): { nextState: LeagueState; openedMidWindow: boolean } {
+  if (prev.currentRound >= prev.totalRounds) {
+    return { nextState: prev, openedMidWindow: false };
+  }
+
+  const shouldOpenMidWindow =
+    prev.config.homeAndAway &&
+    !prev.midSeasonWindowDone &&
+    prev.currentRound === Math.floor(prev.totalRounds / 2);
+
+  const refreshedClubs = prev.clubs.map((c) => ({
+    ...c,
+    dealsThisRound: 0,
+    squad: c.squad.map((p) => ({ ...p, stamina: 100 })),
+  }));
+  const botCycle = runBotMarketCycle({ ...prev, clubs: refreshedClubs });
+
+  if (shouldOpenMidWindow) {
+    const windowHours = prev.config.transferRules.windowHours || 24;
+    const windowEndsAt = new Date(Date.now() + windowHours * 3600 * 1000).toISOString();
+    return {
+      openedMidWindow: true,
+      nextState: {
+        ...prev,
+        status: 'janela_mercado',
+        currentRound: prev.currentRound + 1,
+        clubs: botCycle.clubs,
+        freeAgents: botCycle.freeAgents,
+        transferWindowOpen: true,
+        transferWindowEndsAt: windowEndsAt,
+        transferWindowLabel: `Janela Virada de Turno (${windowHours}h)`,
+        midSeasonWindowDone: true,
+        botPatienceMap: {},
+        feed: [
+          {
+            id: uid('feed-midwin'),
+            category: 'mercado' as const,
+            actorName: 'Virada de Turno',
+            actorType: 'system' as const,
+            message: `Janela de ${windowHours}h reaberta para o returno! Negociações liberadas.`,
+            timestamp: nowStr,
+          },
+          ...botCycle.feedItems,
+          ...prev.feed,
+        ].slice(0, 24),
+      },
+    };
+  }
+
+  return {
+    openedMidWindow: false,
+    nextState: {
+      ...prev,
+      currentRound: prev.currentRound + 1,
+      clubs: botCycle.clubs,
+      freeAgents: botCycle.freeAgents,
+      feed: [...botCycle.feedItems, ...prev.feed].slice(0, 24),
+    },
+  };
 }
 
 export function App() {
@@ -1334,7 +1421,7 @@ export function App() {
   const skipNextSaveRef = useRef(false);
 
   const currentUser =
-    league.participants.find((p) => p.id === league.currentUserId) ?? league.participants[0];
+    league.participants.find((p) => p.id === league.currentUserId) ?? null;
   const isAdminUser = currentUser?.isAdmin === true;
 
   const activeHumanClub =
@@ -1453,11 +1540,22 @@ export function App() {
         let next = resolveExpiredOrAllDisputes(prev, isWinExpired);
         if (!isWinExpired) return next;
 
+        const rescheduledMatches =
+          next.currentRound >= 2
+            ? reanchorFutureRoundsSchedule(
+                next.matches,
+                next.currentRound,
+                next.config.dailyScheduleTimes,
+                curNow
+              )
+            : next.matches;
+
         return {
           ...next,
           status: next.status === 'janela_mercado' ? 'campeonato' : next.status,
           transferWindowOpen: false,
           transferWindowEndsAt: null,
+          matches: rescheduledMatches,
           feed: [
             {
               id: uid('feed-auto-close-win'),
@@ -1507,70 +1605,80 @@ export function App() {
             res.homePlayerDrains ||
             res.awayPlayerDrains ||
             res.homeTacticUpdate ||
-            res.awayTacticUpdate
+            res.awayTacticUpdate ||
+            res.homeAutoSub ||
+            res.awayAutoSub
           ) {
+            const applySideUpdates = (
+              c: Club,
+              sideDrain: number,
+              playerDrains: Record<string, number> | undefined,
+              tacticUpdate: { formation: Formation; mentality: TacticalMentality } | undefined,
+              autoSub: { slotIndex: number; outPlayerId: string; inPlayerId: string } | undefined
+            ): Club => {
+              let nextClub = c;
+              if (sideDrain > 0 || playerDrains) {
+                nextClub = {
+                  ...nextClub,
+                  squad: nextClub.squad.map((p) => {
+                    if (!p.isStarter) return p;
+                    const drain = playerDrains?.[p.id] ?? sideDrain;
+                    return {
+                      ...p,
+                      stamina: Math.max(15, Math.round((p.stamina - drain) * 10) / 10),
+                    };
+                  }),
+                };
+              }
+              if (tacticUpdate) {
+                const built = buildLineupSlots(
+                  nextClub.squad,
+                  tacticUpdate.formation,
+                  nextClub.lineupSlots
+                );
+                nextClub = {
+                  ...nextClub,
+                  formation: tacticUpdate.formation,
+                  mentality: tacticUpdate.mentality,
+                  squad: built.squad,
+                  lineupSlots: built.lineupSlots,
+                };
+              }
+              if (autoSub) {
+                const nextSlots = nextClub.lineupSlots.map((s, idx) =>
+                  idx === autoSub.slotIndex ? { ...s, playerId: autoSub.inPlayerId } : s
+                );
+                const starterIds = new Set(nextSlots.map((s) => s.playerId));
+                nextClub = {
+                  ...nextClub,
+                  lineupSlots: nextSlots,
+                  squad: nextClub.squad.map((p) => ({
+                    ...p,
+                    isStarter: starterIds.has(p.id),
+                  })),
+                };
+              }
+              return nextClub;
+            };
+
             updatedClubs = updatedClubs.map((c) => {
               if (c.id === home.id) {
-                let nextClub = c;
-                if (res.homeStaminaDrain > 0 || res.homePlayerDrains) {
-                  nextClub = {
-                    ...nextClub,
-                    squad: nextClub.squad.map((p) => {
-                      if (!p.isStarter) return p;
-                      const drain = res.homePlayerDrains?.[p.id] ?? res.homeStaminaDrain;
-                      return {
-                        ...p,
-                        stamina: Math.max(15, Math.round((p.stamina - drain) * 10) / 10),
-                      };
-                    }),
-                  };
-                }
-                if (res.homeTacticUpdate) {
-                  const built = buildLineupSlots(
-                    nextClub.squad,
-                    res.homeTacticUpdate.formation,
-                    nextClub.lineupSlots
-                  );
-                  nextClub = {
-                    ...nextClub,
-                    formation: res.homeTacticUpdate.formation,
-                    mentality: res.homeTacticUpdate.mentality,
-                    squad: built.squad,
-                    lineupSlots: built.lineupSlots,
-                  };
-                }
-                return nextClub;
+                return applySideUpdates(
+                  c,
+                  res.homeStaminaDrain,
+                  res.homePlayerDrains,
+                  res.homeTacticUpdate,
+                  res.homeAutoSub
+                );
               }
               if (c.id === away.id) {
-                let nextClub = c;
-                if (res.awayStaminaDrain > 0 || res.awayPlayerDrains) {
-                  nextClub = {
-                    ...nextClub,
-                    squad: nextClub.squad.map((p) => {
-                      if (!p.isStarter) return p;
-                      const drain = res.awayPlayerDrains?.[p.id] ?? res.awayStaminaDrain;
-                      return {
-                        ...p,
-                        stamina: Math.max(15, Math.round((p.stamina - drain) * 10) / 10),
-                      };
-                    }),
-                  };
-                }
-                if (res.awayTacticUpdate) {
-                  const built = buildLineupSlots(
-                    nextClub.squad,
-                    res.awayTacticUpdate.formation,
-                    nextClub.lineupSlots
-                  );
-                  nextClub = {
-                    ...nextClub,
-                    formation: res.awayTacticUpdate.formation,
-                    mentality: res.awayTacticUpdate.mentality,
-                    squad: built.squad,
-                    lineupSlots: built.lineupSlots,
-                  };
-                }
-                return nextClub;
+                return applySideUpdates(
+                  c,
+                  res.awayStaminaDrain,
+                  res.awayPlayerDrains,
+                  res.awayTacticUpdate,
+                  res.awayAutoSub
+                );
               }
               return c;
             });
@@ -1608,6 +1716,64 @@ export function App() {
     return () => clearInterval(timer);
   }, [liveRoundRunning]);
 
+  // Agendador Automático das Rodadas 2..N nos horários 12:00 e 22:00 (Horário de Brasília)
+  useEffect(() => {
+    if (league.status !== 'campeonato') return;
+    if (isSupabaseConfigured && !isAdminUser) return;
+
+    const checkSchedule = () => {
+      const nowMs = Date.now();
+      const roundMatches = league.matches.filter((m) => m.round === league.currentRound);
+      const isRoundDone =
+        roundMatches.length > 0 && roundMatches.every((m) => m.status === 'finalizada');
+
+      if (isRoundDone && league.currentRound < league.totalRounds) {
+        const nextRoundMatch = league.matches.find((m) => m.round === league.currentRound + 1);
+        const nextTs = nextRoundMatch?.scheduledAt
+          ? new Date(nextRoundMatch.scheduledAt).getTime()
+          : NaN;
+        if (!Number.isNaN(nextTs) && nowMs >= nextTs) {
+          const nowStr = new Date().toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          const willOpenMidWindow =
+            league.config.homeAndAway &&
+            !league.midSeasonWindowDone &&
+            league.currentRound === Math.floor(league.totalRounds / 2);
+
+          setLeague((prev) => advanceToNextRoundState(prev, nowStr).nextState);
+          if (!willOpenMidWindow) {
+            setLiveRoundRunning(true);
+          } else {
+            setLiveRoundRunning(false);
+          }
+        }
+        return;
+      }
+
+      if (!isRoundDone && !liveRoundRunning && league.currentRound >= 2) {
+        const curTs = roundMatches[0]?.scheduledAt
+          ? new Date(roundMatches[0].scheduledAt).getTime()
+          : NaN;
+        if (!Number.isNaN(curTs) && nowMs >= curTs) {
+          setLiveRoundRunning(true);
+        }
+      }
+    };
+
+    checkSchedule();
+    const schedTimer = setInterval(checkSchedule, 5000);
+    return () => clearInterval(schedTimer);
+  }, [
+    league.status,
+    league.currentRound,
+    league.totalRounds,
+    league.matches,
+    liveRoundRunning,
+    isAdminUser,
+  ]);
+
   // Handlers de Liga & Autenticação por PIN
   const handleCreateLeague = (
     config: LeagueConfig,
@@ -1644,7 +1810,10 @@ export function App() {
 
     if (existing) {
       if (existing.pin !== cleanPin) {
-        return { ok: false, error: 'PIN incorreto para esta conta. Tente novamente.' };
+        return {
+          ok: false,
+          error: 'PIN incorreto! Digite o mesmo PIN de 4 dígitos cadastrado no seu primeiro acesso.',
+        };
       }
       saveDeviceSession({ participantId: existing.id, name: existing.name, pin: existing.pin });
       return {
@@ -1658,7 +1827,11 @@ export function App() {
     }
 
     if (targetLeague.participants.length >= targetLeague.config.humanCount) {
-      return { ok: false, error: 'Todas as vagas humanas desta liga já estão preenchidas.' };
+      return {
+        ok: false,
+        error:
+          'Todas as vagas desta sala já estão ocupadas. Entre com o mesmo nome e PIN do seu primeiro acesso.',
+      };
     }
 
     const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1720,14 +1893,27 @@ export function App() {
 
   const handleJoinByInviteCode = async (inviteCode: string, name: string, pin: string) => {
     const cleanCode = inviteCode.trim().toUpperCase();
-    const remote = await loadLeagueByInviteCode(cleanCode);
-    if (!remote || !isValidLeagueState(remote)) {
-      setAuthError(`Sala "${cleanCode}" não encontrada. Verifique o código com o Admin.`);
+    if (!cleanCode) {
+      setAuthError('Digite o Código da Sala enviado pelo Admin.');
       return;
     }
 
-    const synced = syncOfficialClubSquads(mergeMissingWorldStars(remote));
-    const res = joinOrLoginOnLeagueState(synced, name, pin);
+    let sourceLeague: LeagueState | null = null;
+    if (cleanCode === league.inviteCode.toUpperCase()) {
+      sourceLeague = league;
+    } else {
+      const remote = await loadLeagueByInviteCode(cleanCode);
+      if (remote && isValidLeagueState(remote)) {
+        sourceLeague = syncOfficialClubSquads(mergeMissingWorldStars(remote));
+      }
+    }
+
+    if (!sourceLeague) {
+      setAuthError(`Código da sala "${cleanCode}" inválido! Peça o código correto ao Admin.`);
+      return;
+    }
+
+    const res = joinOrLoginOnLeagueState(sourceLeague, name, pin);
     if (!res.ok || !res.nextState) {
       setAuthError(res.error ?? 'Não foi possível entrar nesta sala.');
       return;
@@ -1744,6 +1930,18 @@ export function App() {
       );
     }
     setInviteModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    clearDeviceSession();
+    setLiveRoundRunning(false);
+    setAuthError(null);
+    setLoginModalMode('login');
+    setLeague((prev) => ({
+      ...prev,
+      currentUserId: '',
+    }));
+    setInviteModalOpen(true);
   };
 
   const handleStartClubSelection = () => {
@@ -1840,11 +2038,21 @@ export function App() {
     const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     setLeague((prev) => {
       const resolved = resolveExpiredOrAllDisputes(prev, true);
+      const nextMatches =
+        resolved.currentRound >= 2
+          ? reanchorFutureRoundsSchedule(
+              resolved.matches,
+              resolved.currentRound,
+              resolved.config.dailyScheduleTimes,
+              Date.now()
+            )
+          : resolved.matches;
       return {
         ...resolved,
         status: 'campeonato',
         transferWindowOpen: false,
         transferWindowEndsAt: null,
+        matches: nextMatches,
         feed: [
           {
             id: uid('feed-close-win'),
@@ -1863,14 +2071,25 @@ export function App() {
 
   const handleStartLiveRound = () => {
     if (isSupabaseConfigured && !isAdminUser) return;
-    if (league.status === 'janela_mercado') {
+    if (league.status === 'janela_mercado' || league.currentRound === 1) {
       setLeague((prev) => {
-        const resolved = resolveExpiredOrAllDisputes(prev, true);
+        const base =
+          prev.status === 'janela_mercado' ? resolveExpiredOrAllDisputes(prev, true) : prev;
+        const anchoredMatches =
+          base.currentRound === 1
+            ? reanchorFutureRoundsSchedule(
+                base.matches,
+                2,
+                base.config.dailyScheduleTimes,
+                Date.now()
+              )
+            : base.matches;
         return {
-          ...resolved,
+          ...base,
           status: 'campeonato',
           transferWindowOpen: false,
           transferWindowEndsAt: null,
+          matches: anchoredMatches,
         };
       });
     }
@@ -2015,21 +2234,6 @@ export function App() {
     }
   };
 
-  const handleUpdatePlayerSalary = (
-    clubId: string,
-    playerId: string,
-    newMonthlySalary: number
-  ) => {
-    setLeague((prev) => applyUpdateSalaryState(prev, clubId, playerId, newMonthlySalary));
-    if (isSupabaseConfigured && !isAdminUser && currentUser) {
-      dispatchLeagueAction(league.id, currentUser.id, 'update_salary', {
-        clubId,
-        playerId,
-        newMonthlySalary,
-      });
-    }
-  };
-
   const handleToggleListForSale = (clubId: string, playerId: string) => {
     setLeague((prev) => applyToggleSaleState(prev, clubId, playerId));
     if (isSupabaseConfigured && !isAdminUser && currentUser) {
@@ -2061,58 +2265,7 @@ export function App() {
       league.currentRound === Math.floor(league.totalRounds / 2);
 
     const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-    setLeague((prev) => {
-      if (prev.currentRound >= prev.totalRounds) return prev;
-      const shouldOpenMidWindow =
-        prev.config.homeAndAway &&
-        !prev.midSeasonWindowDone &&
-        prev.currentRound === Math.floor(prev.totalRounds / 2);
-
-      const refreshedClubs = prev.clubs.map((c) => ({
-        ...c,
-        dealsThisRound: 0,
-        squad: c.squad.map((p) => ({ ...p, stamina: 100 })),
-      }));
-      const botCycle = runBotMarketCycle({ ...prev, clubs: refreshedClubs });
-
-      if (shouldOpenMidWindow) {
-        const windowHours = prev.config.transferRules.windowHours || 24;
-        const windowEndsAt = new Date(Date.now() + windowHours * 3600 * 1000).toISOString();
-        return {
-          ...prev,
-          status: 'janela_mercado',
-          currentRound: prev.currentRound + 1,
-          clubs: botCycle.clubs,
-          freeAgents: botCycle.freeAgents,
-          transferWindowOpen: true,
-          transferWindowEndsAt: windowEndsAt,
-          transferWindowLabel: `Janela Virada de Turno (${windowHours}h)`,
-          midSeasonWindowDone: true,
-          botPatienceMap: {},
-          feed: [
-            {
-              id: uid('feed-midwin'),
-              category: 'mercado' as const,
-              actorName: 'Virada de Turno',
-              actorType: 'system' as const,
-              message: `Janela de ${windowHours}h reaberta para o returno! Negociações liberadas.`,
-              timestamp: nowStr,
-            },
-            ...botCycle.feedItems,
-            ...prev.feed,
-          ].slice(0, 24),
-        };
-      }
-
-      return {
-        ...prev,
-        currentRound: prev.currentRound + 1,
-        clubs: botCycle.clubs,
-        freeAgents: botCycle.freeAgents,
-        feed: [...botCycle.feedItems, ...prev.feed].slice(0, 24),
-      };
-    });
+    setLeague((prev) => advanceToNextRoundState(prev, nowStr).nextState);
 
     if (willOpenMidWindow) {
       setActiveTab('mercado');
@@ -2166,7 +2319,7 @@ export function App() {
               >
                 {currentUser?.clubId && <ClubCrest club={activeHumanClub} size="xs" />}
                 <span className="text-[11px] font-bold text-white truncate">
-                  {currentUser?.name.split(' ')[0]}
+                  {currentUser ? currentUser.name.split(' ')[0] : 'Convidado'}
                   {currentUser?.clubId ? ` • ${activeHumanClub.shortName}` : ''}
                 </span>
               </div>
@@ -2179,32 +2332,47 @@ export function App() {
                   setInviteModalOpen(true);
                 }}
                 className="w-9 h-9 rounded-xl bg-[#0D131E] border border-white/12 hover:border-emerald-400/60 text-slate-200 flex items-center justify-center cursor-pointer transition"
-                title="Login / Trocar ou Resetar Carreira"
+                title="Login / Entrar com Código"
                 aria-label="Login e Central de Carreira"
               >
                 <UserCheck className="w-4 h-4 text-emerald-400" />
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthError(null);
-                  setLoginModalMode('new_career');
-                  setInviteModalOpen(true);
-                }}
-                className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-400 hover:brightness-110 text-slate-950 flex items-center justify-center cursor-pointer shadow-md shadow-emerald-500/20 transition"
-                title="Nova Carreira"
-                aria-label="Nova Carreira"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-              </button>
+              {currentUser && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="h-9 px-2.5 rounded-xl bg-rose-500/15 border border-rose-500/35 hover:bg-rose-500/25 text-rose-200 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
+                  title="Sair da conta (exigirá PIN para voltar)"
+                  aria-label="Sair"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sair
+                </button>
+              )}
+
+              {isAdminUser && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthError(null);
+                    setLoginModalMode('new_career');
+                    setInviteModalOpen(true);
+                  }}
+                  className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-400 hover:brightness-110 text-slate-950 flex items-center justify-center cursor-pointer shadow-md shadow-emerald-500/20 transition"
+                  title="Nova Carreira"
+                  aria-label="Nova Carreira"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              )}
             </div>
           </div>
         </header>
 
         {/* Conteúdo Principal */}
         <main className="flex-1 px-3.5 pt-4 pb-24 overflow-x-hidden">
-          {activeTab === 'criar' && (
+          {activeTab === 'criar' && isAdminUser && (
             <LeagueCreatorView
               hasActiveLeague
               onCancel={() => setActiveTab('lobby')}
@@ -2217,7 +2385,7 @@ export function App() {
               league={league}
               onOpenLoginModal={(mode = 'login') => {
                 setAuthError(null);
-                setLoginModalMode(mode);
+                setLoginModalMode(isAdminUser ? mode : 'login');
                 setInviteModalOpen(true);
               }}
               onStartClubSelection={handleStartClubSelection}
@@ -2247,7 +2415,6 @@ export function App() {
               onAssignSlotPlayer={handleAssignSlotPlayer}
               onAutoPickLineup={handleAutoPickLineup}
               onToggleListForSale={handleToggleListForSale}
-              onUpdatePlayerSalary={handleUpdatePlayerSalary}
               onConfirmSquadAndStartMatches={() => setActiveTab('campeonato')}
             />
           )}
@@ -2270,9 +2437,10 @@ export function App() {
         {inviteModalOpen && (
           <CareerLoginModal
             league={league}
+            isAdminUser={isAdminUser}
             authError={authError}
             canDismiss={Boolean(currentUser)}
-            initialMode={loginModalMode}
+            initialMode={isAdminUser ? loginModalMode : 'login'}
             onClose={() => {
               setAuthError(null);
               setInviteModalOpen(false);
@@ -2280,10 +2448,12 @@ export function App() {
             onJoinOrLogin={handleJoinOrLoginParticipant}
             onJoinByInviteCode={handleJoinByInviteCode}
             onStartFreshCareer={(freshConfig, adminName, adminPin) => {
+              if (!isAdminUser) return;
               handleCreateLeague(freshConfig, adminName, false, adminPin);
               setInviteModalOpen(false);
             }}
             onOpenAdvancedCreator={() => {
+              if (!isAdminUser) return;
               setAuthError(null);
               setInviteModalOpen(false);
               setActiveTab('criar');
