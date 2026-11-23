@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Crown,
   KeyRound,
@@ -19,6 +19,7 @@ interface CareerLoginModalProps {
   canDismiss: boolean;
   initialMode?: 'login' | 'new_career';
   onClose: () => void;
+  onAdminLogin: (email: string, password: string) => boolean;
   onJoinOrLogin: (name: string, pin: string) => void;
   onJoinByInviteCode?: (inviteCode: string, name: string, pin: string) => Promise<void> | void;
   onStartFreshCareer: (config: LeagueConfig, adminName: string, adminPin: string) => void;
@@ -41,6 +42,7 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
   canDismiss,
   initialMode = 'login',
   onClose,
+  onAdminLogin,
   onJoinOrLogin,
   onJoinByInviteCode,
   onStartFreshCareer,
@@ -49,6 +51,19 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
   const [mode, setMode] = useState<'login' | 'new_career'>(
     isAdminUser ? initialMode : 'login'
   );
+  const [showAdminAuth, setShowAdminAuth] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+
+  useEffect(() => {
+    if (isAdminUser) {
+      setShowAdminAuth(false);
+      setMode(initialMode === 'new_career' ? 'new_career' : 'login');
+    } else {
+      setMode('login');
+    }
+  }, [isAdminUser, initialMode]);
+
   const activeMode: 'login' | 'new_career' = isAdminUser ? mode : 'login';
 
   // Login / entrar na carreira somente com Código da Sala + PIN de 4 dígitos
@@ -79,6 +94,16 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
       return;
     }
     onJoinOrLogin(loginName.trim(), loginPin.trim());
+  };
+
+  const handleAdminAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = onAdminLogin(adminEmail.trim(), adminPassword);
+    if (ok) {
+      setShowAdminAuth(false);
+      setAdminPassword('');
+      setMode('new_career');
+    }
   };
 
   const handleFreshCareerSubmit = (e: React.FormEvent) => {
@@ -161,6 +186,11 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
                 Nova Carreira do 0
               </button>
             </div>
+          ) : showAdminAuth ? (
+            <div className="mt-4 py-2 px-3 rounded-xl bg-amber-500/15 border border-amber-500/35 text-xs font-bold text-amber-300 flex items-center justify-center gap-1.5">
+              <Crown className="w-3.5 h-3.5" />
+              Entrar como Admin
+            </div>
           ) : (
             <div className="mt-4 py-2 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-300 flex items-center justify-center gap-1.5">
               <LogIn className="w-3.5 h-3.5" />
@@ -170,7 +200,63 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
         </div>
 
         <div className="p-5">
-          {activeMode === 'login' ? (
+          {showAdminAuth && !isAdminUser ? (
+            <form onSubmit={handleAdminAuthSubmit} className="space-y-4">
+              {authError && (
+                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200">
+                  {authError}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    E-mail
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="Seu e-mail de administrador"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#06090E] border border-white/10 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Senha
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Sua senha de administrador"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#06090E] border border-white/10 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-emerald-400 hover:brightness-105 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg cursor-pointer"
+              >
+                <Crown className="w-4 h-4" />
+                Entrar como Admin
+              </button>
+
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAdminAuth(false)}
+                  className="text-[11px] text-slate-400 hover:text-white underline underline-offset-4 cursor-pointer"
+                >
+                  Voltar para entrada com Código da Sala
+                </button>
+              </div>
+            </form>
+          ) : activeMode === 'login' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               {/* Info da Liga Ativa (só exibe código/vagas após autenticado) */}
               {canDismiss ? (
@@ -289,7 +375,7 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
                     onChange={(e) =>
                       setLoginPin(e.target.value.replace(/\D/g, '').slice(0, 4))
                     }
-                    placeholder="•••• (Admin padrão: 1234)"
+                    placeholder="••••"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#06090E] border border-white/10 text-sm text-white tracking-widest focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -303,6 +389,18 @@ export const CareerLoginModal: React.FC<CareerLoginModalProps> = ({
                 <Play className="w-4 h-4 fill-current" />
                 {joiningRemote ? 'Conectando à Sala...' : 'Entrar na Carreira'}
               </button>
+
+              {!isAdminUser && (
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminAuth(true)}
+                    className="text-[11px] text-slate-400 hover:text-amber-300 underline underline-offset-4 transition cursor-pointer"
+                  >
+                    Entrar como admin
+                  </button>
+                </div>
+              )}
             </form>
           ) : (
             <form onSubmit={handleFreshCareerSubmit} className="space-y-4">

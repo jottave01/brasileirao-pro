@@ -14,6 +14,7 @@ const supabase: SupabaseClient | null =
 
 const LOCAL_STORAGE_KEY = 'brasileirao-pro:active-league';
 const DEVICE_SESSION_KEY = 'brasileirao-pro:device-session';
+const ADMIN_AUTH_KEY = 'brasileirao-pro:admin-auth';
 const CHANNEL_NAME = 'brasileirao-pro-sync';
 const TAB_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
 
@@ -42,9 +43,30 @@ export function loadDeviceSession(): DeviceSession | null {
   }
 }
 
+export function saveAdminAuthSession(isAuthed: boolean): void {
+  try {
+    if (isAuthed) {
+      localStorage.setItem(ADMIN_AUTH_KEY, '1');
+    } else {
+      localStorage.removeItem(ADMIN_AUTH_KEY);
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function loadAdminAuthSession(): boolean {
+  try {
+    return localStorage.getItem(ADMIN_AUTH_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function clearDeviceSession(): void {
   try {
     localStorage.removeItem(DEVICE_SESSION_KEY);
+    localStorage.removeItem(ADMIN_AUTH_KEY);
   } catch {
     // ignore
   }

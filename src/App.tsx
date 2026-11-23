@@ -57,9 +57,11 @@ import {
   dispatchLeagueAction,
   isSupabaseConfigured,
   LeagueRemoteAction,
+  loadAdminAuthSession,
   loadDeviceSession,
   loadLeagueByInviteCode,
   loadLocalLeagueState,
+  saveAdminAuthSession,
   saveDeviceSession,
   saveLeagueState,
   subscribeLeagueActions,
@@ -77,6 +79,9 @@ type ActiveTab = 'lobby' | 'clube' | 'campeonato' | 'mercado' | 'criar';
 
 let uidSeq = 1;
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${uidSeq++}`;
+
+const ADMIN_EMAIL = 'brasileiraopro@gmail.com';
+const ADMIN_PASSWORD = 'C@rreira37524';
 
 const DEFAULT_CONFIG: LeagueConfig = {
   name: 'Brasileirão Carreira',
@@ -1464,7 +1469,7 @@ function createInitialLeague(): LeagueState {
           (p.id === session.participantId && p.pin === session.pin) ||
           (p.name.toLowerCase() === session.name.toLowerCase() && p.pin === session.pin)
       );
-      if (matched) {
+      if (matched && (!matched.isAdmin || loadAdminAuthSession())) {
         return {
           ...saved,
           currentUserId: matched.id,
@@ -1479,11 +1484,10 @@ function createInitialLeague(): LeagueState {
   }
 
   const fresh = createLeagueFromConfig(DEFAULT_CONFIG, 'Você (Admin)', false, '1234');
-  const admin = fresh.participants[0];
-  if (admin) {
-    saveDeviceSession({ participantId: admin.id, name: admin.name, pin: admin.pin });
-  }
-  return fresh;
+  return {
+    ...fresh,
+    currentUserId: '',
+  };
 }
 
 function advanceToNextRoundState(
@@ -1559,6 +1563,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('lobby');
   const [liveRoundRunning, setLiveRoundRunning] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isAdminAuthed, setIsAdminAuthed] = useState<boolean>(() => loadAdminAuthSession());
   const [loginModalMode, setLoginModalMode] = useState<'login' | 'new_career'>('login');
   const [inviteModalOpen, setInviteModalOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -1569,7 +1574,7 @@ export function App() {
 
   const currentUser =
     league.participants.find((p) => p.id === league.currentUserId) ?? null;
-  const isAdminUser = currentUser?.isAdmin === true;
+  const isAdminUser = isAdminAuthed || currentUser?.isAdmin === true;
 
   const activeHumanClub =
     league.clubs.find((c) => c.id === (currentUser?.clubId || league.activeHumanClubId)) ??
@@ -2079,8 +2084,46 @@ export function App() {
     setInviteModalOpen(false);
   };
 
+  const handleAdminLogin = (email: string, password: string): boolean => {
+    if (
+      email.trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase() ||
+      password !== ADMIN_PASSWORD
+    ) {
+      setAuthError('E-mail ou senha de administrador incorretos.');
+      return false;
+    }
+
+    setAuthError(null);
+    saveAdminAuthSession(true);
+    setIsAdminAuthed(true);
+    setLoginModalMode('new_career');
+
+    const admin =
+      league.participants.find((p) => p.isAdmin) ?? league.participants[0];
+    if (admin) {
+      saveDeviceSession({
+        participantId: admin.id,
+        name: admin.name,
+        pin: admin.pin,
+      });
+      setLeague((prev) => {
+        const targetAdmin =
+          prev.participants.find((p) => p.isAdmin) ?? prev.participants[0];
+        if (!targetAdmin) return prev;
+        return {
+          ...prev,
+          currentUserId: targetAdmin.id,
+          activeHumanClubId: targetAdmin.clubId ?? prev.activeHumanClubId,
+        };
+      });
+    }
+    return true;
+  };
+
   const handleLogout = () => {
     clearDeviceSession();
+    saveAdminAuthSession(false);
+    setIsAdminAuthed(false);
     setLiveRoundRunning(false);
     setAuthError(null);
     setLoginModalMode('login');
@@ -2600,6 +2643,7 @@ export function App() {
               setAuthError(null);
               setInviteModalOpen(false);
             }}
+            onAdminLogin={handleAdminLogin}
             onJoinOrLogin={handleJoinOrLoginParticipant}
             onJoinByInviteCode={handleJoinByInviteCode}
             onStartFreshCareer={(freshConfig, adminName, adminPin) => {
