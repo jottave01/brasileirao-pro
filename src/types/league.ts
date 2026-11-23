@@ -97,6 +97,7 @@ export interface Player {
   appearance?: PlayerAppearance;
   marketValue: number;
   monthlySalary?: number; // R$ mil/mês (ex: 1615 = R$ 1.615.000,00/mês)
+  contractYears?: number; // 0 = livre, 1..4 = anos restantes de contrato
   wage: number;
   stamina: number; // 0..100
   goals: number;

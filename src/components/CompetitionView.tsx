@@ -985,14 +985,9 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                       <th className="py-2 px-1">Clube</th>
                       <th className="py-2 px-1 text-center">Pos</th>
                       <th className="py-2 px-1 text-center">OVR</th>
-                      <th
-                        className={`py-2 px-1 text-center ${
-                          isAssists ? 'font-bold text-slate-300' : 'font-bold text-slate-300'
-                        }`}
-                      >
+                      <th className="py-2 px-1 text-center font-bold text-slate-300">
                         {isAssists ? 'A' : 'G'}
                       </th>
-                      <th className="py-2 px-1 text-center">{isAssists ? 'G' : 'A'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
@@ -1071,13 +1066,6 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                           >
                             {isAssists ? item.player.assists : item.player.goals}
                           </td>
-                          <td
-                            className={`py-2 px-1 text-center font-semibold tabular-nums ${
-                              isAssists ? 'text-emerald-300' : 'text-sky-300'
-                            }`}
-                          >
-                            {isAssists ? item.player.goals : item.player.assists}
-                          </td>
                         </tr>
                       );
                     })}
@@ -1098,7 +1086,7 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                     </span>
                   </div>
                   <span className="text-slate-500 font-medium">
-                    {isAssists ? 'A = Assistências • G = Gols' : 'G = Gols • A = Assistências'}
+                    {isAssists ? 'A = Assistências' : 'G = Gols marcados'}
                   </span>
                 </div>
               </>

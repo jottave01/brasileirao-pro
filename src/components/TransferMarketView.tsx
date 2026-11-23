@@ -16,6 +16,7 @@ import {
 import { Club, LeagueState, Player, PlayerPosition } from '../types/league';
 import {
   calcAgentMinimumSalary,
+  calcImmediateInterestSalary,
   calcMonthlySalary,
   formatCurrencyBRL,
   formatMillionsBRL,
@@ -306,14 +307,17 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
       : minAgentSalary;
 
     setOfferCash(
-      activeDispute
+      entry.originType === 'livre'
+        ? 0
+        : activeDispute
         ? Number((topBidCash + 0.5).toFixed(1))
-        : existingPatience?.lastCounter ??
-          (entry.originType === 'livre' ? 0 : entry.player.marketValue)
+        : existingPatience?.lastCounter ?? entry.player.marketValue
     );
     setProposedSalary(
       existingPatience?.lastCounterSalary ??
-        (activeDispute ? Math.round(topBidSalary * 1.05) : minAgentSalary)
+        (activeDispute
+          ? Math.max(25, Math.round((topBidSalary + (entry.originType === 'livre' ? 25 : topBidSalary * 0.05)) / 5) * 5)
+          : minAgentSalary)
     );
     setSwapPlayerId('');
   };
@@ -576,6 +580,9 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
               const topBidCash = activeDispute
                 ? Math.max(...activeDispute.bids.map((b) => b.offerCash))
                 : 0;
+              const topBidSalary = activeDispute
+                ? Math.max(...activeDispute.bids.map((b) => b.proposedMonthlySalary))
+                : 0;
               const playerMonthlySalary =
                 player.monthlySalary ?? calcMonthlySalary(player.overall);
 
@@ -636,7 +643,9 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                             <Flame className="w-3 h-3" />
                             Disputa ({activeDispute.bids.length} clubes •{' '}
                             {formatRemainingWindow(activeDispute.expiresAt, nowMs)}) • Topo{' '}
-                            {formatMillionsBRL(topBidCash)}
+                            {originType === 'livre'
+                              ? formatMonthlySalary(topBidSalary)
+                              : formatMillionsBRL(topBidCash)}
                           </span>
                         )}
                       </div>
@@ -695,7 +704,11 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
             ) : (
               activeDisputes.map((dispute) => {
                 const entry = allEntries.find((e) => e.player.id === dispute.targetPlayerId);
-                const sortedBids = [...dispute.bids].sort((a, b) => b.offerCash - a.offerCash);
+                const sortedBids = [...dispute.bids].sort((a, b) =>
+                  dispute.originType === 'livre'
+                    ? b.proposedMonthlySalary - a.proposedMonthlySalary
+                    : b.offerCash - a.offerCash
+                );
                 return (
                   <div
                     key={dispute.id}
@@ -737,7 +750,9 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                               {isMine && ' (Você)'}
                             </span>
                             <span className="tabular-nums">
-                              {formatMillionsBRL(bid.offerCash)} • {formatMonthlySalary(bid.proposedMonthlySalary)}
+                              {dispute.originType === 'livre'
+                                ? `Passe Livre • ${formatMonthlySalary(bid.proposedMonthlySalary)}`
+                                : `${formatMillionsBRL(bid.offerCash)} • ${formatMonthlySalary(bid.proposedMonthlySalary)}`}
                             </span>
                           </div>
                         );
@@ -833,8 +848,11 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   </div>
                   {neg.proposedMonthlySalary && (
                     <div className="text-[10px] text-slate-400 tabular-nums">
-                      Oferta: {formatMillionsBRL(neg.offerCash)} • Salário:{' '}
-                      {formatMonthlySalary(neg.proposedMonthlySalary)}
+                      {neg.toClubId === 'livre' || neg.offerCash === 0
+                        ? `Passe Livre • Salário: ${formatMonthlySalary(neg.proposedMonthlySalary)}`
+                        : `Oferta: ${formatMillionsBRL(neg.offerCash)} • Salário: ${formatMonthlySalary(
+                            neg.proposedMonthlySalary
+                          )}`}
                     </div>
                   )}
                   {neg.botReason && <div className="text-[11px] text-slate-400">{neg.botReason}</div>}
@@ -864,15 +882,47 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
         const hasHardCompetition = starterRivals.some(
           (p) => p.overall >= negotiatingEntry.player.overall + 2
         );
+        const isFreeAgent = negotiatingEntry.originType === 'livre';
         const effectiveMinSalary = hasHardCompetition
-          ? Math.max(40, Math.round((minBaseAgentSalary * 1.08) / 5) * 5)
+          ? Math.max(25, Math.round((minBaseAgentSalary * 1.08) / 5) * 5)
           : minBaseAgentSalary;
-        const salaryStatus =
-          proposedSalary > effectiveMinSalary
-            ? { label: 'Acima da pedida (Empresário satisfeito)', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+        const immediateSalary = calcImmediateInterestSalary(
+          negotiatingEntry.player,
+          activeClub,
+          hasHardCompetition
+        );
+        const salaryStatus = isFreeAgent && !modalDispute
+          ? proposedSalary >= immediateSalary
+            ? {
+                label:
+                  humanClubsCount > 1
+                    ? 'Interesse Imediato! Assina na hora sem disputa'
+                    : 'Proposta irrecusável (Empresário empolgado)',
+                cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/45',
+              }
             : proposedSalary >= effectiveMinSalary
-            ? { label: 'No mínimo exigido', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' }
-            : { label: 'Abaixo do mínimo exigido (Risco de recusa)', cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30' };
+            ? {
+                label:
+                  humanClubsCount > 1
+                    ? 'Aceita abrir disputa (3h)'
+                    : 'No mínimo exigido (Empresário aceita)',
+                cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+              }
+            : {
+                label: 'Abaixo do mínimo exigido (Risco de recusa)',
+                cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+              }
+          : proposedSalary > effectiveMinSalary
+          ? {
+              label: 'Acima da pedida (Empresário satisfeito)',
+              cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+            }
+          : proposedSalary >= effectiveMinSalary
+          ? { label: 'No mínimo exigido', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' }
+          : {
+              label: 'Abaixo do mínimo exigido (Risco de recusa)',
+              cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+            };
 
         return (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -927,11 +977,25 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-300">
-                    Maior oferta até agora:{' '}
-                    <strong className="text-white tabular-nums">
-                      {formatMillionsBRL(Math.max(...modalDispute.bids.map((b) => b.offerCash)))}
-                    </strong>{' '}
-                    ({modalDispute.bids.length} clubes na briga).
+                    {isFreeAgent ? (
+                      <>
+                        Maior salário até agora:{' '}
+                        <strong className="text-white tabular-nums">
+                          {formatMonthlySalary(
+                            Math.max(...modalDispute.bids.map((b) => b.proposedMonthlySalary))
+                          )}
+                        </strong>{' '}
+                        ({modalDispute.bids.length} clubes na briga).
+                      </>
+                    ) : (
+                      <>
+                        Maior oferta até agora:{' '}
+                        <strong className="text-white tabular-nums">
+                          {formatMillionsBRL(Math.max(...modalDispute.bids.map((b) => b.offerCash)))}
+                        </strong>{' '}
+                        ({modalDispute.bids.length} clubes na briga).
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -939,7 +1003,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
               {/* Card de Exigência do Empresário & Atleta */}
               {negotiatingEntry.originType !== 'human' && (
                 <div className="bg-[#06090E] border border-sky-500/25 rounded-xl p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <div className="flex items-center justify-between gap-2 text-[11px] flex-wrap">
                     <span className="font-bold text-sky-300 uppercase tracking-wider text-[10px]">
                       Exigência do Empresário &amp; Atleta
                     </span>
@@ -950,19 +1014,51 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div>
-                      <div className="text-slate-500 text-[10px]">Salário Atual</div>
-                      <div className="font-bold text-slate-200 tabular-nums">
-                        {formatMonthlySalary(modalBaseSalary)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 text-[10px]">Mínimo Exigido</div>
-                      <div className="font-bold text-amber-300 tabular-nums">
-                        {formatMonthlySalary(effectiveMinSalary)}
-                      </div>
-                    </div>
+                    {isFreeAgent && !modalDispute ? (
+                      <>
+                        <div>
+                          <div className="text-slate-500 text-[10px]">
+                            Mínimo Exigido{humanClubsCount > 1 ? ' (Disputa 3h)' : ''}
+                          </div>
+                          <div className="font-bold text-amber-300 tabular-nums">
+                            {formatMonthlySalary(effectiveMinSalary)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-slate-500 text-[10px]">
+                            Proposta Irrecusável {humanClubsCount > 1 ? '(Assina na Hora!)' : ''}
+                          </div>
+                          <div className="font-bold text-emerald-300 tabular-nums">
+                            {formatMonthlySalary(immediateSalary)}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <div className="text-slate-500 text-[10px]">Salário Atual</div>
+                          <div className="font-bold text-slate-200 tabular-nums">
+                            {isFreeAgent ? 'Sem Clube' : formatMonthlySalary(modalBaseSalary)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-slate-500 text-[10px]">Mínimo Exigido</div>
+                          <div className="font-bold text-amber-300 tabular-nums">
+                            {formatMonthlySalary(effectiveMinSalary)}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
+                  {isFreeAgent && !modalDispute && proposedSalary < immediateSalary && (
+                    <button
+                      type="button"
+                      onClick={() => setProposedSalary(immediateSalary)}
+                      className="w-full py-1.5 px-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-[10px] font-bold cursor-pointer tabular-nums transition"
+                    >
+                      Oferecer Irrecusável ({formatMonthlySalary(immediateSalary)}/mês)
+                    </button>
+                  )}
                   {hasHardCompetition && (
                     <div className="text-[10px] text-amber-300/90 leading-snug">
                       Obs.: você já possui titular forte nessa posição; o empresário pediu +8% para compensar disputa por vaga.
@@ -987,7 +1083,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setProposedSalary((s) => Math.max(40, s - 25))}
+                    onClick={() => setProposedSalary((s) => Math.max(25, s - 25))}
                     className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
                   >
                     - {formatThousandsBRL(25)}
@@ -1057,7 +1153,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                   </div>
                   <button
                     type="button"
-                    disabled={offerCash > availableBudget || proposedSalary < 40}
+                    disabled={offerCash > availableBudget || proposedSalary < 25}
                     onClick={() => {
                       onSendHumanOffer(
                         activeClub.id,
@@ -1149,7 +1245,7 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                           type="button"
                           disabled={
                             availableBudget < negotiatingEntry.player.marketValue ||
-                            proposedSalary < 40
+                            proposedSalary < 25
                           }
                           onClick={() => {
                             onAttemptFifaBotNegotiation(
@@ -1169,87 +1265,103 @@ export const TransferMarketView: React.FC<TransferMarketViewProps> = ({
                       )}
 
                       <div className="pt-2 border-t border-white/[0.06] space-y-2.5">
-                        <div className="text-[11px] text-slate-400">
-                          {modalDispute
-                            ? `Cobrir lance na disputa (caixa livre: ${formatMillionsBRL(availableBudget)}):`
-                            : negotiatingEntry.originType === 'livre'
-                            ? `Luvas + contrato com empresário (caixa livre: ${formatMillionsBRL(availableBudget)}):`
-                            : `Negociar valores com clube e empresário (caixa livre: ${formatMillionsBRL(availableBudget)}):`}
-                        </div>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="block text-[10px] text-slate-400 mb-1">
-                              {negotiatingEntry.originType === 'livre'
-                                ? 'Luvas / Bônus de Assinatura (R$)'
-                                : 'Sua Proposta pelo Passe (R$)'}
-                            </label>
-                            <CurrencyReaisInput
-                              valueReais={Math.round(offerCash * 1_000_000)}
-                              onChangeReais={(nextReais) => setOfferCash(nextReais / 1_000_000)}
-                              className="w-full px-3 py-2 rounded-xl bg-[#06090E] border border-white/10 text-xs font-bold text-white tabular-nums focus:outline-none focus:border-emerald-500"
-                            />
+                        {isFreeAgent ? (
+                          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-200 leading-relaxed">
+                            <strong>Passe Livre:</strong> zero custo de transferência! Negociação{' '}
+                            <strong>100% focada no salário mensal</strong> acima.
+                            {!modalDispute && humanClubsCount > 1 && (
+                              <>
+                                {' '}
+                                Oferecendo o valor <strong>irrecusável</strong> (
+                                {formatMonthlySalary(immediateSalary)}/mês), o atleta fecha na hora sem abrir disputa de 3h.
+                              </>
+                            )}
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setOfferCash((v) => Math.max(0, Number((v - 0.5).toFixed(2))))
-                              }
-                              className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
-                            >
-                              - {formatCurrencyBRL(500_000)}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setOfferCash((v) => Number((v + 0.5).toFixed(2)))}
-                              className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
-                            >
-                              + {formatCurrencyBRL(500_000)}
-                            </button>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-slate-400 mb-1">Troca (Opcional)</label>
-                            <select
-                              value={swapPlayerId}
-                              disabled={negotiatingEntry.originType === 'livre'}
-                              onChange={(e) => setSwapPlayerId(e.target.value)}
-                              className="w-full px-3 py-2 rounded-xl bg-[#06090E] border border-white/10 text-xs text-white disabled:opacity-40"
-                            >
-                              <option value="">Sem troca</option>
-                              {activeClub.squad.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.position} • {p.knownName} ({p.overall})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
+                        ) : (
+                          <>
+                            <div className="text-[11px] text-slate-400">
+                              {modalDispute
+                                ? `Cobrir lance na disputa (caixa livre: ${formatMillionsBRL(availableBudget)}):`
+                                : `Negociar valores com clube e empresário (caixa livre: ${formatMillionsBRL(availableBudget)}):`}
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <label className="block text-[10px] text-slate-400 mb-1">
+                                  Sua Proposta pelo Passe (R$)
+                                </label>
+                                <CurrencyReaisInput
+                                  valueReais={Math.round(offerCash * 1_000_000)}
+                                  onChangeReais={(nextReais) => setOfferCash(nextReais / 1_000_000)}
+                                  className="w-full px-3 py-2 rounded-xl bg-[#06090E] border border-white/10 text-xs font-bold text-white tabular-nums focus:outline-none focus:border-emerald-500"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setOfferCash((v) => Math.max(0, Number((v - 0.5).toFixed(2))))
+                                  }
+                                  className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
+                                >
+                                  - {formatCurrencyBRL(500_000)}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setOfferCash((v) => Number((v + 0.5).toFixed(2)))}
+                                  className="py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-bold text-slate-200 cursor-pointer tabular-nums"
+                                >
+                                  + {formatCurrencyBRL(500_000)}
+                                </button>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-slate-400 mb-1">Troca (Opcional)</label>
+                                <select
+                                  value={swapPlayerId}
+                                  onChange={(e) => setSwapPlayerId(e.target.value)}
+                                  className="w-full px-3 py-2 rounded-xl bg-[#06090E] border border-white/10 text-xs text-white"
+                                >
+                                  <option value="">Sem troca</option>
+                                  {activeClub.squad.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.position} • {p.knownName} ({p.overall})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </>
+                        )}
 
                         <button
                           type="button"
                           disabled={
-                            offerCash > availableBudget ||
-                            proposedSalary < 40 ||
-                            (negotiatingEntry.originType !== 'livre' && offerCash <= 0)
+                            (!isFreeAgent && (offerCash > availableBudget || offerCash <= 0)) ||
+                            proposedSalary < 25
                           }
                           onClick={() => {
                             onAttemptFifaBotNegotiation(
                               activeClub.id,
                               negotiatingEntry.player.id,
-                              negotiatingEntry.originType === 'livre'
+                              isFreeAgent
                                 ? 'livre'
                                 : negotiatingEntry.originType === 'europa'
                                 ? 'europa'
                                 : 'bot',
                               negotiatingEntry.sellerClub?.id,
-                              offerCash,
+                              isFreeAgent ? 0 : offerCash,
                               proposedSalary,
-                              swapPlayerId || undefined
+                              isFreeAgent ? undefined : swapPlayerId || undefined
                             );
                           }}
                           className="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 disabled:opacity-40 text-amber-200 font-bold text-xs cursor-pointer tabular-nums"
                         >
-                          {modalDispute
+                          {isFreeAgent
+                            ? modalDispute
+                              ? `Cobrir Lance Salarial (${formatMonthlySalary(proposedSalary)}/mês)`
+                              : proposedSalary >= immediateSalary && humanClubsCount > 1
+                              ? `Fechar Contrato na Hora (${formatMonthlySalary(proposedSalary)}/mês)`
+                              : `Enviar Proposta Salarial (${formatMonthlySalary(proposedSalary)}/mês)`
+                            : modalDispute
                             ? `Registrar Lance (${formatMillionsBRL(offerCash)} • ${formatMonthlySalary(proposedSalary)})`
                             : `Enviar Oferta (${formatMillionsBRL(offerCash)} • ${formatMonthlySalary(proposedSalary)})`}
                         </button>

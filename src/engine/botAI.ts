@@ -442,22 +442,35 @@ export function evaluateTacticalMatchup(ownClub: Club, oppClub: Club): TacticalR
     : 100;
 
   const outOfPosPenaltyCount = ownStarters.filter((p) => p.fitPenalty < 0).length;
-  const cohesionPenalty = outOfPosPenaltyCount * 0.65;
+  const cohesionPenalty = outOfPosPenaltyCount * 1.1;
 
-  // 1. Sector Formation Duels
+  // 1. Duelos Táticos entre Formações
   const rawMidDiff = ownProfile.midControl - oppProfile.midControl;
-  const midControlBonus = Math.round((rawMidDiff * 1.15 - cohesionPenalty * 0.6) * 10) / 10;
+  const midOverloadBonus =
+    (ownClub.formation === '3-5-2' || ownClub.formation === '4-2-3-1') &&
+    (oppClub.formation === '4-4-2' || oppClub.formation === '4-3-3')
+      ? 1.8
+      : 0;
+  const midControlBonus =
+    Math.round((rawMidDiff * 1.35 + midOverloadBonus - cohesionPenalty * 0.65) * 10) / 10;
 
-  const flankOverload = Math.max(0, ownProfile.wingThreat + oppProfile.wingBackExposure - 3) * 0.85;
-  const centralFunnelLock = Math.max(0, ownProfile.centralShield - oppProfile.centralBoxPresence + 1) * 0.65;
+  const widthBonus =
+    (ownClub.formation === '4-3-3' || ownClub.formation === '3-4-3') &&
+    (oppClub.formation === '3-5-2' || oppClub.formation === '4-4-2')
+      ? 2.4
+      : 0;
+  const flankOverload =
+    Math.max(0, ownProfile.wingThreat + oppProfile.wingBackExposure - 3) * 1.0 + widthBonus;
+  const centralFunnelLock =
+    Math.max(0, ownProfile.centralShield - oppProfile.centralBoxPresence + 1) * 0.85;
   const pocketExploit =
     ownClub.formation === '4-2-3-1' && oppClub.formation === '4-4-2'
-      ? 1.8
+      ? 2.2
       : ownClub.formation === '3-5-2' && oppClub.formation === '4-3-3'
-      ? 1.2
+      ? 1.6
       : 0;
 
-  // 2. Mentality base + Counter-Attack punishment
+  // 2. Postura Tática + Encaixe Real (Retranca vs Pressão vs Contra-Ataque)
   const baseTac = getTacticalModifiers(ownClub.mentality, oppClub.mentality);
   const synergy = evaluateFormationSynergy(ownClub.formation, ownClub.mentality);
 
@@ -465,27 +478,35 @@ export function evaluateTacticalMatchup(ownClub: Club, oppClub: Club): TacticalR
   let defBonus = baseTac.defMod + synergy.defDelta + centralFunnelLock - cohesionPenalty;
   let staminaDrainMult = baseTac.staminaDrain;
 
-  // Counter-attack gets stronger when opponent is both exposed and tired
+  // Pressão bem montada quebra retranca
   if (
-    ownClub.mentality === 'Contra-Ataque' &&
-    (oppClub.mentality === 'Ofensiva' || oppClub.mentality === 'Tudo ou Nada') &&
-    oppAvgStamina < 68
+    oppClub.mentality === 'Retranca' &&
+    (ownClub.mentality === 'Ofensiva' || ownClub.mentality === 'Tudo ou Nada') &&
+    (ownClub.formation === '4-3-3' || ownClub.formation === '3-4-3' || ownClub.formation === '4-2-3-1')
   ) {
-    atkBonus += 2.2;
+    atkBonus += 3.2;
   }
 
-  // Fatigue collapse under high-intensity pressing
+  // Contra-ataque pune defesas muito adiantadas (e ainda mais se cansadas)
+  if (
+    ownClub.mentality === 'Contra-Ataque' &&
+    (oppClub.mentality === 'Ofensiva' || oppClub.mentality === 'Tudo ou Nada')
+  ) {
+    atkBonus += oppAvgStamina < 72 ? 4.4 : 3.8;
+  }
+
+  // Queda física sob pressão intensa
   let fatigueWarning = false;
   if (
     ownAvgStamina < 60 &&
     (ownClub.mentality === 'Ofensiva' || ownClub.mentality === 'Tudo ou Nada')
   ) {
-    atkBonus = atkBonus * 0.5 - 1.5;
-    defBonus -= 3;
+    atkBonus = atkBonus * 0.45 - 2.0;
+    defBonus -= 3.5;
     fatigueWarning = true;
   }
 
-  // 3. Individual OVR Key Role Duels
+  // 3. Duelos por OVR nos Setores Chave
   const avgRole = (arr: typeof ownStarters, roles: PlayerPosition[], fallback: number) => {
     const filtered = arr.filter((p) => roles.includes(p.slotRole));
     return filtered.length
@@ -499,16 +520,16 @@ export function evaluateTacticalMatchup(ownClub: Club, oppClub: Club): TacticalR
     ? oppStarters.reduce((s, p) => s + p.effectiveOvr, 0) / oppStarters.length
     : 72;
 
-  const ownCreator = avgRole(ownStarters, ['MEI', 'MC'], ownTeamAvg);
+  const ownCreator = avgRole(ownStarters, ['MEI', 'MC', 'PE', 'PD'], ownTeamAvg);
   const oppMid = avgRole(oppStarters, ['VOL', 'MC', 'MEI'], oppTeamAvg);
-  const chanceBonus = (ownCreator - oppMid) * 0.0045 + midControlBonus * 0.012;
+  const chanceBonus = (ownCreator - oppMid) * 0.007 + midControlBonus * 0.016 + (midOverloadBonus > 0 ? 0.025 : 0);
 
   const ownFinisher = avgRole(ownStarters, ['CA', 'PE', 'PD'], ownTeamAvg);
   const oppGol = avgRole(oppStarters, ['GOL'], oppTeamAvg);
   const oppZags = oppStarters.filter((p) => p.slotRole === 'ZAG').sort((a, b) => b.effectiveOvr - a.effectiveOvr);
   const oppBestZag = oppZags[0]?.effectiveOvr ?? oppTeamAvg;
-  const oppWall = oppGol * 0.6 + oppBestZag * 0.4;
-  const finishingEdge = (ownFinisher - oppWall) * 0.006;
+  const oppWall = oppGol * 0.55 + oppBestZag * 0.45;
+  const finishingEdge = (ownFinisher - oppWall) * 0.0085;
 
   // 4. Narrative headline + actionable tactical advice
   let headline = `Duelo equilibrado (${ownClub.formation} vs ${oppClub.formation})`;
@@ -1002,6 +1023,215 @@ function computeBotLiveAdaptation(
   return null;
 }
 
+function pickMatchSlotActor(club: Club, roles: PlayerPosition[]): Player | undefined {
+  const slots = club.lineupSlots ?? [];
+  const slotEntries = slots
+    .map((s) => {
+      const p = club.squad.find((item) => item.id === s.playerId);
+      if (!p) return null;
+      return {
+        player: p,
+        slotRole: s.role,
+        effectiveOvr: getPositionFit(p, s.role).effectiveOvr,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  if (slotEntries.length > 0) {
+    const matched = slotEntries.filter(
+      (e) => roles.includes(e.slotRole) || roles.includes(e.player.position)
+    );
+    const pool = matched.length > 0 ? matched : slotEntries.filter((e) => e.slotRole !== 'GOL');
+    const candidates = pool.length > 0 ? pool : slotEntries;
+    const weights = candidates.map(
+      (c) =>
+        Math.max(1, Math.pow(Math.max(1, c.effectiveOvr - 58), 1.85)) *
+        (0.55 + (c.player.stamina / 100) * 0.45)
+    );
+    const totalW = weights.reduce((s, w) => s + w, 0);
+    let r = Math.random() * totalW;
+    for (let i = 0; i < candidates.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return candidates[i].player;
+    }
+    return candidates[0].player;
+  }
+
+  const starters = club.squad.filter((p) => p.isStarter);
+  const pool = starters.length > 0 ? starters : club.squad;
+  const matched = pool.filter((p) => roles.includes(p.position));
+  const candidates = matched.length > 0 ? matched : pool;
+  return candidates[0];
+}
+
+function buildVariedPlayAction(params: {
+  possClub: Club;
+  defClub: Club;
+  homeHasBall: boolean;
+  previousPlayText: string;
+}): {
+  ballX: number;
+  ballY: number;
+  fromBallX?: number;
+  fromBallY?: number;
+  activePlayerId?: string;
+  secondaryPlayerId?: string;
+  playPhase: PlayPhase;
+  text: string;
+} {
+  const { possClub, defClub, homeHasBall, previousPlayText } = params;
+
+  const wingL = pickMatchSlotActor(possClub, ['PE']);
+  const wingR = pickMatchSlotActor(possClub, ['PD']);
+  const fbR = pickMatchSlotActor(possClub, ['LD']);
+  const fbL = pickMatchSlotActor(possClub, ['LE']);
+  const am = pickMatchSlotActor(possClub, ['MEI']);
+  const cm = pickMatchSlotActor(possClub, ['MC']);
+  const dm = pickMatchSlotActor(possClub, ['VOL']);
+  const st = pickMatchSlotActor(possClub, ['CA']);
+  const cb = pickMatchSlotActor(possClub, ['ZAG']);
+  const oppDef = pickMatchSlotActor(defClub, ['ZAG', 'VOL', 'LD', 'LE']);
+
+  const toAttackX = (pct: number) => (homeHasBall ? pct : 100 - pct);
+  const flipY = (y: number) => (homeHasBall ? y : 100 - y);
+
+  type ArchetypeSpec = {
+    actor?: Player;
+    partner?: Player;
+    fromSector: { x: number; y: number };
+    toSector: { x: number; y: number };
+    phase: PlayPhase;
+    texts: string[];
+    weight: number;
+  };
+
+  const isWideFormation =
+    possClub.formation === '4-3-3' || possClub.formation === '3-4-3' || possClub.formation === '4-2-3-1';
+  const isCounter = possClub.mentality === 'Contra-Ataque';
+  const isPressing = possClub.mentality === 'Ofensiva' || possClub.mentality === 'Tudo ou Nada';
+
+  const archetypes: ArchetypeSpec[] = [
+    {
+      actor: wingR ?? fbR,
+      partner: fbR ?? cm,
+      fromSector: { x: 54, y: 76 },
+      toSector: { x: 76, y: 84 },
+      phase: homeHasBall ? 'ataque_casa' : 'ataque_fora',
+      weight: isWideFormation ? 1.5 : 1.0,
+      texts: [
+        `${fbR?.knownName ?? 'Lateral'} faz a ultrapassagem e tabela com ${wingR?.knownName ?? 'o ponta'} pela direita.`,
+        `${wingR?.knownName ?? 'Ponta direita'} recebe aberto de ${fbR?.knownName ?? 'seu lateral'} e encara o marcador.`,
+        `${possClub.shortName} acelera pela ponta direita com ${wingR?.knownName ?? 'o atacante'} ganhando a linha de fundo.`,
+      ],
+    },
+    {
+      actor: wingL ?? fbL,
+      partner: fbL ?? am,
+      fromSector: { x: 52, y: 24 },
+      toSector: { x: 77, y: 18 },
+      phase: homeHasBall ? 'ataque_casa' : 'ataque_fora',
+      weight: isWideFormation ? 1.5 : 1.0,
+      texts: [
+        `${wingL?.knownName ?? 'Ponta esquerda'} corta para dentro no 1x1 e deixa ${oppDef?.knownName ?? 'o marcador'} para trás!`,
+        `Dobradinha rápida na esquerda: ${fbL?.knownName ?? 'lateral'} aciona ${wingL?.knownName ?? 'o ponta'} em velocidade.`,
+        `${wingL?.knownName ?? 'Atacante'} limpa a marcação pela esquerda buscando espaço para o cruzamento.`,
+      ],
+    },
+    {
+      actor: st,
+      partner: am ?? cm,
+      fromSector: { x: 64, y: 50 },
+      toSector: { x: 80, y: 48 },
+      phase: homeHasBall ? 'ataque_casa' : 'ataque_fora',
+      weight: isPressing ? 1.4 : 1.0,
+      texts: [
+        `${am?.knownName ?? 'O meia'} enfia passe vertical entrelinhas buscando ${st?.knownName ?? 'o centroavante'} na entrada da área!`,
+        `${st?.knownName ?? 'Camisa 9'} faz bem o pivô contra ${oppDef?.knownName ?? 'a zaga'} e ajeita para chegada de ${cm?.knownName ?? 'seu meia'}.`,
+        `Infiltração perigosa! ${am?.knownName ?? 'Armador'} deixa ${st?.knownName ?? 'o atacante'} de frente para a área.`,
+      ],
+    },
+    {
+      actor: am ?? cm,
+      partner: dm ?? cm,
+      fromSector: { x: 46, y: 46 },
+      toSector: { x: 65, y: 54 },
+      phase: 'meio_campo',
+      weight: possClub.formation === '3-5-2' || possClub.formation === '4-2-3-1' ? 1.5 : 1.0,
+      texts: [
+        `Triangulação elegante no meio: ${dm?.knownName ?? 'volante'}, ${cm?.knownName ?? 'meia'} e ${am?.knownName ?? 'armador'} envolvem o ${defClub.shortName}.`,
+        `${cm?.knownName ?? 'Meia'} encontra espaço entrelinhas e organiza a posse do ${possClub.shortName}.`,
+        `${am?.knownName ?? 'Camisa 10'} gira sobre a marcação e dita o ritmo da partida no setor central.`,
+      ],
+    },
+    {
+      actor: wingL ?? wingR ?? st,
+      partner: dm ?? cb,
+      fromSector: { x: 36, y: 48 },
+      toSector: { x: 74, y: 26 },
+      phase: homeHasBall ? 'ataque_casa' : 'ataque_fora',
+      weight: isCounter ? 1.8 : 0.9,
+      texts: [
+        `Contra-ataque fulminante! ${dm?.knownName ?? 'Volante'} rouba a bola e lança ${wingL?.knownName ?? st?.knownName ?? 'o ataque'} nas costas da zaga.`,
+        `Virada de jogo precisa de ${cm?.knownName ?? dm?.knownName ?? 'meia'} acionando ${wingR?.knownName ?? 'a ponta'} completamente livre.`,
+        `Transição em alta velocidade do ${possClub.shortName}: ${st?.knownName ?? 'atacante'} ataca o espaço vazio!`,
+      ],
+    },
+    {
+      actor: dm ?? cb,
+      partner: oppDef,
+      fromSector: { x: 42, y: 56 },
+      toSector: { x: 54, y: 50 },
+      phase: 'meio_campo',
+      weight: possClub.mentality === 'Retranca' ? 1.5 : 0.9,
+      texts: [
+        `Desarme limpo de ${dm?.knownName ?? cb?.knownName ?? 'defensor'} para retomar a posse para o ${possClub.shortName}.`,
+        `${cb?.knownName ?? 'Zagueiro'} antecipa bem a jogada de ${defClub.shortName} e sai jogando com segurança.`,
+        `Pressão na saída! ${cm?.knownName ?? dm?.knownName ?? 'Meia'} recupera a bola no campo de ataque.`,
+      ],
+    },
+  ];
+
+  const totalW = archetypes.reduce((s, a) => s + a.weight, 0);
+  let r = Math.random() * totalW;
+  let picked = archetypes[0];
+  for (const a of archetypes) {
+    r -= a.weight;
+    if (r <= 0) {
+      picked = a;
+      break;
+    }
+  }
+
+  const candidateTexts = picked.texts.filter((t) => t !== previousPlayText);
+  const chosenText =
+    candidateTexts[Math.floor(Math.random() * candidateTexts.length)] ??
+    picked.texts[0];
+
+  const coord = picked.actor
+    ? getPlayerPitchCoords(possClub, picked.actor.id, homeHasBall)
+    : null;
+  const fromCoord = picked.partner
+    ? getPlayerPitchCoords(possClub, picked.partner.id, homeHasBall)
+    : null;
+
+  const jitterX = Math.round(Math.random() * 6 - 3);
+  const jitterY = Math.round(Math.random() * 8 - 4);
+  const baseToX = coord ? Math.round((toAttackX(picked.toSector.x) + coord.x) / 2) : toAttackX(picked.toSector.x);
+  const baseToY = coord ? Math.round((flipY(picked.toSector.y) + coord.y) / 2) : flipY(picked.toSector.y);
+
+  return {
+    ballX: Math.max(12, Math.min(88, baseToX + jitterX)),
+    ballY: Math.max(12, Math.min(88, baseToY + jitterY)),
+    fromBallX: fromCoord ? Math.round(fromCoord.x) : toAttackX(picked.fromSector.x),
+    fromBallY: fromCoord ? Math.round(fromCoord.y) : flipY(picked.fromSector.y),
+    activePlayerId: picked.actor?.id,
+    secondaryPlayerId:
+      picked.partner && picked.partner.id !== picked.actor?.id ? picked.partner.id : undefined,
+    playPhase: picked.phase,
+    text: chosenText,
+  };
+}
+
 function computeAutoLiveSubstitution(
   club: Club,
   subsUsed: number,
@@ -1279,36 +1509,59 @@ export function simulateMatchMinuteStep(
   let homeGoals = match.homeGoals;
   let awayGoals = match.awayGoals;
 
-  const pickActor = (club: Club, roles: PlayerPosition[]): Player | undefined => {
-    const starters = club.squad.filter((p) => p.isStarter);
-    const pool = starters.length > 0 ? starters : club.squad;
-    const matched = pool.filter((p) => roles.includes(p.position));
-    const candidates = matched.length > 0 ? matched : pool;
-    if (candidates.length === 0) return undefined;
-    // Ponderação pelo OVR individual para estrelas decidirem mais jogadas
-    const weights = candidates.map((p) => Math.max(1, Math.pow(Math.max(1, p.overall - 60), 1.6)));
-    const totalW = weights.reduce((s, w) => s + w, 0);
-    let r = Math.random() * totalW;
-    for (let i = 0; i < candidates.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return candidates[i];
-    }
-    return candidates[0];
-  };
-
   const pickScorer = (
     club: Club
   ): { scorer: string; assist?: string; scorerPlayer?: Player; assistPlayer?: Player } => {
+    const slots = club.lineupSlots ?? [];
     const starters = club.squad.filter((p) => p.isStarter);
     const pool = starters.length > 0 ? starters : club.squad;
-    const scorerPlayer = pickActor(club, ['CA', 'PE', 'PD', 'MEI', 'MC']);
+
+    const scorerRoles: PlayerPosition[] =
+      club.formation === '4-3-3' || club.formation === '3-4-3'
+        ? ['CA', 'PE', 'PD', 'MEI']
+        : club.formation === '3-5-2' || club.formation === '4-4-2'
+        ? ['CA', 'MEI', 'MC', 'PE', 'PD']
+        : ['CA', 'MEI', 'PE', 'PD', 'MC'];
+
+    const scorerPlayer = pickMatchSlotActor(club, scorerRoles);
+
+    const assistRoles: PlayerPosition[] =
+      club.formation === '4-2-3-1'
+        ? ['MEI', 'PE', 'PD', 'LD', 'LE', 'MC']
+        : club.formation === '3-5-2'
+        ? ['MEI', 'MC', 'LD', 'LE', 'CA']
+        : ['MEI', 'PE', 'PD', 'MC', 'LD', 'LE'];
+
     const assistPool = pool.filter((p) => p.id !== scorerPlayer?.id && p.position !== 'GOL');
-    const assistPlayer =
-      assistPool.length > 0
-        ? assistPool.sort((a, b) => b.overall - a.overall)[
-            Math.floor(Math.random() * Math.min(assistPool.length, 4))
-          ]
-        : undefined;
+    const slotRoleMap = new Map<string, PlayerPosition>();
+    slots.forEach((s) => slotRoleMap.set(s.playerId, s.role));
+
+    const weightedAssisters = assistPool
+      .map((p) => {
+        const role = slotRoleMap.get(p.id) ?? p.position;
+        const roleMult = assistRoles.includes(role) ? 2.2 : 0.7;
+        return {
+          p,
+          w: Math.max(1, (p.overall - 62) * roleMult * (0.6 + (p.stamina / 100) * 0.4)),
+        };
+      })
+      .sort((a, b) => b.w - a.w)
+      .slice(0, 6);
+
+    let assistPlayer: Player | undefined;
+    if (weightedAssisters.length > 0) {
+      const totalAW = weightedAssisters.reduce((s, x) => s + x.w, 0);
+      let r = Math.random() * totalAW;
+      for (const cand of weightedAssisters) {
+        r -= cand.w;
+        if (r <= 0) {
+          assistPlayer = cand.p;
+          break;
+        }
+      }
+      assistPlayer = assistPlayer ?? weightedAssisters[0].p;
+    }
+
     return {
       scorer: scorerPlayer?.knownName ?? 'Atacante',
       assist: assistPlayer?.knownName,
@@ -1317,9 +1570,16 @@ export function simulateMatchMinuteStep(
     };
   };
 
+  const mentalityPossShift = (m: TacticalMentality) =>
+    m === 'Ofensiva' || m === 'Tudo ou Nada' ? 2.2 : m === 'Retranca' ? -2.8 : 0;
+
   const midDiff =
-    homeStr.midfield - awayStr.midfield + (homeReadout.midControlBonus - awayReadout.midControlBonus) + 1.5;
-  const homePossChance = Math.min(0.7, Math.max(0.3, 0.5 + midDiff * 0.015));
+    homeStr.midfield -
+    awayStr.midfield +
+    (homeReadout.midControlBonus - awayReadout.midControlBonus) +
+    (mentalityPossShift(effHomeClub.mentality) - mentalityPossShift(effAwayClub.mentality)) +
+    1.5;
+  const homePossChance = Math.min(0.76, Math.max(0.24, 0.5 + midDiff * 0.022));
   const homeHasBall = Math.random() < homePossChance;
   const possClub = homeHasBall ? effHomeClub : effAwayClub;
   const defClub = homeHasBall ? effAwayClub : effHomeClub;
@@ -1327,61 +1587,58 @@ export function simulateMatchMinuteStep(
 
   const targetPoss = Math.round(homePossChance * 100);
   stats.homePossession = Math.max(
-    28,
-    Math.min(72, Math.round(stats.homePossession * 0.88 + targetPoss * 0.12))
+    24,
+    Math.min(76, Math.round(stats.homePossession * 0.85 + targetPoss * 0.15))
   );
 
-  const sliceFactor = stepMinutes / 90;
-  const homeGoalProb =
-    Math.min(
-      0.48,
-      Math.max(0.04, 0.15 + (homeAtk - awayDef) * 0.0095 + homeReadout.finishingEdge)
-    ) *
-    sliceFactor *
-    7.2;
-  const awayGoalProb =
-    Math.min(
-      0.45,
-      Math.max(0.04, 0.13 + (awayAtk - homeDef) * 0.0095 + awayReadout.finishingEdge)
-    ) *
-    sliceFactor *
-    7.2;
+  const computeGoalProbPerMinute = (
+    netEdge: number,
+    finishingEdge: number,
+    isHome: boolean
+  ): number => {
+    const baseRate = isHome ? 0.022 : 0.019;
+    const edgeFactor =
+      netEdge >= 0
+        ? netEdge * 0.0032 + Math.max(0, netEdge - 4) * 0.0022
+        : netEdge * 0.0018;
+    const raw = (baseRate + edgeFactor + finishingEdge * 0.45) * stepMinutes;
+    return Math.min(0.095, Math.max(0.004, raw));
+  };
+
+  const homeNetEdge = homeAtk - awayDef;
+  const awayNetEdge = awayAtk - homeDef;
+  const homeGoalProb = computeGoalProbPerMinute(homeNetEdge, homeReadout.finishingEdge, true);
+  const awayGoalProb = computeGoalProbPerMinute(awayNetEdge, awayReadout.finishingEdge, false);
+  const possEdge = homeHasBall ? homeNetEdge : awayNetEdge;
   const chanceProb = Math.min(
-    0.45,
-    Math.max(0.06, (0.14 + possReadout.chanceBonus) * stepMinutes)
+    0.58,
+    Math.max(0.14, (0.24 + possReadout.chanceBonus + Math.max(-0.08, possEdge * 0.014)) * stepMinutes)
   );
 
-  const carrier = pickActor(possClub, ['MEI', 'MC', 'PE', 'PD', 'CA', 'LD', 'LE']);
-  let passer = pickActor(possClub, ['VOL', 'MC', 'ZAG', 'LD', 'LE']);
-  if (passer?.id === carrier?.id) {
-    passer = possClub.squad.find((p) => p.isStarter && p.id !== carrier?.id && p.position !== 'GOL');
-  }
-  const keeper = pickActor(defClub, ['GOL']);
+  const keeper = pickMatchSlotActor(defClub, ['GOL']);
+  const varied = buildVariedPlayAction({
+    possClub,
+    defClub,
+    homeHasBall,
+    previousPlayText: match.lastPlayText,
+  });
 
-  const carrierBase = getPlayerPitchCoords(possClub, carrier?.id, homeHasBall);
-  const passerPos = getPlayerPitchCoords(possClub, passer?.id, homeHasBall);
+  let ballX = varied.ballX;
+  let ballY = varied.ballY;
+  let fromBallX = varied.fromBallX;
+  let fromBallY = varied.fromBallY;
+  let activePlayerId = varied.activePlayerId;
+  let secondaryPlayerId = varied.secondaryPlayerId;
+  let playPhase: PlayPhase = varied.playPhase;
 
-  let ballX = homeHasBall
-    ? Math.min(82, carrierBase.x + 12)
-    : Math.max(18, carrierBase.x - 12);
-  let ballY = Math.max(12, Math.min(88, carrierBase.y + (Math.random() * 8 - 4)));
-  let fromBallX: number | undefined = Math.round(passerPos.x);
-  let fromBallY: number | undefined = Math.round(passerPos.y);
-  let activePlayerId: string | undefined = carrier?.id;
-  let secondaryPlayerId: string | undefined = passer?.id;
-  let playPhase: PlayPhase = homeHasBall ? 'ataque_casa' : 'ataque_fora';
-
-  let lastPlayText =
-    homeAdapt?.note ??
-    awayAdapt?.note ??
-    `${possClub.shortName} trabalha a bola com ${carrier?.knownName ?? 'o meio'}.`;
+  let lastPlayText = homeAdapt?.note ?? awayAdapt?.note ?? varied.text;
 
   if (homeHasBall && Math.random() < homeGoalProb) {
     homeGoals += 1;
     const { scorer, assist, scorerPlayer, assistPlayer } = pickScorer(effHomeClub);
     const scorerBase = getPlayerPitchCoords(effHomeClub, scorerPlayer?.id, true);
-    const scorerShotX = Math.max(78, Math.min(89, scorerBase.x + 18));
-    const scorerShotY = Math.max(30, Math.min(70, scorerBase.y));
+    const scorerShotX = Math.max(78, Math.min(90, scorerBase.x + 18));
+    const scorerShotY = Math.max(28, Math.min(72, scorerBase.y));
 
     stats.homeShots += 1;
     stats.homeOnTarget += 1;
@@ -1392,7 +1649,12 @@ export function simulateMatchMinuteStep(
     ballX = 97;
     ballY = Math.round(46 + Math.random() * 8);
     playPhase = 'gol_casa';
-    lastPlayText = `GOOOL do ${effHomeClub.name}! ${scorer} manda para a rede${assist ? ` (assist. ${assist})` : ''}!`;
+    const goalVariants = [
+      `GOOOL do ${effHomeClub.name}! ${scorer} enche o pé para estufar a rede${assist ? ` após passe de ${assist}` : ''}!`,
+      `GOOOL do ${effHomeClub.name}! ${scorer} aparece livre na área e bate colocado${assist ? ` (assist. ${assist})` : ''}!`,
+      `GOOOL do ${effHomeClub.name}! Cabeceio firme de ${scorer} sem chances para o goleiro${assist ? ` — cruzamento de ${assist}` : ''}!`,
+    ];
+    lastPlayText = goalVariants[Math.floor(Math.random() * goalVariants.length)];
     newEvents.push({
       minute: nextMinute,
       type: 'gol',
@@ -1405,8 +1667,8 @@ export function simulateMatchMinuteStep(
     awayGoals += 1;
     const { scorer, assist, scorerPlayer, assistPlayer } = pickScorer(effAwayClub);
     const scorerBase = getPlayerPitchCoords(effAwayClub, scorerPlayer?.id, false);
-    const scorerShotX = Math.min(22, Math.max(11, scorerBase.x - 18));
-    const scorerShotY = Math.max(30, Math.min(70, scorerBase.y));
+    const scorerShotX = Math.min(22, Math.max(10, scorerBase.x - 18));
+    const scorerShotY = Math.max(28, Math.min(72, scorerBase.y));
 
     stats.awayShots += 1;
     stats.awayOnTarget += 1;
@@ -1417,7 +1679,12 @@ export function simulateMatchMinuteStep(
     ballX = 3;
     ballY = Math.round(46 + Math.random() * 8);
     playPhase = 'gol_fora';
-    lastPlayText = `GOOOL do ${effAwayClub.name}! ${scorer} marca${assist ? ` com passe de ${assist}` : ''}!`;
+    const goalVariants = [
+      `GOOOL do ${effAwayClub.name}! ${scorer} manda no ângulo${assist ? ` com assistência de ${assist}` : ''}!`,
+      `GOOOL do ${effAwayClub.name}! ${scorer} finaliza de primeira na pequena área${assist ? ` após jogada de ${assist}` : ''}!`,
+      `GOOOL do ${effAwayClub.name}! Contrataque mortal concluído por ${scorer}${assist ? ` (${assist})` : ''}!`,
+    ];
+    lastPlayText = goalVariants[Math.floor(Math.random() * goalVariants.length)];
     newEvents.push({
       minute: nextMinute,
       type: 'gol',
@@ -1427,15 +1694,15 @@ export function simulateMatchMinuteStep(
       description: `⚽ ${scorer}${assist ? ` (${assist})` : ''}`,
     });
   } else if (Math.random() < chanceProb) {
-    const shooter = pickActor(possClub, ['CA', 'PE', 'PD', 'MEI']);
+    const shooter = pickMatchSlotActor(possClub, ['CA', 'PE', 'PD', 'MEI', 'MC']);
     const shooterBase = getPlayerPitchCoords(possClub, shooter?.id, homeHasBall);
     const shooterX = homeHasBall
       ? Math.max(74, Math.min(86, shooterBase.x + 16))
       : Math.min(26, Math.max(14, shooterBase.x - 16));
-    const shooterY = Math.max(24, Math.min(76, shooterBase.y));
+    const shooterY = Math.max(22, Math.min(78, shooterBase.y));
 
-    const shotQuality = 0.5 + possReadout.finishingEdge * 2.2;
-    const onTarget = Math.random() < Math.min(0.75, Math.max(0.32, shotQuality));
+    const shotQuality = 0.48 + possReadout.finishingEdge * 2.4;
+    const onTarget = Math.random() < Math.min(0.78, Math.max(0.32, shotQuality));
 
     if (homeHasBall) {
       stats.homeShots += 1;
@@ -1455,22 +1722,29 @@ export function simulateMatchMinuteStep(
       secondaryPlayerId = keeper?.id;
       ballX = homeHasBall ? 93 : 7;
       ballY = Math.round(45 + Math.random() * 10);
-      if (Math.random() < 0.4) {
+      if (Math.random() < 0.42) {
         if (homeHasBall) stats.homeCorners += 1;
         else stats.awayCorners += 1;
+        lastPlayText = `🧤 Defesaça! ${keeper?.knownName ?? 'Goleiro'} desvia bomba de ${shooter?.knownName ?? 'atacante'} para escanteio!`;
+      } else {
+        lastPlayText = `🧤 ${keeper?.knownName ?? 'Goleiro'} espalma firme a finalização de ${shooter?.knownName ?? 'atacante'}!`;
       }
-      lastPlayText = `🧤 ${keeper?.knownName ?? 'Goleiro'} espalma chute forte de ${shooter?.knownName ?? 'atacante'}!`;
     } else {
-      secondaryPlayerId = carrier?.id !== shooter?.id ? carrier?.id : undefined;
+      secondaryPlayerId = varied.activePlayerId !== shooter?.id ? varied.activePlayerId : undefined;
       ballX = homeHasBall ? 96 : 4;
       ballY = shooterY < 50 ? 28 : 72;
-      lastPlayText = `⚡ ${shooter?.knownName ?? 'Atacante'} (${possClub.shortName}) finaliza perto da trave!`;
+      const missVariants = [
+        `⚡ ${shooter?.knownName ?? 'Atacante'} (${possClub.shortName}) solta a bomba e tira tinta da trave!`,
+        `⚡ Chute colocado de ${shooter?.knownName ?? 'atacante'} passa raspando o travessão!`,
+        `⚡ ${shooter?.knownName ?? 'Atacante'} bate cruzado pela linha de fundo após boa jogada do ${possClub.shortName}.`,
+      ];
+      lastPlayText = missVariants[Math.floor(Math.random() * missVariants.length)];
     }
-  } else if (Math.random() < 0.035) {
-    const carded = pickActor(defClub, ['ZAG', 'VOL', 'LD', 'LE']);
+  } else if (Math.random() < 0.032) {
+    const carded = pickMatchSlotActor(defClub, ['ZAG', 'VOL', 'LD', 'LE']);
     const cardedPos = getPlayerPitchCoords(defClub, carded?.id, !homeHasBall);
     if (carded) {
-      lastPlayText = `🟨 Cartão amarelo para ${carded.knownName} (${defClub.shortName}).`;
+      lastPlayText = `🟨 Cartão amarelo para ${carded.knownName} (${defClub.shortName}) por falta dura.`;
       newEvents.push({
         minute: nextMinute,
         type: 'cartao_amarelo',
@@ -1480,7 +1754,7 @@ export function simulateMatchMinuteStep(
       });
     }
     activePlayerId = carded?.id;
-    secondaryPlayerId = carrier?.id;
+    secondaryPlayerId = varied.activePlayerId;
     ballX = Math.round(cardedPos.x);
     ballY = Math.round(cardedPos.y);
     fromBallX = undefined;
@@ -1618,6 +1892,119 @@ export function calculateSeasonPrizes(clubs: Club[]): Array<{
   });
 }
 
+/** Processa vencimento de contratos de Bots e Humanos e libera atletas sem renovação para Livres */
+export function processBotContractExpirations(
+  clubs: Club[],
+  freeAgents: Player[],
+  isSeasonEnd: boolean
+): {
+  clubs: Club[];
+  freeAgents: Player[];
+  feedItems: ActivityFeedItem[];
+} {
+  const releasedPlayers: Player[] = [];
+  const feedItems: ActivityFeedItem[] = [];
+  const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const existingFreeIds = new Set(freeAgents.map((p) => p.id));
+
+  const nextClubs = clubs.map((club) => {
+    let squad = [...club.squad];
+    const expiring: Player[] = [];
+
+    if (club.controller === 'bot') {
+      const kept: Player[] = [];
+      for (const p of squad) {
+        const curYears = p.contractYears ?? 2;
+        if (curYears <= 1 && kept.length + (squad.length - kept.length - 1) >= 15) {
+          const shouldRenew =
+            (p.isStarter && p.age <= 30 && club.finances.budget >= 25) ||
+            (p.age <= 24 && Math.random() < 0.65) ||
+            Math.random() < 0.52;
+
+          if (shouldRenew) {
+            const newSal = calcAgentMinimumSalary(p, club);
+            kept.push({
+              ...p,
+              contractYears: isSeasonEnd ? 2 + (p.age <= 25 ? 1 : 0) : 3,
+              monthlySalary: newSal,
+              wage: Math.max(0.1, Math.round((newSal / 1000) * 10) / 10),
+            });
+          } else {
+            expiring.push(p);
+          }
+        } else {
+          kept.push({
+            ...p,
+            contractYears: isSeasonEnd ? Math.max(1, curYears - 1) : curYears,
+          });
+        }
+      }
+      squad = kept;
+    } else if (isSeasonEnd) {
+      // Clube humano no fim de temporada: quem não foi renovado manualmente sai livre de graça
+      const kept: Player[] = [];
+      for (const p of squad) {
+        const curYears = p.contractYears ?? 2;
+        if (curYears <= 1 && kept.length + (squad.length - kept.length - 1) >= 15) {
+          expiring.push(p);
+        } else {
+          kept.push({
+            ...p,
+            contractYears: Math.max(1, curYears - 1),
+          });
+        }
+      }
+      squad = kept;
+    }
+
+    if (expiring.length === 0 && !isSeasonEnd) {
+      return club;
+    }
+
+    expiring.forEach((p) => {
+      if (!existingFreeIds.has(p.id)) {
+        existingFreeIds.add(p.id);
+        releasedPlayers.push({
+          ...p,
+          isStarter: false,
+          listedForSale: false,
+          currentClubName: 'Livre',
+          contractYears: 0,
+          marketValue: 0,
+        });
+        feedItems.push({
+          id: `feed-exp-${club.id}-${p.id}-${Date.now()}`,
+          category: 'mercado',
+          actorName: club.shortName,
+          actorType: club.controller,
+          message: `Contrato de ${p.knownName} (OVR ${p.overall}) encerrou! Atleta ficou Livre no mercado.`,
+          timestamp: nowStr,
+        });
+      }
+    });
+
+    const built = buildLineupSlots(squad, club.formation, club.lineupSlots);
+    const wageBill = Math.round(built.squad.reduce((s, p) => s + p.wage, 0) * 10) / 10;
+
+    return {
+      ...club,
+      squad: built.squad,
+      lineupSlots: built.lineupSlots,
+      finances: {
+        ...club.finances,
+        wageBill,
+      },
+    };
+  });
+
+  const nextFree = [...releasedPlayers, ...freeAgents].sort((a, b) => b.overall - a.overall);
+  return {
+    clubs: nextClubs,
+    freeAgents: nextFree,
+    feedItems: feedItems.slice(0, 6),
+  };
+}
+
 export function applySeasonEndAndPrepareNext(
   league: LeagueState,
   regenerateMatches: (clubs: Club[], config: LeagueState['config']) => { matches: Match[]; totalRounds: number }
@@ -1642,7 +2029,7 @@ export function applySeasonEndAndPrepareNext(
     prizesAwarded: prizes,
   };
 
-  const evolvedClubs: Club[] = league.clubs.map((c) => {
+  const preExpiryClubs: Club[] = league.clubs.map((c) => {
     const award = prizeMap.get(c.id);
     const prize = award?.prize ?? 8;
     const isChamp = award?.rank === 1;
@@ -1662,13 +2049,13 @@ export function applySeasonEndAndPrepareNext(
       const ovrDelta = Math.max(-2, Math.min(3, ageDelta + perfDelta));
       const nextOvr = Math.min(94, Math.max(65, p.overall + ovrDelta));
       const nextVal = calcMarketValue(nextOvr);
-      const baseCur = calcMonthlySalary(p.overall);
-      const baseNext = calcMonthlySalary(nextOvr);
+      const baseCur = calcMonthlySalary(p.overall, c.tier);
+      const baseNext = calcMonthlySalary(nextOvr, c.tier);
       const curSalary = p.monthlySalary ?? baseCur;
       const nextSalary =
         nextOvr === p.overall
           ? curSalary
-          : Math.max(40, Math.round((curSalary * (baseNext / Math.max(40, baseCur))) / 5) * 5);
+          : Math.max(25, Math.round((curSalary * (baseNext / Math.max(25, baseCur))) / 5) * 5);
 
       return {
         ...p,
@@ -1710,7 +2097,13 @@ export function applySeasonEndAndPrepareNext(
     };
   });
 
-  const { matches, totalRounds } = regenerateMatches(evolvedClubs, league.config);
+  const contractCycle = processBotContractExpirations(
+    preExpiryClubs,
+    league.freeAgents,
+    true
+  );
+
+  const { matches, totalRounds } = regenerateMatches(contractCycle.clubs, league.config);
   const nextSeason = league.season + 1;
   const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const windowHours = league.config.transferRules.windowHours || 24;
@@ -1721,7 +2114,8 @@ export function applySeasonEndAndPrepareNext(
     season: nextSeason,
     seasonHistory: [historyEntry, ...league.seasonHistory],
     status: 'janela_mercado',
-    clubs: evolvedClubs,
+    clubs: contractCycle.clubs,
+    freeAgents: contractCycle.freeAgents,
     currentRound: 1,
     totalRounds,
     matches,
@@ -1735,14 +2129,15 @@ export function applySeasonEndAndPrepareNext(
     feed: [
       {
         id: `feed-s${nextSeason}-${Date.now()}`,
-        category: 'admin',
+        category: 'admin' as const,
         actorName: `Temporada ${nextSeason}`,
-        actorType: 'system',
-        message: `${champion?.name} campeão da T${league.season}! Premiações creditadas e janela de 24h aberta.`,
+        actorType: 'system' as const,
+        message: `${champion?.name} campeão da T${league.season}! Contratos encerrados liberados para os Livres e janela de 24h aberta.`,
         timestamp: nowStr,
       },
-      ...league.feed.slice(0, 24),
-    ],
+      ...contractCycle.feedItems,
+      ...league.feed,
+    ].slice(0, 24),
   };
 }
 
@@ -1780,14 +2175,21 @@ export function resolveTransferDispute(
     };
   }
 
+  const isFreeDispute = dispute.originType === 'livre';
   const maxFee = Math.max(...validEntries.map((e) => e.totalFee));
-  const finalists = validEntries.filter((e) => e.totalFee >= maxFee * 0.94);
+  const maxSalary = Math.max(...validEntries.map((e) => e.bid.proposedMonthlySalary));
+
+  const finalists = isFreeDispute
+    ? validEntries.filter((e) => e.bid.proposedMonthlySalary >= maxSalary * 0.94)
+    : validEntries.filter((e) => e.totalFee >= maxFee * 0.94);
 
   if (finalists.length === 1) {
     const win = finalists[0];
     return {
       winnerBid: win.bid,
-      reason: `${win.club.shortName} apresentou a maior proposta (${formatMillionsBRL(win.totalFee)}) e levou ${targetPlayer.knownName}!`,
+      reason: isFreeDispute
+        ? `${win.club.shortName} ofereceu o maior salário (${formatMonthlySalary(win.bid.proposedMonthlySalary)}) e fechou com ${targetPlayer.knownName}!`
+        : `${win.club.shortName} apresentou a maior proposta (${formatMillionsBRL(win.totalFee)}) e levou ${targetPlayer.knownName}!`,
     };
   }
 

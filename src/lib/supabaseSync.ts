@@ -130,6 +130,7 @@ export type LeagueActionType =
   | 'auto_pick'
   | 'live_sub'
   | 'update_salary'
+  | 'renew_contract'
   | 'toggle_sale'
   | 'submit_market_bid'
   | 'send_human_offer'

@@ -14,6 +14,7 @@ import {
   getPositionFit,
 } from '../engine/botAI';
 import {
+  calcAgentMinimumSalary,
   calcMonthlySalary,
   formatMillionsBRL,
   formatMonthlySalary,
@@ -32,6 +33,7 @@ interface ClubManagementViewProps {
   onAssignSlotPlayer: (clubId: string, slotIndex: number, playerId: string) => void;
   onAutoPickLineup: (clubId: string) => void;
   onToggleListForSale: (clubId: string, playerId: string) => void;
+  onRenewPlayerContract: (clubId: string, playerId: string) => void;
   onConfirmSquadAndStartMatches: () => void;
 }
 
@@ -41,6 +43,7 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
   onAssignSlotPlayer,
   onAutoPickLineup,
   onToggleListForSale,
+  onRenewPlayerContract,
   onConfirmSquadAndStartMatches,
 }) => {
   const [subTab, setSubTab] = useState<'campinho' | 'elenco' | 'financas'>('campinho');
@@ -533,7 +536,9 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
           </div>
 
           {sortedSquadForSlot.map((p) => {
-            const curSalary = p.monthlySalary ?? calcMonthlySalary(p.overall);
+            const curSalary = p.monthlySalary ?? calcMonthlySalary(p.overall, club.tier);
+            const contractYears = p.contractYears ?? 2;
+            const renewalSalary = calcAgentMinimumSalary(p, club);
             return (
               <div
                 key={p.id}
@@ -599,15 +604,38 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
                   </div>
                 </div>
 
-                {/* Salário Mensal do Jogador (automático conforme evolução de OVR) */}
-                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-white/[0.04] text-[10px]">
-                  <span className="text-slate-400">
-                    Salário mensal:{' '}
-                    <strong className="text-emerald-300 tabular-nums">
-                      {formatMonthlySalary(curSalary)}
-                    </strong>
-                  </span>
-                  <span className="text-[10px] text-slate-500">Varia com o OVR</span>
+                {/* Salário Mensal & Prazo de Contrato */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-white/[0.04] text-[10px]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-slate-400">
+                      Salário:{' '}
+                      <strong className="text-emerald-300 tabular-nums">
+                        {formatMonthlySalary(curSalary)}
+                      </strong>
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded font-semibold ${
+                        contractYears <= 1
+                          ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                          : 'bg-white/5 text-slate-300'
+                      }`}
+                    >
+                      {contractYears <= 1
+                        ? 'Contrato: 1 ano (Último ano!)'
+                        : `Contrato: ${contractYears} anos`}
+                    </span>
+                  </div>
+                  {isOwned && contractYears <= 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => onRenewPlayerContract(club.id, p.id)}
+                      className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold cursor-pointer transition tabular-nums"
+                    >
+                      Renovar (+3 anos • {formatMonthlySalary(renewalSalary)})
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-slate-500">Varia com o OVR</span>
+                  )}
                 </div>
               </div>
             );

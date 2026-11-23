@@ -28,6 +28,9 @@ import {
   reanchorFutureRoundsSchedule,
 } from './engine/leagueGenerator';
 import {
+  calcAgentMinimumSalary,
+  calcImmediateInterestSalary,
+  calcInitialContractYears,
   calcMonthlySalary,
   CLUB_TEMPLATES,
   formatMillionsBRL,
@@ -43,6 +46,7 @@ import {
   evaluateFifaBotOffer,
   FORMATION_LAYOUT,
   getPositionFit,
+  processBotContractExpirations,
   resolveTransferDispute,
   runBotMarketCycle,
   simulateMatchMinuteStep,
@@ -195,7 +199,11 @@ function mergeMissingWorldStars(state: LeagueState): LeagueState {
   };
 }
 
-function migrateLegacyPlayer(player: Player, index = 0): { player: Player; changed: boolean } {
+function migrateLegacyPlayer(
+  player: Player,
+  index = 0,
+  clubTier?: number
+): { player: Player; changed: boolean } {
   const ov = PLAYER_OVERRIDES[player.name];
   const star = WORLD_MARKET_PLAYERS.find((w) => w.name === player.name);
   let changed = false;
@@ -223,8 +231,16 @@ function migrateLegacyPlayer(player: Player, index = 0): { player: Player; chang
     changed = true;
   }
 
-  const nextSalary = player.monthlySalary ?? calcMonthlySalary(player.overall);
+  const nextSalary = player.monthlySalary ?? calcMonthlySalary(player.overall, clubTier);
   if (player.monthlySalary === undefined) {
+    changed = true;
+  }
+
+  const isFreeAgent =
+    player.currentClubName === 'Livre' || player.currentClubName === 'Sem Clube';
+  const nextContractYears =
+    player.contractYears ?? (isFreeAgent ? 0 : calcInitialContractYears(player.age, index));
+  if (player.contractYears === undefined) {
     changed = true;
   }
 
@@ -240,6 +256,7 @@ function migrateLegacyPlayer(player: Player, index = 0): { player: Player; chang
       ambidextrous: nextAmbi,
       monthlySalary: nextSalary,
       wage: nextWage,
+      contractYears: nextContractYears,
     },
     changed: true,
   };
@@ -252,7 +269,7 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
   let changed = false;
 
   const migratedWorld = state.worldMarket.map((p, idx) => {
-    const res = migrateLegacyPlayer(p, idx);
+    const res = migrateLegacyPlayer(p, idx, 1);
     if (res.changed) changed = true;
     return res.player;
   });
@@ -280,7 +297,7 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
         squadChanged = true;
         current = { ...current, nationality: 'Brasil', nationalityFlag: '🇧🇷' };
       }
-      const mig = migrateLegacyPlayer(current, pIdx);
+      const mig = migrateLegacyPlayer(current, pIdx, template?.tier);
       if (mig.changed) squadChanged = true;
       return mig.player;
     });
@@ -425,7 +442,7 @@ function finalizeAcceptedTransfer(
   const finalMonthlySalary =
     params.proposedMonthlySalary ??
     targetPlayer.monthlySalary ??
-    calcMonthlySalary(targetPlayer.overall);
+    calcMonthlySalary(targetPlayer.overall, buyer.tier);
   const finalWage = Math.max(0.1, Math.round((finalMonthlySalary / 1000) * 10) / 10);
 
   const signedPlayer: Player = {
@@ -436,6 +453,7 @@ function finalizeAcceptedTransfer(
     currentClubName: buyer.shortName,
     monthlySalary: finalMonthlySalary,
     wage: finalWage,
+    contractYears: 3,
   };
 
   const updatedClubs = prev.clubs.map((c) => {
@@ -469,6 +487,7 @@ function finalizeAcceptedTransfer(
           isStarter: false,
           listedForSale: false,
           currentClubName: sellerClub.shortName,
+          contractYears: Math.max(2, swapPlayer.contractYears ?? 2),
         });
       }
       const built = buildLineupSlots(remaining, c.formation, c.lineupSlots);
@@ -812,6 +831,69 @@ function applyToggleSaleState(prev: LeagueState, clubId: string, playerId: strin
   };
 }
 
+function applyRenewContractState(
+  prev: LeagueState,
+  clubId: string,
+  playerId: string
+): LeagueState {
+  const club = prev.clubs.find((c) => c.id === clubId);
+  if (!club) return prev;
+  const target = club.squad.find((p) => p.id === playerId);
+  if (!target) return prev;
+
+  const currentYears = target.contractYears ?? 1;
+  if (currentYears > 1) return prev;
+
+  const renewedYears = Math.min(4, Math.max(3, currentYears + 3));
+  const renewedSalary = Math.max(
+    target.monthlySalary ?? calcMonthlySalary(target.overall, club.tier),
+    calcAgentMinimumSalary(target, club)
+  );
+  const renewedWage = Math.max(0.1, Math.round((renewedSalary / 1000) * 10) / 10);
+  const nowStr = new Date().toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return {
+    ...prev,
+    clubs: prev.clubs.map((c) => {
+      if (c.id !== clubId) return c;
+      const nextSquad = c.squad.map((p) =>
+        p.id === playerId
+          ? {
+              ...p,
+              contractYears: renewedYears,
+              monthlySalary: renewedSalary,
+              wage: renewedWage,
+            }
+          : p
+      );
+      return {
+        ...c,
+        squad: nextSquad,
+        finances: {
+          ...c.finances,
+          wageBill: Math.round(nextSquad.reduce((s, p) => s + p.wage, 0) * 10) / 10,
+        },
+      };
+    }),
+    feed: [
+      {
+        id: uid('feed-renew'),
+        category: 'mercado',
+        actorName: club.shortName,
+        actorType: club.controller,
+        message: `Renovou o contrato de ${target.knownName} para ${renewedYears} anos (${formatMonthlySalary(
+          renewedSalary
+        )}/mês).`,
+        timestamp: nowStr,
+      },
+      ...prev.feed.slice(0, 24),
+    ],
+  };
+}
+
 function applyLiveSubState(
   prev: LeagueState,
   matchId: string,
@@ -892,9 +974,10 @@ function applyMarketBidState(
   const buyer = prev.clubs.find((c) => c.id === params.buyerClubId);
   if (!buyer) return prev;
 
+  const effectiveOfferCash = params.originType === 'livre' ? 0 : params.offerCash;
   const reservedCash = getReservedDisputeCash(prev, params.buyerClubId, params.targetPlayerId);
   const availableBudget = Math.max(0, buyer.finances.budget - reservedCash);
-  if (availableBudget < params.offerCash) return prev;
+  if (availableBudget < effectiveOfferCash) return prev;
   if (buyer.squad.some((p) => p.id === params.targetPlayerId)) return prev;
 
   const sellerClub =
@@ -908,9 +991,12 @@ function applyMarketBidState(
       ? prev.freeAgents.find((p) => p.id === params.targetPlayerId)
       : sellerClub?.squad.find((p) => p.id === params.targetPlayerId);
 
-  const swapPlayer = params.swapPlayerId
-    ? buyer.squad.find((p) => p.id === params.swapPlayerId)
-    : undefined;
+  const swapPlayer =
+    params.originType === 'livre'
+      ? undefined
+      : params.swapPlayerId
+      ? buyer.squad.find((p) => p.id === params.swapPlayerId)
+      : undefined;
 
   if (!targetPlayer) return prev;
 
@@ -926,7 +1012,7 @@ function applyMarketBidState(
     sellerClub,
     buyerClub: buyer,
     originType: params.originType,
-    offerCash: params.offerCash,
+    offerCash: effectiveOfferCash,
     proposedMonthlySalary: params.proposedMonthlySalary,
     swapPlayer,
     currentPatience: prevPatience,
@@ -954,9 +1040,9 @@ function applyMarketBidState(
           toClubId: sellerClub?.id ?? params.originType,
           targetPlayerId: params.targetPlayerId,
           targetPlayerName: targetPlayer.knownName,
-          offerCash: params.offerCash,
+          offerCash: effectiveOfferCash,
           proposedMonthlySalary: params.proposedMonthlySalary,
-          swapPlayerId: params.swapPlayerId,
+          swapPlayerId: swapPlayer?.id,
           swapPlayerName: swapPlayer?.knownName,
           status: evalRes.outcome,
           counterCash: evalRes.counterCash,
@@ -969,18 +1055,57 @@ function applyMarketBidState(
     };
   }
 
-  // Solo (1 humano na liga): conclui transferência imediatamente
+  const existingDispute = (prev.transferDisputes ?? []).find(
+    (d) => d.status === 'ativa' && d.targetPlayerId === params.targetPlayerId
+  );
+  const starterRivals = buyer.squad.filter(
+    (p) =>
+      p.isStarter &&
+      (p.position === targetPlayer.position ||
+        (targetPlayer.ambidextrous && (p.position === 'PE' || p.position === 'PD')))
+  );
+  const hasHardCompetition = starterRivals.some(
+    (p) => p.overall >= targetPlayer.overall + 2
+  );
+  const immediateSalary = calcImmediateInterestSalary(
+    targetPlayer,
+    buyer,
+    hasHardCompetition
+  );
+  const isImmediateFreeSign =
+    params.originType === 'livre' &&
+    !existingDispute &&
+    params.proposedMonthlySalary >= immediateSalary;
+
+  // Solo (1 humano na liga) OU Jogador Livre com proposta irrecusável (sem disputa prévia): assina na hora!
   const humanClubsCount = prev.clubs.filter((c) => c.controller === 'human').length;
-  if (humanClubsCount <= 1) {
+  if (humanClubsCount <= 1 || isImmediateFreeSign) {
     const settled = finalizeAcceptedTransfer(prev, {
       buyerClubId: params.buyerClubId,
       targetPlayerId: params.targetPlayerId,
       originType: params.originType,
       sellerClubId: sellerClub?.id,
-      offerCash: params.offerCash,
+      offerCash: effectiveOfferCash,
       proposedMonthlySalary: params.proposedMonthlySalary,
-      swapPlayerId: params.swapPlayerId,
+      swapPlayerId: swapPlayer?.id,
     });
+    const immediateMsg =
+      isImmediateFreeSign && humanClubsCount > 1
+        ? `Interesse imediato! ${targetPlayer.knownName} aceitou a proposta irrecusável de ${formatMonthlySalary(
+            params.proposedMonthlySalary
+          )}/mês na hora e dispensou disputa de 3h!`
+        : evalRes.message;
+    const feedMsg =
+      params.originType === 'livre'
+        ? `Contratou ${targetPlayer.knownName} (OVR ${targetPlayer.overall}) sem custos (Passe Livre) por ${formatMonthlySalary(
+            params.proposedMonthlySalary
+          )}/mês${isImmediateFreeSign && humanClubsCount > 1 ? ' — assinatura imediata!' : '.'}`
+        : `Contratou ${targetPlayer.knownName} (OVR ${targetPlayer.overall}) do ${
+            sellerClub?.shortName ?? targetPlayer.currentClubName ?? 'Mercado'
+          } por ${formatMillionsBRL(effectiveOfferCash)} (${formatMonthlySalary(
+            params.proposedMonthlySalary
+          )}).`;
+
     return {
       ...settled,
       botPatienceMap: updatedPatienceMap,
@@ -991,12 +1116,12 @@ function applyMarketBidState(
           toClubId: sellerClub?.id ?? params.originType,
           targetPlayerId: params.targetPlayerId,
           targetPlayerName: targetPlayer.knownName,
-          offerCash: params.offerCash,
+          offerCash: effectiveOfferCash,
           proposedMonthlySalary: params.proposedMonthlySalary,
-          swapPlayerId: params.swapPlayerId,
+          swapPlayerId: swapPlayer?.id,
           swapPlayerName: swapPlayer?.knownName,
           status: 'aceita',
-          botReason: evalRes.message,
+          botReason: immediateMsg,
           createdAt: nowStr,
         },
         ...prev.negotiations.slice(0, 39),
@@ -1007,9 +1132,7 @@ function applyMarketBidState(
           category: 'mercado',
           actorName: buyer.shortName,
           actorType: buyer.controller,
-          message: `Contratou ${targetPlayer.knownName} (OVR ${targetPlayer.overall}) do ${
-            sellerClub?.shortName ?? targetPlayer.currentClubName ?? 'Mercado'
-          } por ${formatMillionsBRL(params.offerCash)} (${formatMonthlySalary(params.proposedMonthlySalary)}).`,
+          message: feedMsg,
           timestamp: nowStr,
         },
         ...prev.feed.slice(0, 24),
@@ -1022,17 +1145,13 @@ function applyMarketBidState(
   const bidEntry: TransferDisputeBid = {
     clubId: buyer.id,
     clubName: buyer.shortName,
-    offerCash: params.offerCash,
+    offerCash: effectiveOfferCash,
     swapPlayerId: swapPlayer?.id,
     swapPlayerName: swapPlayer?.knownName,
     swapValue,
     proposedMonthlySalary: params.proposedMonthlySalary,
     submittedAt: nowStr,
   };
-
-  const existingDispute = (prev.transferDisputes ?? []).find(
-    (d) => d.status === 'ativa' && d.targetPlayerId === params.targetPlayerId
-  );
 
   const windowEndsMs = prev.transferWindowEndsAt
     ? new Date(prev.transferWindowEndsAt).getTime()
@@ -1068,6 +1187,32 @@ function applyMarketBidState(
     minute: '2-digit',
   });
 
+  const disputeReason =
+    params.originType === 'livre'
+      ? `Disputa salarial aberta! Proposta de ${formatMonthlySalary(
+          params.proposedMonthlySalary
+        )}/mês. Amigos podem cobrir até ${expiresFormatted}.`
+      : `Disputa aberta! Lance de ${formatMillionsBRL(effectiveOfferCash)} (${formatMonthlySalary(
+          params.proposedMonthlySalary
+        )}). Amigos podem cobrir até ${expiresFormatted}.`;
+
+  const disputeFeed =
+    params.originType === 'livre'
+      ? existingDispute
+        ? `Cobriu oferta salarial por ${targetPlayer.knownName} (Passe Livre • ${formatMonthlySalary(
+            params.proposedMonthlySalary
+          )}/mês).`
+        : `Abriu disputa de 3h por ${targetPlayer.knownName} (Passe Livre • ${formatMonthlySalary(
+            params.proposedMonthlySalary
+          )}/mês).`
+      : existingDispute
+      ? `Cobriu oferta por ${targetPlayer.knownName} (${formatMillionsBRL(effectiveOfferCash)} • ${formatMonthlySalary(
+          params.proposedMonthlySalary
+        )}).`
+      : `Abriu disputa de 3h por ${targetPlayer.knownName} (${formatMillionsBRL(effectiveOfferCash)} • ${formatMonthlySalary(
+          params.proposedMonthlySalary
+        )}).`;
+
   return {
     ...prev,
     botPatienceMap: updatedPatienceMap,
@@ -1079,14 +1224,12 @@ function applyMarketBidState(
         toClubId: sellerClub?.id ?? params.originType,
         targetPlayerId: params.targetPlayerId,
         targetPlayerName: targetPlayer.knownName,
-        offerCash: params.offerCash,
+        offerCash: effectiveOfferCash,
         proposedMonthlySalary: params.proposedMonthlySalary,
-        swapPlayerId: params.swapPlayerId,
+        swapPlayerId: swapPlayer?.id,
         swapPlayerName: swapPlayer?.knownName,
         status: 'em_disputa',
-        botReason: `Disputa aberta! Lance de ${formatMillionsBRL(params.offerCash)} (${formatMonthlySalary(
-          params.proposedMonthlySalary
-        )}). Amigos podem cobrir até ${expiresFormatted}.`,
+        botReason: disputeReason,
         createdAt: nowStr,
       },
       ...prev.negotiations.slice(0, 39),
@@ -1097,9 +1240,7 @@ function applyMarketBidState(
         category: 'mercado',
         actorName: buyer.shortName,
         actorType: buyer.controller,
-        message: existingDispute
-          ? `Cobriu oferta por ${targetPlayer.knownName} (${formatMillionsBRL(params.offerCash)} • ${formatMonthlySalary(params.proposedMonthlySalary)}).`
-          : `Abriu disputa de 3h por ${targetPlayer.knownName} (${formatMillionsBRL(params.offerCash)} • ${formatMonthlySalary(params.proposedMonthlySalary)}).`,
+        message: disputeFeed,
         timestamp: nowStr,
       },
       ...prev.feed.slice(0, 24),
@@ -1276,6 +1417,8 @@ function applyRemoteLeagueAction(prev: LeagueState, action: LeagueRemoteAction):
       return applyUpdateSalaryState(prev, String(p.clubId), String(p.playerId), Number(p.newMonthlySalary));
     case 'toggle_sale':
       return applyToggleSaleState(prev, String(p.clubId), String(p.playerId));
+    case 'renew_contract':
+      return applyRenewContractState(prev, String(p.clubId), String(p.playerId));
     case 'submit_market_bid':
       return applyMarketBidState(prev, {
         buyerClubId: String(p.buyerClubId),
@@ -1362,6 +1505,9 @@ function advanceToNextRoundState(
     squad: c.squad.map((p) => ({ ...p, stamina: 100 })),
   }));
   const botCycle = runBotMarketCycle({ ...prev, clubs: refreshedClubs });
+  const expirationRes = shouldOpenMidWindow
+    ? processBotContractExpirations(botCycle.clubs, botCycle.freeAgents, false)
+    : { clubs: botCycle.clubs, freeAgents: botCycle.freeAgents, feedItems: [] };
 
   if (shouldOpenMidWindow) {
     const windowHours = prev.config.transferRules.windowHours || 24;
@@ -1372,8 +1518,8 @@ function advanceToNextRoundState(
         ...prev,
         status: 'janela_mercado',
         currentRound: prev.currentRound + 1,
-        clubs: botCycle.clubs,
-        freeAgents: botCycle.freeAgents,
+        clubs: expirationRes.clubs,
+        freeAgents: expirationRes.freeAgents,
         transferWindowOpen: true,
         transferWindowEndsAt: windowEndsAt,
         transferWindowLabel: `Janela Virada de Turno (${windowHours}h)`,
@@ -1388,6 +1534,7 @@ function advanceToNextRoundState(
             message: `Janela de ${windowHours}h reaberta para o returno! Negociações liberadas.`,
             timestamp: nowStr,
           },
+          ...expirationRes.feedItems,
           ...botCycle.feedItems,
           ...prev.feed,
         ].slice(0, 24),
@@ -1711,7 +1858,7 @@ export function App() {
           status: isSeasonEnd ? 'fim_temporada' : prev.status,
         };
       });
-    }, 2500);
+    }, 1500);
 
     return () => clearInterval(timer);
   }, [liveRoundRunning]);
@@ -2241,6 +2388,13 @@ export function App() {
     }
   };
 
+  const handleRenewPlayerContract = (clubId: string, playerId: string) => {
+    setLeague((prev) => applyRenewContractState(prev, clubId, playerId));
+    if (isSupabaseConfigured && !isAdminUser && currentUser) {
+      dispatchLeagueAction(league.id, currentUser.id, 'renew_contract', { clubId, playerId });
+    }
+  };
+
   const handleMakeLiveSubstitution = (
     matchId: string,
     clubId: string,
@@ -2415,6 +2569,7 @@ export function App() {
               onAssignSlotPlayer={handleAssignSlotPlayer}
               onAutoPickLineup={handleAutoPickLineup}
               onToggleListForSale={handleToggleListForSale}
+              onRenewPlayerContract={handleRenewPlayerContract}
               onConfirmSquadAndStartMatches={() => setActiveTab('campeonato')}
             />
           )}

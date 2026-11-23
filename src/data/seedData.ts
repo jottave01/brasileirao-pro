@@ -704,8 +704,7 @@ export function formatThousandsBRL(thousands?: number): string {
   return formatCurrencyBRL(Math.round((thousands ?? 0) * 1_000));
 }
 
-/** Salário mensal realista em R$ mil/mês (ex.: 450 = R$ 450.000,00/mês) */
-export function calcMonthlySalary(overall: number): number {
+function calcBaseSalaryByOvr(overall: number): number {
   if (overall >= 92) return 1800;
   if (overall >= 90) return 1500;
   if (overall >= 88) return 1300;
@@ -721,27 +720,64 @@ export function calcMonthlySalary(overall: number): number {
   return 50;
 }
 
+/** Salário mensal realista em R$ mil/mês relativo ao porte/orçamento do clube */
+export function calcMonthlySalary(overall: number, clubTierOrBudget?: number): number {
+  const base = calcBaseSalaryByOvr(overall);
+  let mult = 1.0;
+  if (clubTierOrBudget !== undefined) {
+    if (clubTierOrBudget <= 4) {
+      mult =
+        clubTierOrBudget === 1
+          ? 1.12
+          : clubTierOrBudget === 2
+          ? 0.84
+          : clubTierOrBudget === 3
+          ? 0.62
+          : 0.44;
+    } else {
+      mult = Math.max(0.4, Math.min(1.2, clubTierOrBudget / 150));
+    }
+  }
+  return Math.max(25, Math.round((base * mult) / 5) * 5);
+}
+
+/** Anos iniciais de contrato (1..4 anos), garantindo parte do elenco no último ano */
+export function calcInitialContractYears(age: number, indexSeed = 0): number {
+  if (indexSeed % 4 === 0) return 1;
+  if (age >= 32) return indexSeed % 2 === 0 ? 1 : 2;
+  if (age <= 22) return 3 + (indexSeed % 2);
+  return 2 + (indexSeed % 3);
+}
+
 export function formatMonthlySalary(salaryK?: number): string {
   return `${formatThousandsBRL(salaryK ?? 80)}/mês`;
 }
 
-/** Salário mensal mínimo exigido pelo empresário/atleta para mudar de clube (em R$ mil/mês) */
+/** Salário mensal mínimo exigido pelo empresário/atleta relativo ao clube comprador (em R$ mil/mês) */
 export function calcAgentMinimumSalary(
   player: Pick<Player, 'overall' | 'monthlySalary'>,
-  buyerClub?: Pick<Club, 'tier'>
+  buyerClub?: Pick<Club, 'tier' | 'realisticBudget'>
 ): number {
-  const baseSalary = player.monthlySalary ?? calcMonthlySalary(player.overall);
+  const clubRefSalary = calcMonthlySalary(player.overall, buyerClub?.tier);
+  const currentSal = player.monthlySalary ?? clubRefSalary;
+  const baseRef = Math.max(
+    clubRefSalary,
+    Math.round(currentSal * 0.65 + clubRefSalary * 0.35)
+  );
   const starFactor =
-    player.overall >= 85
-      ? 0.18
-      : player.overall >= 80
-      ? 0.14
-      : player.overall >= 76
-      ? 0.10
-      : 0.07;
-  const tierFactor = buyerClub ? (buyerClub.tier - 1) * 0.03 : 0;
-  const rawMin = baseSalary * (1 + starFactor + tierFactor);
-  return Math.max(40, Math.round(rawMin / 5) * 5);
+    player.overall >= 85 ? 0.16 : player.overall >= 80 ? 0.12 : 0.08;
+  return Math.max(30, Math.round((baseRef * (1 + starFactor)) / 5) * 5);
+}
+
+/** Salário "Irrecusável" que gera interesse imediato de jogador Livre (assina na hora) */
+export function calcImmediateInterestSalary(
+  player: Pick<Player, 'overall' | 'monthlySalary'>,
+  buyerClub?: Pick<Club, 'tier' | 'realisticBudget'>,
+  hasHardCompetition = false
+): number {
+  const minSalary = calcAgentMinimumSalary(player, buyerClub);
+  const mult = hasHardCompetition ? 1.32 : 1.25;
+  return Math.max(35, Math.round((minSalary * mult) / 5) * 5);
 }
 
 export function calcWage(marketValue: number): number {
@@ -751,7 +787,7 @@ export function calcWage(marketValue: number): number {
 export function createPlayer(
   position: PlayerPosition,
   overall: number,
-  options?: Partial<Player>
+  options?: Partial<Player> & { clubTier?: number }
 ): Player {
   const id = `p-${playerCounter++}-${Math.random().toString(36).slice(2, 6)}`;
   const first = FIRST_NAMES[(playerCounter * 7 + overall) % FIRST_NAMES.length];
@@ -764,7 +800,13 @@ export function createPlayer(
   const nationality = NATIONALITY_PT[rawNat] ?? rawNat;
   const finalOvr = options?.overall ?? override?.overall ?? overall;
   const marketValue = options?.marketValue ?? calcMarketValue(finalOvr);
-  const monthlySalary = options?.monthlySalary ?? calcMonthlySalary(finalOvr);
+  const monthlySalary =
+    options?.monthlySalary ?? calcMonthlySalary(finalOvr, options?.clubTier);
+  const contractYears =
+    options?.contractYears ??
+    (options?.currentClubName === 'Livre' || options?.currentClubName === 'Sem Clube'
+      ? 0
+      : calcInitialContractYears(age, playerCounter));
   const wage = options?.wage ?? Math.max(0.1, Math.round((monthlySalary / 1000) * 10) / 10);
   const finalPos = options?.position ?? override?.position ?? position;
 
@@ -784,6 +826,7 @@ export function createPlayer(
     appearance: options?.appearance ?? override?.appearance,
     marketValue,
     monthlySalary,
+    contractYears,
     wage,
     stamina: options?.stamina ?? 100,
     goals: 0,
@@ -821,6 +864,9 @@ export function generateBaseSquad(
         nationality: rp.nationality,
         currentClubName: clubTemplate?.name,
         appearance: ov?.appearance,
+        clubTier: tier,
+        monthlySalary: calcMonthlySalary(ovr, tier),
+        contractYears: calcInitialContractYears(rp.age, idx + _clubSeedIndex),
       });
     })
     .sort((a, b) => b.overall - a.overall);
@@ -849,10 +895,14 @@ export function generateBaseSquad(
   while (squad.length < minCount) {
     const pos = fillPositions[fIdx % fillPositions.length];
     const age = 21 + (fIdx % 6);
+    const fallbackOvr = realisticFallbackOverall(age, tier);
     squad.push(
-      createPlayer(pos, realisticFallbackOverall(age, tier), {
+      createPlayer(pos, fallbackOvr, {
         age,
         currentClubName: clubTemplate?.name,
+        clubTier: tier,
+        monthlySalary: calcMonthlySalary(fallbackOvr, tier),
+        contractYears: calcInitialContractYears(age, fIdx + _clubSeedIndex),
       })
     );
     fIdx++;
@@ -929,7 +979,9 @@ export function generateFreeAgentsPool(count = 28): Player[] {
         overall: fa.overall,
         age: fa.age,
         nationality: fa.nationality,
-        currentClubName: 'Sem Clube',
+        currentClubName: 'Livre',
+        contractYears: 0,
+        marketValue: 0,
       })
     )
     .sort((a, b) => b.overall - a.overall);
