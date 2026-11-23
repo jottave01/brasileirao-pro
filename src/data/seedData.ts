@@ -1,4 +1,5 @@
 import { Club, Player, PlayerAppearance, PlayerPosition } from '../types/league';
+import { generatePlayerAttributes } from '../engine/playerAttributes';
 import realPlayersData from './realPlayers.json';
 
 export interface ClubTemplate {
@@ -9,36 +10,66 @@ export interface ClubTemplate {
   primaryColor: string;
   secondaryColor: string;
   stadium: string;
+  stadiumCapacity: number;
   tier: 1 | 2 | 3 | 4;
   realisticBudget: number;
 }
 
 export const CLUB_TEMPLATES: ClubTemplate[] = [
   // Tier 1
-  { id: 'fla', name: 'Flamengo', shortName: 'FLA', logoUrl: '/logos/fla.png', primaryColor: '#dc2626', secondaryColor: '#111827', stadium: 'Maracanã', tier: 1, realisticBudget: 180 },
-  { id: 'pal', name: 'Palmeiras', shortName: 'PAL', logoUrl: '/logos/pal.png', primaryColor: '#15803d', secondaryColor: '#f8fafc', stadium: 'Allianz Parque', tier: 1, realisticBudget: 175 },
-  { id: 'bot', name: 'Botafogo', shortName: 'BOT', logoUrl: '/logos/bot.png', primaryColor: '#0f172a', secondaryColor: '#e2e8f0', stadium: 'Nilton Santos', tier: 1, realisticBudget: 160 },
-  { id: 'cam', name: 'Atlético-MG', shortName: 'CAM', logoUrl: '/logos/cam.png', primaryColor: '#1e293b', secondaryColor: '#f8fafc', stadium: 'Arena MRV', tier: 1, realisticBudget: 145 },
+  { id: 'fla', name: 'Flamengo', shortName: 'FLA', logoUrl: '/logos/fla.png', primaryColor: '#dc2626', secondaryColor: '#111827', stadium: 'Maracanã', stadiumCapacity: 78838, tier: 1, realisticBudget: 180 },
+  { id: 'pal', name: 'Palmeiras', shortName: 'PAL', logoUrl: '/logos/pal.png', primaryColor: '#15803d', secondaryColor: '#f8fafc', stadium: 'Allianz Parque', stadiumCapacity: 43713, tier: 1, realisticBudget: 175 },
+  { id: 'bot', name: 'Botafogo', shortName: 'BOT', logoUrl: '/logos/bot.png', primaryColor: '#0f172a', secondaryColor: '#e2e8f0', stadium: 'Nilton Santos', stadiumCapacity: 44661, tier: 1, realisticBudget: 160 },
+  { id: 'cam', name: 'Atlético-MG', shortName: 'CAM', logoUrl: '/logos/cam.png', primaryColor: '#1e293b', secondaryColor: '#f8fafc', stadium: 'Arena MRV', stadiumCapacity: 44892, tier: 1, realisticBudget: 145 },
   // Tier 2
-  { id: 'cru', name: 'Cruzeiro', shortName: 'CRU', logoUrl: '/logos/cru.png', primaryColor: '#1d4ed8', secondaryColor: '#f8fafc', stadium: 'Mineirão', tier: 2, realisticBudget: 130 },
-  { id: 'bah', name: 'Bahia', shortName: 'BAH', logoUrl: '/logos/bah.png', primaryColor: '#2563eb', secondaryColor: '#dc2626', stadium: 'Fonte Nova', tier: 2, realisticBudget: 125 },
-  { id: 'sao', name: 'São Paulo', shortName: 'SAO', logoUrl: '/logos/sao.png', primaryColor: '#b91c1c', secondaryColor: '#0f172a', stadium: 'Morumbis', tier: 2, realisticBudget: 120 },
-  { id: 'int', name: 'Internacional', shortName: 'INT', logoUrl: '/logos/int.png', primaryColor: '#e11d48', secondaryColor: '#ffffff', stadium: 'Beira-Rio', tier: 2, realisticBudget: 115 },
-  { id: 'cor', name: 'Corinthians', shortName: 'COR', logoUrl: '/logos/cor.png', primaryColor: '#334155', secondaryColor: '#f8fafc', stadium: 'Neo Química Arena', tier: 2, realisticBudget: 115 },
-  { id: 'gre', name: 'Grêmio', shortName: 'GRE', logoUrl: '/logos/gre.png', primaryColor: '#0284c7', secondaryColor: '#0f172a', stadium: 'Arena do Grêmio', tier: 2, realisticBudget: 110 },
-  { id: 'flu', name: 'Fluminense', shortName: 'FLU', logoUrl: '/logos/flu.png', primaryColor: '#7f1d1d', secondaryColor: '#047857', stadium: 'Maracanã', tier: 2, realisticBudget: 108 },
+  { id: 'cru', name: 'Cruzeiro', shortName: 'CRU', logoUrl: '/logos/cru.png', primaryColor: '#1d4ed8', secondaryColor: '#f8fafc', stadium: 'Mineirão', stadiumCapacity: 61927, tier: 2, realisticBudget: 130 },
+  { id: 'bah', name: 'Bahia', shortName: 'BAH', logoUrl: '/logos/bah.png', primaryColor: '#2563eb', secondaryColor: '#dc2626', stadium: 'Fonte Nova', stadiumCapacity: 47907, tier: 2, realisticBudget: 125 },
+  { id: 'sao', name: 'São Paulo', shortName: 'SAO', logoUrl: '/logos/sao.png', primaryColor: '#b91c1c', secondaryColor: '#0f172a', stadium: 'Morumbis', stadiumCapacity: 66795, tier: 2, realisticBudget: 120 },
+  { id: 'int', name: 'Internacional', shortName: 'INT', logoUrl: '/logos/int.png', primaryColor: '#e11d48', secondaryColor: '#ffffff', stadium: 'Beira-Rio', stadiumCapacity: 50842, tier: 2, realisticBudget: 115 },
+  { id: 'cor', name: 'Corinthians', shortName: 'COR', logoUrl: '/logos/cor.png', primaryColor: '#334155', secondaryColor: '#f8fafc', stadium: 'Neo Química Arena', stadiumCapacity: 47605, tier: 2, realisticBudget: 115 },
+  { id: 'gre', name: 'Grêmio', shortName: 'GRE', logoUrl: '/logos/gre.png', primaryColor: '#0284c7', secondaryColor: '#0f172a', stadium: 'Arena do Grêmio', stadiumCapacity: 55662, tier: 2, realisticBudget: 110 },
+  { id: 'flu', name: 'Fluminense', shortName: 'FLU', logoUrl: '/logos/flu.png', primaryColor: '#7f1d1d', secondaryColor: '#047857', stadium: 'Maracanã', stadiumCapacity: 78838, tier: 2, realisticBudget: 108 },
   // Tier 3
-  { id: 'cap', name: 'Athletico-PR', shortName: 'CAP', logoUrl: '/logos/cap.png', primaryColor: '#991b1b', secondaryColor: '#0f172a', stadium: 'Ligga Arena', tier: 3, realisticBudget: 95 },
-  { id: 'rbb', name: 'RB Bragantino', shortName: 'RBB', logoUrl: '/logos/rbb.png', primaryColor: '#e11d48', secondaryColor: '#f1f5f9', stadium: 'Nabi Abi Chedid', tier: 3, realisticBudget: 92 },
-  { id: 'san', name: 'Santos', shortName: 'SAN', logoUrl: '/logos/san.png', primaryColor: '#475569', secondaryColor: '#ffffff', stadium: 'Vila Belmiro', tier: 3, realisticBudget: 88 },
-  { id: 'vas', name: 'Vasco da Gama', shortName: 'VAS', logoUrl: '/logos/vas.png', primaryColor: '#1f2937', secondaryColor: '#f8fafc', stadium: 'São Januário', tier: 3, realisticBudget: 84 },
+  { id: 'cap', name: 'Athletico-PR', shortName: 'CAP', logoUrl: '/logos/cap.png', primaryColor: '#991b1b', secondaryColor: '#0f172a', stadium: 'Ligga Arena', stadiumCapacity: 42372, tier: 3, realisticBudget: 95 },
+  { id: 'rbb', name: 'RB Bragantino', shortName: 'RBB', logoUrl: '/logos/rbb.png', primaryColor: '#e11d48', secondaryColor: '#f1f5f9', stadium: 'Nabi Abi Chedid', stadiumCapacity: 15010, tier: 3, realisticBudget: 92 },
+  { id: 'san', name: 'Santos', shortName: 'SAN', logoUrl: '/logos/san.png', primaryColor: '#475569', secondaryColor: '#ffffff', stadium: 'Vila Belmiro', stadiumCapacity: 16068, tier: 3, realisticBudget: 88 },
+  { id: 'vas', name: 'Vasco da Gama', shortName: 'VAS', logoUrl: '/logos/vas.png', primaryColor: '#1f2937', secondaryColor: '#f8fafc', stadium: 'São Januário', stadiumCapacity: 21880, tier: 3, realisticBudget: 84 },
   // Tier 4
-  { id: 'vit', name: 'Vitória', shortName: 'VIT', logoUrl: '/logos/vit.png', primaryColor: '#b91c1c', secondaryColor: '#09090b', stadium: 'Barradão', tier: 4, realisticBudget: 65 },
-  { id: 'cfc', name: 'Coritiba', shortName: 'CFC', logoUrl: '/logos/cfc.png', primaryColor: '#15803d', secondaryColor: '#ffffff', stadium: 'Couto Pereira', tier: 4, realisticBudget: 65 },
-  { id: 'mir', name: 'Mirassol', shortName: 'MIR', logoUrl: '/logos/mir.png', primaryColor: '#eab308', secondaryColor: '#15803d', stadium: 'Maião', tier: 4, realisticBudget: 62 },
-  { id: 'cha', name: 'Chapecoense', shortName: 'CHA', logoUrl: '/logos/cha.png', primaryColor: '#16a34a', secondaryColor: '#ffffff', stadium: 'Arena Condá', tier: 4, realisticBudget: 56 },
-  { id: 'rem', name: 'Remo', shortName: 'REM', logoUrl: '/logos/rem.png', primaryColor: '#1e3a8a', secondaryColor: '#ffffff', stadium: 'Mangueirão', tier: 4, realisticBudget: 55 },
+  { id: 'vit', name: 'Vitória', shortName: 'VIT', logoUrl: '/logos/vit.png', primaryColor: '#b91c1c', secondaryColor: '#09090b', stadium: 'Barradão', stadiumCapacity: 30793, tier: 4, realisticBudget: 65 },
+  { id: 'cfc', name: 'Coritiba', shortName: 'CFC', logoUrl: '/logos/cfc.png', primaryColor: '#15803d', secondaryColor: '#ffffff', stadium: 'Couto Pereira', stadiumCapacity: 40502, tier: 4, realisticBudget: 65 },
+  { id: 'mir', name: 'Mirassol', shortName: 'MIR', logoUrl: '/logos/mir.png', primaryColor: '#eab308', secondaryColor: '#15803d', stadium: 'Maião', stadiumCapacity: 15000, tier: 4, realisticBudget: 62 },
+  { id: 'cha', name: 'Chapecoense', shortName: 'CHA', logoUrl: '/logos/cha.png', primaryColor: '#16a34a', secondaryColor: '#ffffff', stadium: 'Arena Condá', stadiumCapacity: 20089, tier: 4, realisticBudget: 56 },
+  { id: 'rem', name: 'Remo', shortName: 'REM', logoUrl: '/logos/rem.png', primaryColor: '#1e3a8a', secondaryColor: '#ffffff', stadium: 'Mangueirão', stadiumCapacity: 53645, tier: 4, realisticBudget: 55 },
 ];
+
+export const CLUB_RIVALRIES: Array<[string, string, string]> = [
+  ['fla', 'flu', 'Fla-Flu'],
+  ['fla', 'vas', 'Clássico dos Milhões'],
+  ['fla', 'bot', 'Clássico da Rivalidade'],
+  ['flu', 'vas', 'Clássico dos Gigantes'],
+  ['flu', 'bot', 'Clássico Vovô'],
+  ['bot', 'vas', 'Clássico da Amizade'],
+  ['pal', 'cor', 'Derby Paulista'],
+  ['pal', 'sao', 'Choque-Rei'],
+  ['cor', 'sao', 'Majestoso'],
+  ['san', 'sao', 'San-São'],
+  ['cor', 'san', 'Clássico Alvinegro'],
+  ['pal', 'san', 'Clássico da Saudade'],
+  ['int', 'gre', 'Gre-Nal'],
+  ['cam', 'cru', 'Clássico Mineiro'],
+  ['bah', 'vit', 'Ba-Vi'],
+  ['cap', 'cfc', 'Atletiba'],
+  ['fla', 'pal', 'Duelo de Gigantes'],
+];
+
+export function getMatchRivalryLabel(homeClubId: string, awayClubId: string): string | null {
+  const h = homeClubId.split('-')[0].toLowerCase();
+  const a = awayClubId.split('-')[0].toLowerCase();
+  const found = CLUB_RIVALRIES.find(
+    ([c1, c2]) => (c1 === h && c2 === a) || (c1 === a && c2 === h)
+  );
+  return found ? found[2] : null;
+}
 
 export const COUNTRY_FLAGS: Record<string, string> = {
   Brasil: '🇧🇷',
@@ -809,15 +840,29 @@ export function createPlayer(
       : calcInitialContractYears(age, playerCounter));
   const wage = options?.wage ?? Math.max(0.1, Math.round((monthlySalary / 1000) * 10) / 10);
   const finalPos = options?.position ?? override?.position ?? position;
+  const secondaryPositions = options?.secondaryPositions ?? override?.secondaryPositions ?? [];
+  const ambidextrous = options?.ambidextrous ?? override?.ambidextrous ?? false;
+  const knownName = options?.knownName ?? override?.knownName ?? resolveKnownName(fullName);
+  const attributes =
+    options?.attributes ??
+    generatePlayerAttributes({
+      name: fullName,
+      position: finalPos,
+      secondaryPositions,
+      overall: finalOvr,
+      age,
+      ambidextrous,
+    });
 
   return {
     id,
     name: fullName,
-    knownName: options?.knownName ?? override?.knownName ?? resolveKnownName(fullName),
+    knownName,
     position: finalPos,
-    secondaryPositions: options?.secondaryPositions ?? override?.secondaryPositions ?? [],
-    ambidextrous: options?.ambidextrous ?? override?.ambidextrous ?? false,
+    secondaryPositions,
+    ambidextrous,
     overall: finalOvr,
+    attributes,
     age,
     nationality,
     nationalityFlag: COUNTRY_FLAGS[nationality] ?? COUNTRY_FLAGS[rawNat] ?? '🇧🇷',
@@ -831,6 +876,9 @@ export function createPlayer(
     stamina: options?.stamina ?? 100,
     goals: 0,
     assists: 0,
+    yellowCards: options?.yellowCards ?? 0,
+    redCards: options?.redCards ?? 0,
+    suspendedMatches: options?.suspendedMatches ?? 0,
     isStarter: options?.isStarter ?? false,
     listedForSale: options?.listedForSale ?? false,
     askingPrice: options?.askingPrice,

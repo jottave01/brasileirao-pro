@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 500" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#070A0F" />
+      <stop offset="52%" stop-color="#0B1119" />
+      <stop offset="100%" stop-color="#081C13" />
+    </linearGradient>
+    <radialGradient id="floodL" cx="18%" cy="6%" r="58%">
+      <stop offset="0%" stop-color="rgba(226, 232, 240, 0.24)" />
+      <stop offset="35%" stop-color="rgba(16, 185, 129, 0.12)" />
+      <stop offset="100%" stop-color="rgba(9, 12, 16, 0)" />
+    </radialGradient>
+    <radialGradient id="floodR" cx="82%" cy="6%" r="58%">
+      <stop offset="0%" stop-color="rgba(226, 232, 240, 0.22)" />
+      <stop offset="35%" stop-color="rgba(16, 185, 129, 0.1)" />
+      <stop offset="100%" stop-color="rgba(9, 12, 16, 0)" />
+    </radialGradient>
+    <radialGradient id="centerPitchGlow" cx="50%" cy="76%" r="48%">
+      <stop offset="0%" stop-color="rgba(16, 185, 129, 0.28)" />
+      <stop offset="65%" stop-color="rgba(10, 48, 30, 0.12)" />
+      <stop offset="100%" stop-color="rgba(9, 12, 16, 0)" />
+    </radialGradient>
+    <linearGradient id="turfPerspective" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#092116" />
+      <stop offset="100%" stop-color="#0C3824" />
+    </linearGradient>
+    <linearGradient id="vignette" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#090C10" stop-opacity="0.92" />
+      <stop offset="22%" stop-color="#090C10" stop-opacity="0.32" />
+      <stop offset="78%" stop-color="#090C10" stop-opacity="0.32" />
+      <stop offset="100%" stop-color="#090C10" stop-opacity="0.92" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="500" fill="url(#skyGrad)" />
+
+  <!-- Architectural Stadium Upper Tiers & Truss -->
+  <path d="M 0 185 Q 800 135 1600 185 L 1600 285 L 0 285 Z" fill="#0D121A" opacity="0.88" />
+  <path d="M 0 135 Q 800 88 1600 135 L 1600 185 Q 800 135 0 185 Z" fill="#0A0E14" opacity="0.95" />
+  <path d="M 0 245 Q 800 212 1600 245" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2" />
+  <path d="M 0 210 Q 800 174 1600 210" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1.5" />
+
+  <!-- Stadium Roof Steel Structure -->
+  <path d="M 0 65 Q 800 18 1600 65" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="3" />
+  <g stroke="rgba(255,255,255,0.05)" stroke-width="1.5">
+    <line x1="200" y1="53" x2="160" y2="145" />
+    <line x1="420" y1="40" x2="395" y2="122" />
+    <line x1="640" y1="32" x2="630" y2="110" />
+    <line x1="960" y1="32" x2="970" y2="110" />
+    <line x1="1180" y1="40" x2="1205" y2="122" />
+    <line x1="1400" y1="53" x2="1440" y2="145" />
+  </g>
+
+  <!-- Floodlight Clusters & Volumetric Beams -->
+  <g fill="#F8FAFC" opacity="0.9">
+    <rect x="255" y="34" width="66" height="10" rx="2" />
+    <rect x="1279" y="34" width="66" height="10" rx="2" />
+  </g>
+  <polygon points="288,44 90,500 760,500" fill="url(#floodL)" opacity="0.65" />
+  <polygon points="1312,44 840,500 1510,500" fill="url(#floodR)" opacity="0.65" />
+
+  <!-- Floodlit Mowed Pitch Perspective -->
+  <polygon points="0,285 1600,285 1600,500 0,500" fill="url(#turfPerspective)" />
+  <g opacity="0.22" fill="#10B981">
+    <polygon points="140,285 260,285 180,500 20,500" />
+    <polygon points="410,285 540,285 500,500 340,500" />
+    <polygon points="710,285 890,285 910,500 690,500" />
+    <polygon points="1060,285 1190,285 1260,500 1100,500" />
+    <polygon points="1340,285 1460,285 1580,500 1420,500" />
+  </g>
+
+  <!-- Crisp Pitch Lines -->
+  <g stroke="rgba(255,255,255,0.22)" stroke-width="2" fill="none">
+    <line x1="0" y1="292" x2="1600" y2="292" />
+    <ellipse cx="800" cy="396" rx="190" ry="52" />
+    <line x1="800" y1="292" x2="800" y2="500" />
+    <polygon points="220,292 430,292 360,445 80,445" opacity="0.65" />
+    <polygon points="1170,292 1380,292 1520,445 1240,445" opacity="0.65" />
+  </g>
+
+  <!-- Atmospheric Glow & Dark Edge Vignette -->
+  <rect width="1600" height="500" fill="url(#centerPitchGlow)" />
+  <rect width="1600" height="500" fill="url(#vignette)" />
+</svg>

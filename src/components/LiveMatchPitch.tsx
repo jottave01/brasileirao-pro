@@ -1,12 +1,15 @@
 import React from 'react';
+import { Ticket, Users } from 'lucide-react';
 import { Club, Match } from '../types/league';
-import { FORMATION_LAYOUT } from '../engine/botAI';
+import { FORMATION_LAYOUT, getClubTactics, normalizeMatchStats } from '../engine/botAI';
+import { formatMillionsBRL } from '../data/seedData';
 import { ClubCrest } from './ClubBadge';
 
 interface LiveMatchPitchProps {
   match: Match;
   homeClub: Club;
   awayClub: Club;
+  focusClubId?: string;
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -26,9 +29,17 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
   match,
   homeClub,
   awayClub,
+  focusClubId,
 }) => {
   const homeLayout = FORMATION_LAYOUT[homeClub.formation] ?? FORMATION_LAYOUT['4-3-3'];
   const awayLayout = FORMATION_LAYOUT[awayClub.formation] ?? FORMATION_LAYOUT['4-4-2'];
+  const homeTactics = getClubTactics(homeClub);
+  const awayTactics = getClubTactics(awayClub);
+  const homeRedIds = match.simState?.homeRedCardedIds ?? [];
+  const awayRedIds = match.simState?.awayRedCardedIds ?? [];
+  const homeYellowIds = match.simState?.homeYellowCardedIds ?? [];
+  const awayYellowIds = match.simState?.awayYellowCardedIds ?? [];
+  const st = normalizeMatchStats(match.stats);
 
   const clash = colorDistance(homeClub.primaryColor, awayClub.primaryColor) < 115;
   const homeFill = homeClub.primaryColor;
@@ -43,48 +54,148 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
   const mapHomePos = (pitchX: number, pitchY: number, role: string) => {
     const isGk = role === 'GOL';
     const isAttacker = role === 'CA' || role === 'PE' || role === 'PD';
+    const isWinger = role === 'PE' || role === 'PD';
     const isMid = role === 'MC' || role === 'MEI' || role === 'VOL';
     const isWingBack = role === 'LD' || role === 'LE';
-    const baseX = 48 + ((100 - pitchY) / 100) * 340;
-    const attackPush = homeHasBall
-      ? isAttacker
-        ? 26
-        : isWingBack || isMid
-        ? 18
+    const isDefender = role === 'ZAG' || isWingBack;
+
+    const lineShift =
+      homeTactics.defensiveLine === 'Adiantada'
+        ? isDefender || role === 'VOL'
+          ? 24
+          : 12
+        : homeTactics.defensiveLine === 'Recuada'
+        ? isDefender || role === 'VOL'
+          ? -24
+          : -14
+        : 0;
+
+    const pressShift = !homeHasBall
+      ? homeTactics.pressing === 'Pressão alta' || homeTactics.pressing === 'Pressão após perda'
+        ? isAttacker || isMid
+          ? 20
+          : 8
+        : homeTactics.pressing === 'Pressão baixa'
+        ? -20
+        : -6
+      : 0;
+
+    const offShift = homeHasBall
+      ? isWingBack &&
+        (homeTactics.offensiveStyle === 'Jogo pelas laterais' ||
+          homeTactics.offensiveStyle === 'Cruzamentos')
+        ? 30
+        : isAttacker && homeTactics.offensiveStyle === 'Transições rápidas'
+        ? 28
+        : isAttacker
+        ? 22
+        : isMid
+        ? 16
         : 6
-      : isAttacker
-      ? -14
-      : isMid
-      ? -18
-      : -12;
-    const x = isGk ? 42 : Math.max(54, Math.min(546, baseX + ballShiftX * 0.85 + attackPush));
+      : 0;
+
+    const baseX = 48 + ((100 - pitchY) / 100) * 340;
+    const x = isGk
+      ? 42
+      : Math.max(52, Math.min(548, baseX + ballShiftX * 0.85 + lineShift + pressShift + offShift));
+
+    let adjustedPitchX = pitchX;
+    if (homeHasBall) {
+      if (
+        (isWinger || isWingBack) &&
+        (homeTactics.offensiveStyle === 'Jogo pelas laterais' ||
+          homeTactics.offensiveStyle === 'Cruzamentos')
+      ) {
+        adjustedPitchX = pitchX < 50 ? Math.max(6, pitchX - 7) : Math.min(94, pitchX + 7);
+      } else if (isWinger && homeTactics.offensiveStyle === 'Ataque pelo meio') {
+        adjustedPitchX = pitchX < 50 ? pitchX + 10 : pitchX - 10;
+      }
+    }
+
     const y = isGk
       ? 180 + ballShiftY * 0.24
-      : Math.max(24, Math.min(336, (pitchX / 100) * 320 + 20 + ballShiftY * (isMid || isAttacker ? 0.56 : 0.4)));
+      : Math.max(
+          22,
+          Math.min(
+            338,
+            (adjustedPitchX / 100) * 320 + 20 + ballShiftY * (isMid || isAttacker ? 0.56 : 0.4)
+          )
+        );
     return { x, y };
   };
 
   const mapAwayPos = (pitchX: number, pitchY: number, role: string) => {
     const isGk = role === 'GOL';
     const isAttacker = role === 'CA' || role === 'PE' || role === 'PD';
+    const isWinger = role === 'PE' || role === 'PD';
     const isMid = role === 'MC' || role === 'MEI' || role === 'VOL';
     const isWingBack = role === 'LD' || role === 'LE';
-    const baseX = 552 - ((100 - pitchY) / 100) * 340;
-    const awayPush = !homeHasBall
-      ? isAttacker
-        ? -26
-        : isWingBack || isMid
-        ? -18
+    const isDefender = role === 'ZAG' || isWingBack;
+
+    const lineShift =
+      awayTactics.defensiveLine === 'Adiantada'
+        ? isDefender || role === 'VOL'
+          ? -24
+          : -12
+        : awayTactics.defensiveLine === 'Recuada'
+        ? isDefender || role === 'VOL'
+          ? 24
+          : 14
+        : 0;
+
+    const pressShift = homeHasBall
+      ? awayTactics.pressing === 'Pressão alta' || awayTactics.pressing === 'Pressão após perda'
+        ? isAttacker || isMid
+          ? -20
+          : -8
+        : awayTactics.pressing === 'Pressão baixa'
+        ? 20
+        : 6
+      : 0;
+
+    const offShift = !homeHasBall
+      ? isWingBack &&
+        (awayTactics.offensiveStyle === 'Jogo pelas laterais' ||
+          awayTactics.offensiveStyle === 'Cruzamentos')
+        ? -30
+        : isAttacker && awayTactics.offensiveStyle === 'Transições rápidas'
+        ? -28
+        : isAttacker
+        ? -22
+        : isMid
+        ? -16
         : -6
-      : isAttacker
-      ? 14
-      : isMid
-      ? 18
-      : 12;
-    const x = isGk ? 558 : Math.max(54, Math.min(546, baseX + ballShiftX * 0.85 + awayPush));
+      : 0;
+
+    const baseX = 552 - ((100 - pitchY) / 100) * 340;
+    const x = isGk
+      ? 558
+      : Math.max(52, Math.min(548, baseX + ballShiftX * 0.85 + lineShift + pressShift + offShift));
+
+    let adjustedPitchX = pitchX;
+    if (!homeHasBall) {
+      if (
+        (isWinger || isWingBack) &&
+        (awayTactics.offensiveStyle === 'Jogo pelas laterais' ||
+          awayTactics.offensiveStyle === 'Cruzamentos')
+      ) {
+        adjustedPitchX = pitchX < 50 ? Math.max(6, pitchX - 7) : Math.min(94, pitchX + 7);
+      } else if (isWinger && awayTactics.offensiveStyle === 'Ataque pelo meio') {
+        adjustedPitchX = pitchX < 50 ? pitchX + 10 : pitchX - 10;
+      }
+    }
+
     const y = isGk
       ? 180 + ballShiftY * 0.24
-      : Math.max(24, Math.min(336, ((100 - pitchX) / 100) * 320 + 20 + ballShiftY * (isMid || isAttacker ? 0.56 : 0.4)));
+      : Math.max(
+          22,
+          Math.min(
+            338,
+            ((100 - adjustedPitchX) / 100) * 320 +
+              20 +
+              ballShiftY * (isMid || isAttacker ? 0.56 : 0.4)
+          )
+        );
     return { x, y };
   };
 
@@ -109,7 +220,14 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
     match.playPhase === 'finalizacao_fora' ||
     isGoal;
   const showPassTrail =
-    match.playPhase === 'ataque_casa' || match.playPhase === 'ataque_fora';
+    match.playPhase === 'construcao_casa' ||
+    match.playPhase === 'construcao_fora' ||
+    match.playPhase === 'ataque_casa' ||
+    match.playPhase === 'ataque_fora' ||
+    match.playPhase === 'contra_ataque_casa' ||
+    match.playPhase === 'contra_ataque_fora' ||
+    match.playPhase === 'cruzamento_casa' ||
+    match.playPhase === 'cruzamento_fora';
   const ballAtFeet = showPassTrail || match.playPhase === 'meio_campo';
   const trailTargetX =
     match.playPhase === 'finalizacao_casa' || match.playPhase === 'gol_casa' ? 578 : 22;
@@ -119,45 +237,99 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
   const phaseBadge = isGoal
     ? { label: 'GOOOL!', cls: 'bg-amber-400 text-slate-950' }
     : showShotTrail
-    ? { label: 'FINALIZAÇÃO', cls: 'bg-rose-500/90 text-white' }
-    : showPassTrail
-    ? { label: 'ATAQUE', cls: 'bg-emerald-500/90 text-slate-950' }
-    : { label: 'CONSTRUÇÃO', cls: 'bg-sky-500/80 text-slate-950' };
+    ? { label: 'FINALIZAÇÃO', cls: 'bg-rose-500 text-white' }
+    : match.playPhase === 'contra_ataque_casa' || match.playPhase === 'contra_ataque_fora'
+    ? { label: 'CONTRA-ATAQUE', cls: 'bg-amber-400 text-slate-950' }
+    : match.playPhase === 'cruzamento_casa' || match.playPhase === 'cruzamento_fora'
+    ? { label: 'CRUZAMENTO', cls: 'bg-emerald-400 text-slate-950' }
+    : match.playPhase === 'ataque_casa' || match.playPhase === 'ataque_fora'
+    ? { label: 'ATAQUE', cls: 'bg-emerald-500 text-slate-950' }
+    : match.playPhase === 'falta'
+    ? { label: 'FALTA', cls: 'bg-amber-500 text-slate-950' }
+    : match.playPhase === 'impedimento'
+    ? { label: 'IMPEDIMENTO', cls: 'bg-slate-600 text-white' }
+    : { label: 'CONSTRUÇÃO', cls: 'bg-sky-400 text-slate-950' };
+
+  // Resultado final elegante para Apito Final
+  const homeWon = match.homeGoals > match.awayGoals;
+  const isDraw = match.homeGoals === match.awayGoals;
+  const focusIsInMatch = focusClubId === homeClub.id || focusClubId === awayClub.id;
+  const focusWon =
+    focusIsInMatch &&
+    !isDraw &&
+    ((focusClubId === homeClub.id && homeWon) || (focusClubId === awayClub.id && !homeWon));
+  const finalVerdict = isDraw
+    ? { label: 'Empate ao Apito Final', cls: 'bg-[#090C10]/90 border-amber-400/45 text-amber-300' }
+    : focusIsInMatch
+    ? focusWon
+      ? { label: 'Vitória Conquistada!', cls: 'bg-emerald-500/95 border-emerald-200 text-slate-950' }
+      : { label: 'Derrota na Rodada', cls: 'bg-rose-600/95 border-rose-300 text-white' }
+    : {
+        label: `Vitória do ${homeWon ? homeClub.shortName : awayClub.shortName}`,
+        cls: 'bg-[#090C10]/90 border-emerald-400/45 text-emerald-300',
+      };
 
   return (
-    <div className="bg-[#0D121A] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
-      {/* Placar Transmissão TV com altura fixa para evitar saltos */}
-      <div className="h-[74px] bg-gradient-to-r from-[#090D13] via-[#121925] to-[#090D13] px-3 border-b border-white/[0.07] flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
+    <div className="console-panel-elevated overflow-hidden">
+      {/* Placar Transmissão Esportiva TV */}
+      <div className="relative min-h-[78px] bg-[#0B0F15] px-3 sm:px-5 py-2.5 border-b border-white/[0.08] flex items-center justify-between gap-2">
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-1"
+          style={{ backgroundColor: homeClub.primaryColor }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 right-0 w-1"
+          style={{ backgroundColor: awayClub.primaryColor }}
+        />
+
+        {/* Mandante */}
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 justify-end min-w-0">
           <div className="text-right min-w-0">
-            <div className="font-display text-base font-bold text-white truncate uppercase leading-tight">
-              {homeClub.shortName}
+            <div className="font-display text-lg sm:text-xl font-extrabold text-white truncate uppercase leading-none">
+              <span className="sm:hidden">{homeClub.shortName}</span>
+              <span className="hidden sm:inline">{homeClub.name}</span>
             </div>
-            <div className="text-[10px] text-slate-400 truncate">
-              {homeClub.formation} • {homeClub.mentality}
+            <div className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center justify-end gap-1">
+              {homeRedIds.length > 0 && (
+                <span className="px-1 rounded bg-rose-600 text-white text-[9px] font-extrabold shrink-0">
+                  🟥 {homeRedIds.length}
+                </span>
+              )}
+              <span>{homeClub.formation}</span>
+              <span className="hidden sm:inline">• {homeClub.mentality}</span>
             </div>
           </div>
           <ClubCrest club={homeClub} size="md" />
         </div>
 
-        <div className="flex flex-col items-center shrink-0 px-2">
-          <div className="flex items-center gap-2 bg-[#06090E] border border-white/10 rounded-xl px-3.5 py-1">
-            <span className="font-display text-2xl font-extrabold text-white tabular-nums">
+        {/* Placar Central + Cronômetro */}
+        <div className="flex flex-col items-center shrink-0 px-2 sm:px-4">
+          <div
+            key={`${match.homeGoals}-${match.awayGoals}`}
+            className={`flex items-center gap-2.5 bg-[#090C10] border border-white/15 rounded-md px-4 py-1 ${
+              match.status === 'ao_vivo' && (match.homeGoals > 0 || match.awayGoals > 0)
+                ? 'animate-score-pulse'
+                : ''
+            }`}
+          >
+            <span className="font-display text-3xl sm:text-4xl font-extrabold text-white tabular-nums leading-none">
               {match.homeGoals}
             </span>
-            <span className="text-slate-600 font-bold text-base">:</span>
-            <span className="font-display text-2xl font-extrabold text-white tabular-nums">
+            <span className="text-slate-600 font-bold text-lg leading-none">:</span>
+            <span className="font-display text-3xl sm:text-4xl font-extrabold text-white tabular-nums leading-none">
               {match.awayGoals}
             </span>
           </div>
-          <div className="mt-1 h-3.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+          <div className="mt-1 h-4 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider">
             {match.isHalftime ? (
               <span className="text-amber-300 tabular-nums">
                 INTERVALO ({match.halftimeRemainingSec}s)
               </span>
             ) : match.status === 'ao_vivo' ? (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                 <span className="text-rose-400 tabular-nums">AO VIVO {match.currentMinute}&apos;</span>
               </>
             ) : match.status === 'finalizada' ? (
@@ -168,45 +340,54 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        {/* Visitante */}
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
           <ClubCrest club={awayClub} size="md" />
           <div className="min-w-0">
-            <div className="font-display text-base font-bold text-white truncate uppercase leading-tight">
-              {awayClub.shortName}
+            <div className="font-display text-lg sm:text-xl font-extrabold text-white truncate uppercase leading-none">
+              <span className="sm:hidden">{awayClub.shortName}</span>
+              <span className="hidden sm:inline">{awayClub.name}</span>
             </div>
-            <div className="text-[10px] text-slate-400 truncate">
-              {awayClub.formation} • {awayClub.mentality}
+            <div className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1">
+              <span>{awayClub.formation}</span>
+              <span className="hidden sm:inline">• {awayClub.mentality}</span>
+              {awayRedIds.length > 0 && (
+                <span className="px-1 rounded bg-rose-600 text-white text-[9px] font-extrabold shrink-0">
+                  🟥 {awayRedIds.length}
+                </span>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Campinho 2D Broadcast */}
-      <div className="relative bg-gradient-to-b from-[#071911] to-[#05120C] p-2">
+      {/* Campo 2D Broadcast */}
+      <div className="relative bg-[#06150E] p-2 sm:p-3">
         {match.status === 'ao_vivo' && !match.isHalftime && (
-          <div className="absolute top-3.5 left-4 z-10 pointer-events-none">
+          <div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-10 pointer-events-none">
             <span
-              className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider shadow ${phaseBadge.cls}`}
+              className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider shadow ${phaseBadge.cls}`}
             >
               {phaseBadge.label}
             </span>
           </div>
         )}
+
         <svg
           viewBox="0 0 600 360"
-          className="w-full h-auto rounded-xl border border-emerald-400/25 shadow-inner block"
+          className="w-full h-auto rounded-md border border-emerald-400/25 shadow-inner block"
         >
           <defs>
             <radialGradient id="stadiumFloodlight" cx="50%" cy="48%" r="60%">
               <stop offset="0%" stopColor="rgba(167, 243, 208, 0.14)" />
               <stop offset="65%" stopColor="rgba(16, 185, 129, 0.04)" />
-              <stop offset="100%" stopColor="rgba(2, 6, 23, 0.35)" />
+              <stop offset="100%" stopColor="rgba(2, 6, 23, 0.4)" />
             </radialGradient>
             <pattern id="goalNetPattern" width="4" height="4" patternUnits="userSpaceOnUse">
               <path d="M 4 0 L 0 0 0 4" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="0.6" />
             </pattern>
             <filter id="playerGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="rgba(0,0,0,0.65)" />
+              <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="rgba(0,0,0,0.68)" />
             </filter>
           </defs>
 
@@ -217,7 +398,7 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
               y={0}
               width={50}
               height={360}
-              fill={idx % 2 === 0 ? '#0D3B26' : '#11472E'}
+              fill={idx % 2 === 0 ? '#0C3824' : '#10442C'}
             />
           ))}
           <rect x="0" y="0" width="600" height="360" fill="url(#stadiumFloodlight)" />
@@ -226,8 +407,8 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
           <rect x="210" y="3" width="70" height="7" rx="2" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.22)" strokeWidth="0.8" />
           <rect x="320" y="3" width="70" height="7" rx="2" fill="rgba(15,23,42,0.85)" stroke="rgba(255,255,255,0.22)" strokeWidth="0.8" />
 
-          {/* Linhas Oficiais do Gramado + Pênaltis + Escanteios */}
-          <g stroke="rgba(255,255,255,0.48)" strokeWidth="1.8" fill="none">
+          {/* Linhas Oficiais do Gramado */}
+          <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.8" fill="none">
             <rect x="24" y="18" width="552" height="324" />
             <line x1="300" y1="18" x2="300" y2="342" />
             <circle cx="300" cy="180" r="46" />
@@ -240,12 +421,10 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
             <rect x="544" y="132" width="32" height="96" />
             <circle cx="520" cy="180" r="2.2" fill="rgba(255,255,255,0.7)" />
             <path d="M 492 142 A 38 38 0 0 0 492 218" />
-            {/* Arcos de escanteio */}
             <path d="M 24 27 A 9 9 0 0 0 33 18" />
             <path d="M 567 18 A 9 9 0 0 0 576 27" />
             <path d="M 24 333 A 9 9 0 0 1 33 342" />
             <path d="M 567 342 A 9 9 0 0 1 576 333" />
-            {/* Balizas com textura de rede */}
             <rect x="12" y="152" width="12" height="56" fill="url(#goalNetPattern)" stroke="rgba(255,255,255,0.82)" strokeWidth="2" />
             <rect x="576" y="152" width="12" height="56" fill="url(#goalNetPattern)" stroke="rgba(255,255,255,0.82)" strokeWidth="2" />
           </g>
@@ -274,12 +453,12 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
             />
           )}
 
-          {/* 11 Jogadores da Casa */}
+          {/* Jogadores da Casa (remove expulsos do campo) */}
           {homeLayout.map((spec, idx) => {
             const slot = homeClub.lineupSlots?.[idx];
-            const player = slot
-              ? homeClub.squad.find((p) => p.id === slot.playerId)
-              : undefined;
+            const player = slot ? homeClub.squad.find((p) => p.id === slot.playerId) : undefined;
+            if (player && homeRedIds.includes(player.id)) return null;
+            const hasYellow = Boolean(player && homeYellowIds.includes(player.id));
             const isActive = Boolean(player && player.id === match.activePlayerId);
             const isSecondary = Boolean(player && player.id === match.secondaryPlayerId);
             const staminaPct = Math.max(0, Math.min(100, player?.stamina ?? 100));
@@ -331,14 +510,7 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                   </>
                 )}
                 {!isActive && isSecondary && (
-                  <circle
-                    cx="0"
-                    cy="0"
-                    r="12"
-                    fill="none"
-                    stroke="#38BDF8"
-                    strokeWidth="1.6"
-                  />
+                  <circle cx="0" cy="0" r="12" fill="none" stroke="#38BDF8" strokeWidth="1.6" />
                 )}
                 <circle cx="0" cy="2" r="9.5" fill="rgba(0,0,0,0.42)" />
                 <circle
@@ -349,16 +521,12 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                   stroke={isActive ? '#FDE047' : homeStroke}
                   strokeWidth="2"
                 />
-                <text
-                  x="0"
-                  y="3"
-                  textAnchor="middle"
-                  fontSize="7"
-                  fontWeight="800"
-                  fill="#ffffff"
-                >
+                <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="800" fill="#ffffff">
                   {idx + 1}
                 </text>
+                {hasYellow && (
+                  <rect x="6.5" y="-9.5" width="4.2" height="5.5" rx="0.8" fill="#FACC15" stroke="#0f172a" strokeWidth="0.6" />
+                )}
                 {player && (
                   <>
                     <rect x="-9" y="10.5" width="18" height="2" rx="1" fill="rgba(15,23,42,0.85)" />
@@ -374,9 +542,13 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                       x="0"
                       y="20.5"
                       textAnchor="middle"
-                      fontSize="7.4"
+                      fontSize="6.8"
                       fontWeight={isActive ? '800' : '600'}
-                      fill={isActive ? '#FDE047' : 'rgba(255,255,255,0.92)'}
+                      fill={isActive ? '#FDE047' : 'rgba(255,255,255,0.95)'}
+                      stroke="#05160e"
+                      strokeWidth="2.4"
+                      strokeLinejoin="round"
+                      paintOrder="stroke"
                     >
                       {player.knownName}
                     </text>
@@ -386,12 +558,12 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
             );
           })}
 
-          {/* 11 Jogadores Visitante */}
+          {/* Jogadores Visitante (remove expulsos do campo) */}
           {awayLayout.map((spec, idx) => {
             const slot = awayClub.lineupSlots?.[idx];
-            const player = slot
-              ? awayClub.squad.find((p) => p.id === slot.playerId)
-              : undefined;
+            const player = slot ? awayClub.squad.find((p) => p.id === slot.playerId) : undefined;
+            if (player && awayRedIds.includes(player.id)) return null;
+            const hasYellow = Boolean(player && awayYellowIds.includes(player.id));
             const isActive = Boolean(player && player.id === match.activePlayerId);
             const isSecondary = Boolean(player && player.id === match.secondaryPlayerId);
             const staminaPct = Math.max(0, Math.min(100, player?.stamina ?? 100));
@@ -443,14 +615,7 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                   </>
                 )}
                 {!isActive && isSecondary && (
-                  <circle
-                    cx="0"
-                    cy="0"
-                    r="12"
-                    fill="none"
-                    stroke="#38BDF8"
-                    strokeWidth="1.6"
-                  />
+                  <circle cx="0" cy="0" r="12" fill="none" stroke="#38BDF8" strokeWidth="1.6" />
                 )}
                 <circle cx="0" cy="2" r="9.5" fill="rgba(0,0,0,0.42)" />
                 <circle
@@ -471,6 +636,9 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                 >
                   {idx + 1}
                 </text>
+                {hasYellow && (
+                  <rect x="6.5" y="-9.5" width="4.2" height="5.5" rx="0.8" fill="#FACC15" stroke="#0f172a" strokeWidth="0.6" />
+                )}
                 {player && (
                   <>
                     <rect x="-9" y="10.5" width="18" height="2" rx="1" fill="rgba(15,23,42,0.85)" />
@@ -486,9 +654,13 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                       x="0"
                       y="20.5"
                       textAnchor="middle"
-                      fontSize="7.4"
+                      fontSize="6.8"
                       fontWeight={isActive ? '800' : '600'}
-                      fill={isActive ? '#FDE047' : 'rgba(255,255,255,0.92)'}
+                      fill={isActive ? '#FDE047' : 'rgba(255,255,255,0.95)'}
+                      stroke="#05160e"
+                      strokeWidth="2.4"
+                      strokeLinejoin="round"
+                      paintOrder="stroke"
                     >
                       {player.knownName}
                     </text>
@@ -511,61 +683,101 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
           </g>
         </svg>
 
-        {/* Banner de GOOOL estático (sem bounce para zero tremor) */}
+        {/* Banner Cinematográfico Rápido de GOOOL! */}
         {isGoal && goalClub && (
-          <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-500/95 via-emerald-500/95 to-amber-500/95 text-slate-950 rounded-2xl py-2.5 px-4 shadow-2xl border border-white/40 flex items-center justify-center gap-3">
-            <ClubCrest club={goalClub} size="md" />
-            <div className="text-center">
-              <div className="font-display text-2xl font-extrabold tracking-wider uppercase leading-none">
-                GOOOOL DO {goalClub.name}!
-              </div>
-              {lastGoal && (
-                <div className="text-xs font-bold mt-0.5">
-                  {lastGoal.minute}&apos; — {lastGoal.playerName}
+          <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 pointer-events-none animate-goal-banner">
+            <div
+              className="bg-[#090C10]/95 border border-amber-400/70 rounded-md py-3 px-4 shadow-2xl flex items-center justify-center gap-3.5"
+              style={{ borderLeftWidth: '5px', borderLeftColor: goalClub.primaryColor }}
+            >
+              <ClubCrest club={goalClub} size="md" />
+              <div className="text-left min-w-0">
+                <div className="font-display text-2xl sm:text-3xl font-extrabold tracking-wider uppercase leading-none text-amber-300">
+                  GOOOOL DO {goalClub.name}!
                 </div>
-              )}
+                {lastGoal && (
+                  <div className="text-xs font-bold text-white mt-1 truncate">
+                    {lastGoal.minute}&apos; — {lastGoal.playerName}
+                    {lastGoal.assistName ? ` (Assist: ${lastGoal.assistName})` : ''}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Faixa Discreta de Apito Final */}
+        {match.status === 'finalizada' && !isGoal && (
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 pointer-events-none">
+            <div
+              className={`px-4 py-1.5 rounded-md border text-xs font-extrabold uppercase tracking-wider shadow-lg whitespace-nowrap ${finalVerdict.cls}`}
+            >
+              {finalVerdict.label}
             </div>
           </div>
         )}
       </div>
 
-      {/* Narração com altura fixa + Estatísticas com altura fixa */}
-      <div className="px-3.5 py-2.5 bg-[#090D13] border-t border-white/[0.07] space-y-2">
-        <div className="h-10 flex items-center gap-2 overflow-hidden">
-          <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-[10px] font-bold uppercase text-emerald-300 shrink-0">
+      {/* Narração do Lance + Mini Estatísticas */}
+      <div className="px-4 py-3 bg-[#090C10] border-t border-white/[0.08] space-y-2.5">
+        <div className="min-h-[36px] flex items-center gap-2.5">
+          <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-extrabold uppercase tracking-wider text-emerald-300 shrink-0">
             Lance
           </span>
-          <span className="text-xs font-medium text-emerald-300 line-clamp-2 leading-snug">
+          <span className="text-xs font-medium text-slate-200 line-clamp-2 leading-snug">
             {match.lastPlayText}
           </span>
         </div>
 
-        <div className="h-11 grid grid-cols-4 gap-2 pt-2 border-t border-white/[0.05] text-center text-[11px] items-center">
+        <div className="grid grid-cols-4 gap-2 pt-2.5 border-t border-white/[0.06] text-center text-xs items-center">
           <div>
-            <div className="text-[10px] text-slate-500 leading-none">Posse</div>
+            <div className="text-[11px] text-slate-400 leading-none">Posse</div>
             <div className="font-bold text-white tabular-nums mt-1">
-              {match.stats.homePossession}% - {100 - match.stats.homePossession}%
+              {st.homePossession}% - {100 - st.homePossession}%
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-500 leading-none">Chutes</div>
+            <div className="text-[11px] text-slate-400 leading-none">Chutes</div>
             <div className="font-bold text-white tabular-nums mt-1">
-              {match.stats.homeShots} - {match.stats.awayShots}
+              {st.homeShots} - {st.awayShots}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-500 leading-none">No Gol</div>
+            <div className="text-[11px] text-slate-400 leading-none">No Gol</div>
             <div className="font-bold text-white tabular-nums mt-1">
-              {match.stats.homeOnTarget} - {match.stats.awayOnTarget}
+              {st.homeOnTarget} - {st.awayOnTarget}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-slate-500 leading-none">Escanteios</div>
+            <div className="text-[11px] text-slate-400 leading-none">Passes %</div>
             <div className="font-bold text-white tabular-nums mt-1">
-              {match.stats.homeCorners} - {match.stats.awayCorners}
+              {st.homePasses > 0 ? Math.round((st.homePassesCompleted / st.homePasses) * 100) : 0}% -{' '}
+              {st.awayPasses > 0 ? Math.round((st.awayPassesCompleted / st.awayPasses) * 100) : 0}%
             </div>
           </div>
         </div>
+
+        {match.boxOfficeReport && (
+          <div className="pt-2.5 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <div className="flex flex-wrap items-center gap-2 text-slate-300">
+              <span className="inline-flex items-center gap-1 text-slate-200 font-semibold tabular-nums">
+                <Users className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                {match.boxOfficeReport.attendance.toLocaleString('pt-BR')} /{' '}
+                {match.boxOfficeReport.capacity.toLocaleString('pt-BR')} (
+                {match.boxOfficeReport.occupancyPct}%)
+              </span>
+              {match.boxOfficeReport.highlightLabel && (
+                <span className="px-2 py-0.5 rounded bg-amber-400/15 border border-amber-400/35 text-amber-300 font-bold text-[10px]">
+                  {match.boxOfficeReport.highlightLabel}
+                </span>
+              )}
+            </div>
+            <span className="inline-flex items-center gap-1 font-bold text-emerald-400 tabular-nums">
+              <Ticket className="w-3.5 h-3.5 shrink-0" />
+              Bilheteria {homeClub.shortName}: +{formatMillionsBRL(match.boxOfficeReport.revenue)}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

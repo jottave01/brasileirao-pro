@@ -117,10 +117,10 @@ export const WorldClubCrest: React.FC<{
   );
 };
 
-export const ClubCrest: React.FC<{ club: Club; size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }> = ({
-  club,
-  size = 'md',
-}) => {
+export const ClubCrest: React.FC<{
+  club: Club;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+}> = ({ club, size = 'md' }) => {
   const [imgError, setImgError] = useState(false);
 
   const dims =
@@ -132,6 +132,8 @@ export const ClubCrest: React.FC<{ club: Club; size?: 'xs' | 'sm' | 'md' | 'lg' 
       ? 'w-12 h-12'
       : size === 'xl'
       ? 'w-16 h-16'
+      : size === '2xl'
+      ? 'w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24'
       : 'w-10 h-10';
 
   if (club.logoUrl && !imgError) {
@@ -161,6 +163,37 @@ export const ClubCrest: React.FC<{ club: Club; size?: 'xs' | 'sm' | 'md' | 'lg' 
   );
 };
 
+export const OvrBadge: React.FC<{
+  ovr: number;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
+}> = ({ ovr, size = 'md', className = '' }) => {
+  const tierCls =
+    ovr >= 85
+      ? 'bg-amber-400/15 text-amber-300 border-amber-400/45 shadow-[inset_0_1px_0_rgba(245,184,46,0.25)]'
+      : ovr >= 78
+      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-[inset_0_1px_0_rgba(16,185,129,0.2)]'
+      : 'bg-slate-800/90 text-slate-200 border-white/15';
+
+  const sizeCls =
+    size === 'sm'
+      ? 'w-8 h-7 text-sm rounded'
+      : size === 'lg'
+      ? 'w-12 h-11 text-2xl rounded-md'
+      : size === 'xl'
+      ? 'w-14 h-13 text-3xl rounded-lg'
+      : 'w-10 h-9 text-lg rounded-md';
+
+  return (
+    <div
+      className={`font-display font-extrabold tabular-nums border inline-flex items-center justify-center shrink-0 leading-none ${tierCls} ${sizeCls} ${className}`}
+      title={`OVR ${ovr}`}
+    >
+      {ovr}
+    </div>
+  );
+};
+
 function hashString(str: string): number {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -186,7 +219,8 @@ export const PlayerAvatar: React.FC<{
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   kitPrimary?: string;
   kitSecondary?: string;
-}> = ({ player, size = 'md', kitPrimary, kitSecondary }) => {
+  shape?: 'circle' | 'card';
+}> = ({ player, size = 'md', kitPrimary, kitSecondary, shape = 'circle' }) => {
   const hash = hashString(player.name + player.position);
   const app = player.appearance;
 
@@ -217,17 +251,22 @@ export const PlayerAvatar: React.FC<{
       ? 'w-16 h-16'
       : 'w-22 h-22';
 
-  const clipId = `pes-clip-${hash}-${size}-${app?.skin ?? 'h'}`;
+  const clipId = `pes-clip-${hash}-${size}-${shape}-${app?.skin ?? 'h'}`;
+  const shapeCls = shape === 'card' ? 'rounded-md' : 'rounded-full';
 
   return (
     <div
-      className={`${dims} rounded-full bg-gradient-to-b from-[#1A2332] via-[#111824] to-[#080B10] border border-white/15 shadow-inner overflow-hidden shrink-0 select-none relative`}
+      className={`${dims} ${shapeCls} bg-gradient-to-b from-[#1A2332] via-[#111824] to-[#080B10] border border-white/15 shadow-inner overflow-hidden shrink-0 select-none relative`}
       title={player.name}
     >
       <svg viewBox="0 0 100 100" className="w-full h-full">
         <defs>
           <clipPath id={clipId}>
-            <circle cx="50" cy="50" r="49" />
+            {shape === 'card' ? (
+              <rect x="1" y="1" width="98" height="98" rx="10" />
+            ) : (
+              <circle cx="50" cy="50" r="49" />
+            )}
           </clipPath>
         </defs>
 

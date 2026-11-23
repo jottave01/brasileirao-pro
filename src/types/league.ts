@@ -42,6 +42,52 @@ export type TacticalMentality =
   | 'Ofensiva'
   | 'Tudo ou Nada';
 
+export type BuildUpStyle =
+  | 'Saída curta'
+  | 'Equilibrada'
+  | 'Ligações diretas'
+  | 'Contra-ataques rápidos';
+
+export type OffensiveStyle =
+  | 'Posse de bola'
+  | 'Jogo pelas laterais'
+  | 'Ataque pelo meio'
+  | 'Cruzamentos'
+  | 'Transições rápidas';
+
+export type PressingStyle =
+  | 'Pressão baixa'
+  | 'Bloco médio'
+  | 'Pressão alta'
+  | 'Pressão após perda';
+
+export type DefensiveLineHeight = 'Recuada' | 'Equilibrada' | 'Adiantada';
+
+export type TacticalIntensity = 'Baixa' | 'Normal' | 'Alta';
+
+export interface ClubTactics {
+  buildUpStyle: BuildUpStyle;
+  offensiveStyle: OffensiveStyle;
+  pressing: PressingStyle;
+  defensiveLine: DefensiveLineHeight;
+  intensity: TacticalIntensity;
+}
+
+export interface PlayerAttributes {
+  passe: number;
+  visao: number;
+  finalizacao: number;
+  drible: number;
+  velocidade: number;
+  aceleracao: number;
+  forca: number;
+  resistencia: number;
+  marcacao: number;
+  desarme: number;
+  posicionamento: number;
+  reflexos: number; // Goleiro (ou reação em nível baixo para linha)
+}
+
 export interface PlayerAppearance {
   skin: number; // 0..5
   hairStyle: number; // 0..7
@@ -89,6 +135,7 @@ export interface Player {
   secondaryPositions: PlayerPosition[];
   ambidextrous?: boolean;
   overall: number;
+  attributes?: PlayerAttributes;
   age: number;
   nationality: string;
   nationalityFlag?: string;
@@ -102,15 +149,34 @@ export interface Player {
   stamina: number; // 0..100
   goals: number;
   assists: number;
+  yellowCards?: number;
+  redCards?: number;
+  suspendedMatches?: number;
   isStarter?: boolean;
   listedForSale?: boolean;
   askingPrice?: number;
+}
+
+export interface FinanceLedgerEntry {
+  id: string;
+  round: number;
+  type: 'bilheteria' | 'cota_jogo' | 'folha_mensal' | 'transferencia' | 'premio' | 'realocacao';
+  label: string;
+  amount: number; // R$ milhões (+ entrada, - saída)
+  targetFund: 'transferencias' | 'salarios' | 'misto';
+  timestamp: string;
 }
 
 export interface ClubFinances {
   budget: number;
   initialBudget: number;
   wageBill: number;
+  wageBudget?: number;
+  revenueTransferPct?: number;
+  boxOfficeIncome?: number;
+  totalWagesPaid?: number;
+  lastPayrollRound?: number;
+  financeLedger?: FinanceLedgerEntry[];
   transferSpent: number;
   transferIncome: number;
   matchIncome: number;
@@ -135,6 +201,7 @@ export interface Club {
   primaryColor: string;
   secondaryColor: string;
   stadium: string;
+  stadiumCapacity?: number;
   tier: 1 | 2 | 3 | 4;
   realisticBudget: number;
   controller: 'human' | 'bot';
@@ -146,6 +213,7 @@ export interface Club {
   botDifficulty: BotDifficulty;
   formation: Formation;
   mentality: TacticalMentality;
+  tactics?: ClubTactics;
   squad: Player[];
   lineupSlots: LineupSlot[];
   finances: ClubFinances;
@@ -175,12 +243,20 @@ export interface BotNegotiationPatience {
 export type PlayPhase =
   | 'kickoff'
   | 'meio_campo'
+  | 'construcao_casa'
+  | 'construcao_fora'
   | 'ataque_casa'
   | 'ataque_fora'
+  | 'contra_ataque_casa'
+  | 'contra_ataque_fora'
+  | 'cruzamento_casa'
+  | 'cruzamento_fora'
   | 'finalizacao_casa'
   | 'finalizacao_fora'
   | 'gol_casa'
-  | 'gol_fora';
+  | 'gol_fora'
+  | 'falta'
+  | 'impedimento';
 
 export interface MatchStats {
   homePossession: number;
@@ -190,15 +266,108 @@ export interface MatchStats {
   awayOnTarget: number;
   homeCorners: number;
   awayCorners: number;
+  homeFouls?: number;
+  awayFouls?: number;
+  homeYellowCards?: number;
+  awayYellowCards?: number;
+  homeRedCards?: number;
+  awayRedCards?: number;
+  homePasses?: number;
+  awayPasses?: number;
+  homePassesCompleted?: number;
+  awayPassesCompleted?: number;
+  homeTackles?: number;
+  awayTackles?: number;
+  homeInterceptions?: number;
+  awayInterceptions?: number;
+  homeSaves?: number;
+  awaySaves?: number;
+  homeCrosses?: number;
+  awayCrosses?: number;
+  homeOffsides?: number;
+  awayOffsides?: number;
+  homeBigChances?: number;
+  awayBigChances?: number;
+  homePossessionTicks?: number;
+  awayPossessionTicks?: number;
 }
 
 export interface MatchEvent {
   minute: number;
-  type: 'gol' | 'chute' | 'defesa' | 'escanteio' | 'cartao_amarelo' | 'substituicao';
+  type:
+    | 'gol'
+    | 'chute'
+    | 'chance_clara'
+    | 'defesa'
+    | 'escanteio'
+    | 'falta'
+    | 'impedimento'
+    | 'cartao_amarelo'
+    | 'cartao_vermelho'
+    | 'substituicao'
+    | 'tatica';
   clubId: string;
   playerName: string;
+  playerId?: string;
   assistName?: string;
+  assistPlayerId?: string;
   description: string;
+}
+
+export interface BotAIDecisionSnapshot {
+  minute: number;
+  reason: string;
+  prevFormation: Formation;
+  prevMentality: TacticalMentality;
+  prevTactics: ClubTactics;
+  ownShotsAtChange: number;
+  oppShotsAtChange: number;
+  ownBigChancesAtChange: number;
+  oppBigChancesAtChange: number;
+  goalDiffAtChange: number;
+  possessionAtChange: number;
+}
+
+export interface BotAIMemory {
+  lastEvalMinute: number;
+  lastTacticChangeMinute: number;
+  tacticalChangesCount: number;
+  recentReasons: string[];
+  lastDecision?: BotAIDecisionSnapshot;
+}
+
+export interface MatchSimState {
+  ballZone: 1 | 2 | 3 | 4 | 5;
+  ballLane: 'left' | 'center' | 'right';
+  possessionSide: 'home' | 'away';
+  momentumHome: number;
+  homeCountersConceded: number;
+  awayCountersConceded: number;
+  homeMidfieldDuelsWon: number;
+  awayMidfieldDuelsWon: number;
+  homeFlankAttacks: number;
+  awayFlankAttacks: number;
+  homeStrikerTouches: number;
+  awayStrikerTouches: number;
+  homeHighRecoveries: number;
+  awayHighRecoveries: number;
+  homeYellowCardedIds: string[];
+  awayYellowCardedIds: string[];
+  homeRedCardedIds: string[];
+  awayRedCardedIds: string[];
+  playerRatings: Record<string, number>;
+  homeAI: BotAIMemory;
+  awayAI: BotAIMemory;
+}
+
+export interface MatchBoxOfficeReport {
+  attendance: number;
+  capacity: number;
+  occupancyPct: number;
+  avgTicketPrice: number;
+  revenue: number; // R$ milhões (100% mandante)
+  highlightLabel?: string; // ex: "Clássico: Fla-Flu", "Confronto Direto G4", "Decisão contra o Z4"
+  isRivalry?: boolean;
 }
 
 export interface Match {
@@ -230,6 +399,8 @@ export interface Match {
   lastPlayText: string;
   stats: MatchStats;
   events: MatchEvent[];
+  simState?: MatchSimState;
+  boxOfficeReport?: MatchBoxOfficeReport;
 }
 
 export interface TransferDisputeBid {

@@ -9,9 +9,8 @@ import {
   UserCheck,
 } from 'lucide-react';
 import {
-  BotDifficulty,
   Club,
-  ClubBotPersonality,
+  ClubTactics,
   Formation,
   LeagueConfig,
   LeagueState,
@@ -41,11 +40,19 @@ import {
   WORLD_MARKET_PLAYERS,
 } from './data/seedData';
 import {
+  appendFinanceLedger,
   applySeasonEndAndPrepareNext,
   buildLineupSlots,
+  calcMonthlyPayrollMillions,
+  calculateMatchBoxOffice,
+  creditClubRevenue,
   evaluateFifaBotOffer,
   FORMATION_LAYOUT,
+  generatePlayerAttributes,
+  getClubTactics,
   getPositionFit,
+  isClubInFinancialDebt,
+  PAYROLL_INTERVAL_ROUNDS,
   processBotContractExpirations,
   resolveTransferDispute,
   runBotMarketCycle,
@@ -54,11 +61,14 @@ import {
 import {
   claimClubAtomically,
   clearDeviceSession,
+  deleteCareerById,
   dispatchLeagueAction,
   isSupabaseConfigured,
   LeagueRemoteAction,
+  listAllCareers,
   loadAdminAuthSession,
   loadDeviceSession,
+  loadLeagueById,
   loadLeagueByInviteCode,
   loadLocalLeagueState,
   saveAdminAuthSession,
@@ -127,56 +137,251 @@ function isValidLeagueState(s: LeagueState | null): s is LeagueState {
   );
 }
 
-function applyFinishedMatchToLeague(clubs: Club[], finishedMatch: Match): Club[] {
+function applyFinishedMatchToLeague(
+  clubs: Club[],
+  finishedMatch: Match,
+  totalRounds: number,
+  allMatches: Match[]
+): {
+  clubs: Club[];
+  finishedMatch: Match;
+  feedItems: LeagueState['feed'];
+} {
+  const homeClub = clubs.find((c) => c.id === finishedMatch.homeClubId);
+  const awayClub = clubs.find((c) => c.id === finishedMatch.awayClubId);
+
+  const boxOffice =
+    homeClub && awayClub
+      ? calculateMatchBoxOffice({
+          homeClub,
+          awayClub,
+          allClubs: clubs,
+          round: finishedMatch.round,
+          totalRounds,
+          finishedMatches: allMatches,
+        })
+      : undefined;
+
+  const updatedMatch: Match = boxOffice
+    ? { ...finishedMatch, boxOfficeReport: boxOffice }
+    : finishedMatch;
+
   const homeWin = finishedMatch.homeGoals > finishedMatch.awayGoals;
   const draw = finishedMatch.homeGoals === finishedMatch.awayGoals;
+  const feedItems: LeagueState['feed'] = [];
+  const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  const goalCounts: Record<string, number> = {};
-  const assistCounts: Record<string, number> = {};
+  const goalCountsById: Record<string, number> = {};
+  const goalCountsByName: Record<string, number> = {};
+  const assistCountsById: Record<string, number> = {};
+  const assistCountsByName: Record<string, number> = {};
   finishedMatch.events.forEach((ev) => {
     if (ev.type === 'gol') {
-      goalCounts[`${ev.clubId}:${ev.playerName}`] =
-        (goalCounts[`${ev.clubId}:${ev.playerName}`] ?? 0) + 1;
-      if (ev.assistName) {
-        assistCounts[`${ev.clubId}:${ev.assistName}`] =
-          (assistCounts[`${ev.clubId}:${ev.assistName}`] ?? 0) + 1;
+      if (ev.playerId) {
+        goalCountsById[ev.playerId] = (goalCountsById[ev.playerId] ?? 0) + 1;
+      } else {
+        goalCountsByName[`${ev.clubId}:${ev.playerName}`] =
+          (goalCountsByName[`${ev.clubId}:${ev.playerName}`] ?? 0) + 1;
+      }
+      if (ev.assistPlayerId) {
+        assistCountsById[ev.assistPlayerId] = (assistCountsById[ev.assistPlayerId] ?? 0) + 1;
+      } else if (ev.assistName) {
+        assistCountsByName[`${ev.clubId}:${ev.assistName}`] =
+          (assistCountsByName[`${ev.clubId}:${ev.assistName}`] ?? 0) + 1;
       }
     }
   });
 
-  return clubs.map((club) => {
+  const updatedClubs = clubs.map((club) => {
     if (club.id !== finishedMatch.homeClubId && club.id !== finishedMatch.awayClubId) {
       return club;
     }
 
     const isHome = club.id === finishedMatch.homeClubId;
+    const oppShort = isHome ? awayClub?.shortName ?? 'ADV' : homeClub?.shortName ?? 'ADV';
     const gf = isHome ? finishedMatch.homeGoals : finishedMatch.awayGoals;
     const ga = isHome ? finishedMatch.awayGoals : finishedMatch.homeGoals;
     const won = isHome ? homeWin : !homeWin && !draw;
     const lost = !won && !draw;
     const pts = won ? 3 : draw ? 1 : 0;
 
-    const prize = won ? 3.5 : draw ? 1.5 : 0.6;
-    const boxOffice = isHome ? 1.8 : 0.4;
-    const matchRevenue = Math.round((prize + boxOffice) * 10) / 10;
-    const netChange = Math.round((matchRevenue - club.finances.wageBill) * 10) / 10;
+    const resultQuota = won ? 2.4 : draw ? 1.2 : 0.5;
+    const boxOfficeRev = isHome && boxOffice ? boxOffice.revenue : 0;
+    const totalMatchRevenue = Math.round((boxOfficeRev + resultQuota) * 100) / 100;
+
+    const matchYellowIds = new Set(
+      isHome
+        ? finishedMatch.simState?.homeYellowCardedIds ?? []
+        : finishedMatch.simState?.awayYellowCardedIds ?? []
+    );
+    const matchRedIds = new Set(
+      isHome
+        ? finishedMatch.simState?.homeRedCardedIds ?? []
+        : finishedMatch.simState?.awayRedCardedIds ?? []
+    );
+
+    const suspendedNowNames: string[] = [];
 
     const updatedSquad = club.squad.map((p) => {
-      const scored = goalCounts[`${club.id}:${p.knownName}`] ?? 0;
-      const assisted = assistCounts[`${club.id}:${p.knownName}`] ?? 0;
-      return scored > 0 || assisted > 0
-        ? { ...p, goals: p.goals + scored, assists: p.assists + assisted }
-        : p;
+      const scored =
+        (goalCountsById[p.id] ?? 0) + (goalCountsByName[`${club.id}:${p.knownName}`] ?? 0);
+      const assisted =
+        (assistCountsById[p.id] ?? 0) + (assistCountsByName[`${club.id}:${p.knownName}`] ?? 0);
+
+      // Jogador que estava suspenso cumpriu 1 partida de suspensão nesta rodada
+      let nextSusp = (p.suspendedMatches ?? 0) > 0 ? Math.max(0, (p.suspendedMatches ?? 0) - 1) : 0;
+      let nextYellows = p.yellowCards ?? 0;
+      let nextReds = p.redCards ?? 0;
+
+      if (matchRedIds.has(p.id)) {
+        nextReds += 1;
+        nextSusp += 1;
+        suspendedNowNames.push(`${p.knownName} (Vermelho)`);
+      } else if (matchYellowIds.has(p.id)) {
+        nextYellows += 1;
+        if (nextYellows % 3 === 0) {
+          nextSusp += 1;
+          suspendedNowNames.push(`${p.knownName} (3º Amarelo)`);
+        }
+      }
+
+      if (
+        scored === 0 &&
+        assisted === 0 &&
+        nextSusp === (p.suspendedMatches ?? 0) &&
+        nextYellows === (p.yellowCards ?? 0) &&
+        nextReds === (p.redCards ?? 0)
+      ) {
+        return p;
+      }
+
+      return {
+        ...p,
+        goals: p.goals + scored,
+        assists: p.assists + assisted,
+        yellowCards: nextYellows,
+        redCards: nextReds,
+        suspendedMatches: nextSusp,
+      };
     });
 
-    return {
+    if (club.controller === 'human' && suspendedNowNames.length > 0) {
+      feedItems.push({
+        id: uid('feed-susp'),
+        category: 'admin',
+        actorName: club.shortName,
+        actorType: 'human',
+        message: `Suspensão automática p/ próxima rodada: ${suspendedNowNames.join(', ')}. Ajuste a escalação em Meu Clube.`,
+        timestamp: nowStr,
+      });
+    }
+
+    const hasSuspendedStarter = updatedSquad.some(
+      (p) => p.isStarter && (p.suspendedMatches ?? 0) > 0
+    );
+    const botLineupRebuilt =
+      club.controller === 'bot' && hasSuspendedStarter
+        ? buildLineupSlots(updatedSquad, club.formation, club.lineupSlots)
+        : null;
+    const finalSquad = botLineupRebuilt ? botLineupRebuilt.squad : updatedSquad;
+    const finalSlots = botLineupRebuilt ? botLineupRebuilt.lineupSlots : club.lineupSlots;
+
+    const curWageBill = calcMonthlyPayrollMillions({ squad: finalSquad, tier: club.tier });
+    let nextClub: Club = {
       ...club,
-      squad: updatedSquad,
+      squad: finalSquad,
+      lineupSlots: finalSlots,
       finances: {
         ...club.finances,
-        budget: Math.max(0, Math.round((club.finances.budget + netChange) * 10) / 10),
-        matchIncome: Math.round((club.finances.matchIncome + matchRevenue) * 10) / 10,
+        wageBill: curWageBill,
       },
+    };
+
+    if (boxOfficeRev > 0 && boxOffice) {
+      const finAfterBox = creditClubRevenue(nextClub, boxOfficeRev, {
+        round: finishedMatch.round,
+        type: 'bilheteria',
+        label: `Bilheteria vs ${oppShort} (${boxOffice.occupancyPct}%)`,
+      });
+      nextClub = { ...nextClub, finances: finAfterBox };
+    }
+
+    const finAfterQuota = creditClubRevenue(nextClub, resultQuota, {
+      round: finishedMatch.round,
+      type: 'cota_jogo',
+      label: `Cota R${finishedMatch.round} (${won ? 'Vitória' : draw ? 'Empate' : 'Derrota'})`,
+    });
+    nextClub = {
+      ...nextClub,
+      finances: {
+        ...finAfterQuota,
+        boxOfficeIncome: Math.round(((finAfterQuota.boxOfficeIncome ?? 0) + boxOfficeRev) * 100) / 100,
+        matchIncome: Math.round(((finAfterQuota.matchIncome ?? 0) + totalMatchRevenue) * 100) / 100,
+      },
+    };
+
+    // Cobrança mensal da folha salarial a cada PAYROLL_INTERVAL_ROUNDS (4 rodadas)
+    const shouldChargePayroll =
+      finishedMatch.round % PAYROLL_INTERVAL_ROUNDS === 0 &&
+      finishedMatch.round > (nextClub.finances.lastPayrollRound ?? 0);
+
+    if (shouldChargePayroll) {
+      let budget = nextClub.finances.budget ?? 0;
+      let wageBudget = Math.round(((nextClub.finances.wageBudget ?? 0) - curWageBill) * 100) / 100;
+      let pulledFromTransfer = 0;
+
+      if (wageBudget < 0 && budget > 0) {
+        pulledFromTransfer = Math.min(budget, Math.abs(wageBudget));
+        budget = Math.round((budget - pulledFromTransfer) * 100) / 100;
+        wageBudget = Math.round((wageBudget + pulledFromTransfer) * 100) / 100;
+      }
+
+      const ledgerLabel =
+        wageBudget < 0
+          ? `Folha Mensal R${finishedMatch.round} (DÉFICIT)`
+          : pulledFromTransfer > 0
+          ? `Folha Mensal R${finishedMatch.round} (+Caixa)`
+          : `Folha Mensal (R${finishedMatch.round})`;
+
+      nextClub = {
+        ...nextClub,
+        finances: {
+          ...nextClub.finances,
+          budget,
+          wageBudget,
+          totalWagesPaid: Math.round(((nextClub.finances.totalWagesPaid ?? 0) + curWageBill) * 100) / 100,
+          lastPayrollRound: finishedMatch.round,
+          financeLedger: appendFinanceLedger(nextClub.finances.financeLedger, {
+            round: finishedMatch.round,
+            type: 'folha_mensal',
+            label: ledgerLabel,
+            amount: -curWageBill,
+            targetFund: pulledFromTransfer > 0 ? 'misto' : 'salarios',
+          }),
+        },
+      };
+
+      if (club.controller === 'human') {
+        feedItems.push({
+          id: uid('feed-payroll'),
+          category: 'admin',
+          actorName: club.shortName,
+          actorType: 'human',
+          message:
+            wageBudget < 0
+              ? `Folha salarial de ${formatMillionsBRL(curWageBill)} venceu (R${finishedMatch.round}) e o clube entrou em DÉFICIT de ${formatMillionsBRL(Math.abs(wageBudget))}! Contratações bloqueadas até regularizar.`
+              : `Folha salarial mensal debitada (R${finishedMatch.round}): ${formatMillionsBRL(curWageBill)}.${
+                  pulledFromTransfer > 0
+                    ? ` (${formatMillionsBRL(pulledFromTransfer)} complementado do Caixa de Transferências).`
+                    : ''
+                }`,
+          timestamp: nowStr,
+        });
+      }
+    }
+
+    return {
+      ...nextClub,
       standing: {
         played: club.standing.played + 1,
         wins: club.standing.wins + (won ? 1 : 0),
@@ -188,6 +393,12 @@ function applyFinishedMatchToLeague(clubs: Club[], finishedMatch: Match): Club[]
       },
     };
   });
+
+  return {
+    clubs: updatedClubs,
+    finishedMatch: updatedMatch,
+    feedItems,
+  };
 }
 
 function mergeMissingWorldStars(state: LeagueState): LeagueState {
@@ -251,6 +462,26 @@ function migrateLegacyPlayer(
 
   const nextWage = Math.max(0.1, Math.round((nextSalary / 1000) * 10) / 10);
 
+  const hasValidAttributes = Boolean(
+    player.attributes &&
+      typeof player.attributes.passe === 'number' &&
+      typeof player.attributes.reflexos === 'number'
+  );
+  const nextAttributes = hasValidAttributes
+    ? player.attributes
+    : generatePlayerAttributes({
+        name: player.name,
+        position: nextPos,
+        secondaryPositions: nextSec,
+        overall: player.overall,
+        age: player.age,
+        ambidextrous: nextAmbi,
+      });
+
+  if (!hasValidAttributes) {
+    changed = true;
+  }
+
   if (!changed) return { player, changed: false };
 
   return {
@@ -259,6 +490,10 @@ function migrateLegacyPlayer(
       position: nextPos,
       secondaryPositions: nextSec,
       ambidextrous: nextAmbi,
+      attributes: nextAttributes,
+      yellowCards: player.yellowCards ?? 0,
+      redCards: player.redCards ?? 0,
+      suspendedMatches: player.suspendedMatches ?? 0,
       monthlySalary: nextSalary,
       wage: nextWage,
       contractYears: nextContractYears,
@@ -327,7 +562,14 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
       return true;
     });
 
-    if (additions.length === 0 && !squadChanged) return club;
+    const needsFinanceMigration =
+      club.tactics === undefined ||
+      club.stadiumCapacity === undefined ||
+      club.finances.wageBudget === undefined ||
+      club.finances.revenueTransferPct === undefined ||
+      club.finances.lastPayrollRound === undefined;
+
+    if (additions.length === 0 && !squadChanged && !needsFinanceMigration) return club;
 
     changed = true;
     additions.forEach((op) => allClubNames.add(op.name));
@@ -340,13 +582,22 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
       })),
     ];
     const built = buildLineupSlots(mergedSquad, club.formation, cleanedSlots);
+    const nextWageBill = calcMonthlyPayrollMillions({ squad: built.squad, tier: club.tier });
     return {
       ...club,
+      tactics: club.tactics ?? getClubTactics(club),
+      stadiumCapacity: club.stadiumCapacity ?? template?.stadiumCapacity ?? 35000,
       squad: built.squad,
       lineupSlots: built.lineupSlots,
       finances: {
         ...club.finances,
-        wageBill: Math.round(built.squad.reduce((s, p) => s + p.wage, 0) * 10) / 10,
+        wageBill: nextWageBill,
+        wageBudget: club.finances.wageBudget ?? Math.round(nextWageBill * 5 * 100) / 100,
+        revenueTransferPct: club.finances.revenueTransferPct ?? 45,
+        boxOfficeIncome: club.finances.boxOfficeIncome ?? 0,
+        totalWagesPaid: club.finances.totalWagesPaid ?? 0,
+        lastPayrollRound: club.finances.lastPayrollRound ?? 0,
+        financeLedger: club.finances.financeLedger ?? [],
       },
     };
   });
@@ -423,7 +674,7 @@ function finalizeAcceptedTransfer(
   }
 ): LeagueState {
   const buyer = prev.clubs.find((c) => c.id === params.buyerClubId);
-  if (!buyer || buyer.finances.budget < params.offerCash) return prev;
+  if (!buyer || isClubInFinancialDebt(buyer) || buyer.finances.budget < params.offerCash) return prev;
   if (buyer.squad.some((p) => p.id === params.targetPlayerId)) return prev;
 
   const sellerClub =
@@ -471,6 +722,7 @@ function finalizeAcceptedTransfer(
         c.formation,
         c.lineupSlots
       );
+      const nextWageBill = calcMonthlyPayrollMillions({ squad: built.squad, tier: c.tier });
       return {
         ...c,
         squad: built.squad,
@@ -478,9 +730,19 @@ function finalizeAcceptedTransfer(
         dealsThisRound: c.dealsThisRound + 1,
         finances: {
           ...c.finances,
-          budget: Math.max(0, Math.round((c.finances.budget - params.offerCash) * 10) / 10),
-          transferSpent: Math.round((c.finances.transferSpent + params.offerCash) * 10) / 10,
-          wageBill: Math.round(built.squad.reduce((s, p) => s + p.wage, 0) * 10) / 10,
+          budget: Math.max(0, Math.round((c.finances.budget - params.offerCash) * 100) / 100),
+          transferSpent: Math.round((c.finances.transferSpent + params.offerCash) * 100) / 100,
+          wageBill: nextWageBill,
+          financeLedger:
+            params.offerCash > 0
+              ? appendFinanceLedger(c.finances.financeLedger, {
+                  round: prev.currentRound,
+                  type: 'transferencia',
+                  label: `Compra: ${targetPlayer.knownName}`,
+                  amount: -params.offerCash,
+                  targetFund: 'transferencias',
+                })
+              : c.finances.financeLedger,
         },
       };
     }
@@ -496,15 +758,27 @@ function finalizeAcceptedTransfer(
         });
       }
       const built = buildLineupSlots(remaining, c.formation, c.lineupSlots);
+      const nextWageBill = calcMonthlyPayrollMillions({ squad: built.squad, tier: c.tier });
+      const creditedFinances =
+        params.offerCash > 0
+          ? creditClubRevenue(
+              { ...c, squad: built.squad, finances: { ...c.finances, wageBill: nextWageBill } },
+              params.offerCash,
+              {
+                round: prev.currentRound,
+                type: 'transferencia',
+                label: `Venda: ${targetPlayer.knownName}`,
+              }
+            )
+          : c.finances;
       return {
         ...c,
         squad: built.squad,
         lineupSlots: built.lineupSlots,
         finances: {
-          ...c.finances,
-          budget: Math.round((c.finances.budget + params.offerCash) * 10) / 10,
-          transferIncome: Math.round((c.finances.transferIncome + params.offerCash) * 10) / 10,
-          wageBill: Math.round(built.squad.reduce((s, p) => s + p.wage, 0) * 10) / 10,
+          ...creditedFinances,
+          transferIncome: Math.round((c.finances.transferIncome + params.offerCash) * 100) / 100,
+          wageBill: nextWageBill,
         },
       };
     }
@@ -665,72 +939,76 @@ function applyClaimClubState(
   };
 }
 
+function remapLineupSlotsForFormation(club: Club, formation: Formation): Club {
+  const currentStarters = (club.lineupSlots ?? [])
+    .map((s) => club.squad.find((p) => p.id === s.playerId))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
+  if (currentStarters.length === 11) {
+    const layout = FORMATION_LAYOUT[formation];
+    const usedIds = new Set<string>();
+    const nextSlots = layout.map((spec, idx) => ({
+      slotIndex: idx,
+      role: spec.role,
+      playerId: '',
+    }));
+
+    layout.forEach((spec, idx) => {
+      const exact = currentStarters.find((p) => p.position === spec.role && !usedIds.has(p.id));
+      if (exact) {
+        usedIds.add(exact.id);
+        nextSlots[idx].playerId = exact.id;
+      }
+    });
+    layout.forEach((spec, idx) => {
+      if (nextSlots[idx].playerId) return;
+      const best = currentStarters
+        .filter((p) => !usedIds.has(p.id))
+        .sort(
+          (a, b) =>
+            getPositionFit(b, spec.role).effectiveOvr - getPositionFit(a, spec.role).effectiveOvr
+        )[0];
+      if (best) {
+        usedIds.add(best.id);
+        nextSlots[idx].playerId = best.id;
+      }
+    });
+
+    const starterIds = new Set(nextSlots.map((s) => s.playerId));
+    return {
+      ...club,
+      formation,
+      lineupSlots: nextSlots,
+      squad: club.squad.map((p) => ({ ...p, isStarter: starterIds.has(p.id) })),
+    };
+  }
+
+  const built = buildLineupSlots(club.squad, formation, club.lineupSlots);
+  return {
+    ...club,
+    formation,
+    squad: built.squad,
+    lineupSlots: built.lineupSlots,
+  };
+}
+
 function applyUpdateTacticsState(
   prev: LeagueState,
   clubId: string,
   formation: Formation,
-  mentality: TacticalMentality
+  mentality: TacticalMentality,
+  tactics?: ClubTactics
 ): LeagueState {
   return {
     ...prev,
     matches: markMatchManualControl(prev.matches, prev.currentRound, clubId),
     clubs: prev.clubs.map((c) => {
       if (c.id !== clubId) return c;
-
-      const currentStarters = (c.lineupSlots ?? [])
-        .map((s) => c.squad.find((p) => p.id === s.playerId))
-        .filter((p): p is NonNullable<typeof p> => Boolean(p));
-
-      if (currentStarters.length === 11) {
-        const layout = FORMATION_LAYOUT[formation];
-        const usedIds = new Set<string>();
-        const nextSlots = layout.map((spec, idx) => ({
-          slotIndex: idx,
-          role: spec.role,
-          playerId: '',
-        }));
-
-        layout.forEach((spec, idx) => {
-          const exact = currentStarters.find(
-            (p) => p.position === spec.role && !usedIds.has(p.id)
-          );
-          if (exact) {
-            usedIds.add(exact.id);
-            nextSlots[idx].playerId = exact.id;
-          }
-        });
-        layout.forEach((spec, idx) => {
-          if (nextSlots[idx].playerId) return;
-          const best = currentStarters
-            .filter((p) => !usedIds.has(p.id))
-            .sort(
-              (a, b) =>
-                getPositionFit(b, spec.role).effectiveOvr -
-                getPositionFit(a, spec.role).effectiveOvr
-            )[0];
-          if (best) {
-            usedIds.add(best.id);
-            nextSlots[idx].playerId = best.id;
-          }
-        });
-
-        const starterIds = new Set(nextSlots.map((s) => s.playerId));
-        return {
-          ...c,
-          formation,
-          mentality,
-          lineupSlots: nextSlots,
-          squad: c.squad.map((p) => ({ ...p, isStarter: starterIds.has(p.id) })),
-        };
-      }
-
-      const built = buildLineupSlots(c.squad, formation, c.lineupSlots);
+      const remapped = remapLineupSlotsForFormation(c, formation);
       return {
-        ...c,
-        formation,
+        ...remapped,
         mentality,
-        squad: built.squad,
-        lineupSlots: built.lineupSlots,
+        tactics: tactics ?? c.tactics ?? getClubTactics(c),
       };
     }),
   };
@@ -807,7 +1085,7 @@ function applyUpdateSalaryState(
         squad: nextSquad,
         finances: {
           ...c.finances,
-          wageBill: Math.round(nextSquad.reduce((s, p) => s + p.wage, 0) * 10) / 10,
+          wageBill: calcMonthlyPayrollMillions({ squad: nextSquad, tier: c.tier }),
         },
       };
     }),
@@ -842,7 +1120,7 @@ function applyRenewContractState(
   playerId: string
 ): LeagueState {
   const club = prev.clubs.find((c) => c.id === clubId);
-  if (!club) return prev;
+  if (!club || isClubInFinancialDebt(club)) return prev;
   const target = club.squad.find((p) => p.id === playerId);
   if (!target) return prev;
 
@@ -879,7 +1157,7 @@ function applyRenewContractState(
         squad: nextSquad,
         finances: {
           ...c.finances,
-          wageBill: Math.round(nextSquad.reduce((s, p) => s + p.wage, 0) * 10) / 10,
+          wageBill: calcMonthlyPayrollMillions({ squad: nextSquad, tier: c.tier }),
         },
       };
     }),
@@ -891,11 +1169,91 @@ function applyRenewContractState(
         actorType: club.controller,
         message: `Renovou o contrato de ${target.knownName} para ${renewedYears} anos (${formatMonthlySalary(
           renewedSalary
-        )}/mês).`,
+        )}).`,
         timestamp: nowStr,
       },
       ...prev.feed.slice(0, 24),
     ],
+  };
+}
+
+function applyReallocateBudgetState(
+  prev: LeagueState,
+  clubId: string,
+  direction: 'to_wage' | 'to_transfer',
+  amountMillions: number
+): LeagueState {
+  const rawMove = Math.round(Math.max(0, amountMillions) * 100) / 100;
+  if (rawMove <= 0) return prev;
+
+  return {
+    ...prev,
+    clubs: prev.clubs.map((c) => {
+      if (c.id !== clubId) return c;
+      const curBudget = c.finances.budget ?? 0;
+      const curWageBudget = c.finances.wageBudget ?? 0;
+
+      if (direction === 'to_wage') {
+        const move = Math.min(rawMove, Math.max(0, curBudget));
+        if (move <= 0) return c;
+        return {
+          ...c,
+          finances: {
+            ...c.finances,
+            budget: Math.round((curBudget - move) * 100) / 100,
+            wageBudget: Math.round((curWageBudget + move) * 100) / 100,
+            financeLedger: appendFinanceLedger(c.finances.financeLedger, {
+              round: prev.currentRound,
+              type: 'realocacao',
+              label: 'Caixa → Fundo Salarial',
+              amount: move,
+              targetFund: 'salarios',
+            }),
+          },
+        };
+      }
+
+      if (curWageBudget <= 0) return c;
+      const move = Math.min(rawMove, curWageBudget);
+      if (move <= 0) return c;
+      return {
+        ...c,
+        finances: {
+          ...c.finances,
+          budget: Math.round((curBudget + move) * 100) / 100,
+          wageBudget: Math.round((curWageBudget - move) * 100) / 100,
+          financeLedger: appendFinanceLedger(c.finances.financeLedger, {
+            round: prev.currentRound,
+            type: 'realocacao',
+            label: 'Fundo Salarial → Caixa Transf.',
+            amount: move,
+            targetFund: 'transferencias',
+          }),
+        },
+      };
+    }),
+  };
+}
+
+function applySetRevenueSplitState(
+  prev: LeagueState,
+  clubId: string,
+  transferPct: number
+): LeagueState {
+  const clamped = Math.max(0, Math.min(100, Math.round(transferPct)));
+  return {
+    ...prev,
+    clubs: prev.clubs.map((c) =>
+      c.id === clubId
+        ? {
+            ...c,
+            finances: {
+              ...c.finances,
+              revenueTransferPct: clamped,
+            },
+          }
+        : c
+    ),
   };
 }
 
@@ -914,10 +1272,26 @@ function applyLiveSubState(
   const used = isHome ? targetMatch.homeSubsUsed : targetMatch.awaySubsUsed;
   if (used >= 5) return prev;
 
+  const subbedOutIds = isHome ? targetMatch.homeSubbedOutIds : targetMatch.awaySubbedOutIds;
+  const redCardedIds = isHome
+    ? targetMatch.simState?.homeRedCardedIds ?? []
+    : targetMatch.simState?.awayRedCardedIds ?? [];
+
   const outPlayerId = targetClub.lineupSlots[slotIndex]?.playerId;
   const outPlayer = targetClub.squad.find((p) => p.id === outPlayerId);
   const inPlayer = targetClub.squad.find((p) => p.id === subInPlayerId);
   if (!outPlayer || !inPlayer) return prev;
+
+  // Nunca permite substituir um atleta expulso, nem retornar substituído/suspenso/já titular
+  if (
+    redCardedIds.includes(outPlayer.id) ||
+    redCardedIds.includes(inPlayer.id) ||
+    subbedOutIds.includes(inPlayer.id) ||
+    inPlayer.isStarter ||
+    (inPlayer.suspendedMatches ?? 0) > 0
+  ) {
+    return prev;
+  }
 
   const nextSlots = targetClub.lineupSlots.map((s, idx) =>
     idx === slotIndex ? { ...s, playerId: subInPlayerId } : s
@@ -977,7 +1351,7 @@ function applyMarketBidState(
   if (!prev.transferWindowOpen) return prev;
 
   const buyer = prev.clubs.find((c) => c.id === params.buyerClubId);
-  if (!buyer) return prev;
+  if (!buyer || isClubInFinancialDebt(buyer)) return prev;
 
   const effectiveOfferCash = params.originType === 'livre' ? 0 : params.offerCash;
   const reservedCash = getReservedDisputeCash(prev, params.buyerClubId, params.targetPlayerId);
@@ -1276,6 +1650,7 @@ function applySendHumanOfferState(
     : 0;
   if (
     !fromClub ||
+    isClubInFinancialDebt(fromClub) ||
     !toClub ||
     toClub.controller !== 'human' ||
     !targetPlayer ||
@@ -1411,7 +1786,13 @@ function applyRemoteLeagueAction(prev: LeagueState, action: LeagueRemoteAction):
     case 'claim_club':
       return applyClaimClubState(prev, String(p.participantId ?? action.actor_participant_id), String(p.clubId ?? ''), false);
     case 'update_tactics':
-      return applyUpdateTacticsState(prev, String(p.clubId), p.formation as Formation, p.mentality as TacticalMentality);
+      return applyUpdateTacticsState(
+        prev,
+        String(p.clubId),
+        p.formation as Formation,
+        p.mentality as TacticalMentality,
+        p.tactics as ClubTactics | undefined
+      );
     case 'assign_slot':
       return applyAssignSlotState(prev, String(p.clubId), Number(p.slotIndex), String(p.playerId));
     case 'auto_pick':
@@ -1445,6 +1826,15 @@ function applyRemoteLeagueAction(prev: LeagueState, action: LeagueRemoteAction):
       });
     case 'respond_human_offer':
       return applyRespondHumanOfferState(prev, String(p.offerId), p.decision as 'aceita' | 'recusada');
+    case 'reallocate_budget':
+      return applyReallocateBudgetState(
+        prev,
+        String(p.clubId),
+        p.direction as 'to_wage' | 'to_transfer',
+        Number(p.amountMillions)
+      );
+    case 'set_revenue_split':
+      return applySetRevenueSplitState(prev, String(p.clubId), Number(p.transferPct));
     default:
       return prev;
   }
@@ -1490,6 +1880,19 @@ function createInitialLeague(): LeagueState {
   };
 }
 
+function ensureClubsHaveNoSuspendedStarters(clubs: Club[]): Club[] {
+  return clubs.map((club) => {
+    const hasSuspStarter = club.squad.some((p) => p.isStarter && (p.suspendedMatches ?? 0) > 0);
+    if (!hasSuspStarter) return club;
+    const built = buildLineupSlots(club.squad, club.formation, club.lineupSlots);
+    return {
+      ...club,
+      squad: built.squad,
+      lineupSlots: built.lineupSlots,
+    };
+  });
+}
+
 function advanceToNextRoundState(
   prev: LeagueState,
   nowStr: string
@@ -1503,11 +1906,13 @@ function advanceToNextRoundState(
     !prev.midSeasonWindowDone &&
     prev.currentRound === Math.floor(prev.totalRounds / 2);
 
-  const refreshedClubs = prev.clubs.map((c) => ({
-    ...c,
-    dealsThisRound: 0,
-    squad: c.squad.map((p) => ({ ...p, stamina: 100 })),
-  }));
+  const refreshedClubs = ensureClubsHaveNoSuspendedStarters(
+    prev.clubs.map((c) => ({
+      ...c,
+      dealsThisRound: 0,
+      squad: c.squad.map((p) => ({ ...p, stamina: 100 })),
+    }))
+  );
   const botCycle = runBotMarketCycle({ ...prev, clubs: refreshedClubs });
   const expirationRes = shouldOpenMidWindow
     ? processBotContractExpirations(botCycle.clubs, botCycle.freeAgents, false)
@@ -1564,13 +1969,14 @@ export function App() {
   const [liveRoundRunning, setLiveRoundRunning] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAdminAuthed, setIsAdminAuthed] = useState<boolean>(() => loadAdminAuthSession());
-  const [loginModalMode, setLoginModalMode] = useState<'login' | 'new_career'>('login');
+  const [loginModalMode, setLoginModalMode] = useState<'login' | 'careers' | 'new_career'>('login');
   const [inviteModalOpen, setInviteModalOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).has('invite') || !HAD_SESSION_ON_BOOT;
   });
 
   const skipNextSaveRef = useRef(false);
+  const isEmptyDeletedDraftRef = useRef(false);
 
   const currentUser =
     league.participants.find((p) => p.id === league.currentUserId) ?? null;
@@ -1589,6 +1995,9 @@ export function App() {
   useEffect(() => {
     if (skipNextSaveRef.current) {
       skipNextSaveRef.current = false;
+      return;
+    }
+    if (isEmptyDeletedDraftRef.current) {
       return;
     }
     const shouldPersistRemote =
@@ -1765,7 +2174,9 @@ export function App() {
               c: Club,
               sideDrain: number,
               playerDrains: Record<string, number> | undefined,
-              tacticUpdate: { formation: Formation; mentality: TacticalMentality } | undefined,
+              tacticUpdate:
+                | { formation: Formation; mentality: TacticalMentality; tactics?: ClubTactics }
+                | undefined,
               autoSub: { slotIndex: number; outPlayerId: string; inPlayerId: string } | undefined
             ): Club => {
               let nextClub = c;
@@ -1783,17 +2194,11 @@ export function App() {
                 };
               }
               if (tacticUpdate) {
-                const built = buildLineupSlots(
-                  nextClub.squad,
-                  tacticUpdate.formation,
-                  nextClub.lineupSlots
-                );
+                const remapped = remapLineupSlotsForFormation(nextClub, tacticUpdate.formation);
                 nextClub = {
-                  ...nextClub,
-                  formation: tacticUpdate.formation,
+                  ...remapped,
                   mentality: tacticUpdate.mentality,
-                  squad: built.squad,
-                  lineupSlots: built.lineupSlots,
+                  tactics: tacticUpdate.tactics ?? nextClub.tactics ?? getClubTactics(nextClub),
                 };
               }
               if (autoSub) {
@@ -1842,11 +2247,26 @@ export function App() {
           return res.match;
         });
 
+        let finalizedMatches = updatedMatches;
+        const payrollFeedItems: LeagueState['feed'] = [];
+
         newlyFinished.forEach((fm) => {
-          updatedClubs = applyFinishedMatchToLeague(updatedClubs, fm);
+          const outcome = applyFinishedMatchToLeague(
+            updatedClubs,
+            fm,
+            prev.totalRounds,
+            finalizedMatches
+          );
+          updatedClubs = outcome.clubs;
+          finalizedMatches = finalizedMatches.map((m) =>
+            m.id === outcome.finishedMatch.id ? outcome.finishedMatch : m
+          );
+          if (outcome.feedItems.length > 0) {
+            payrollFeedItems.push(...outcome.feedItems);
+          }
         });
 
-        const allDone = updatedMatches
+        const allDone = finalizedMatches
           .filter((m) => m.round === prev.currentRound)
           .every((m) => m.status === 'finalizada');
 
@@ -1859,7 +2279,11 @@ export function App() {
         return {
           ...prev,
           clubs: updatedClubs,
-          matches: updatedMatches,
+          matches: finalizedMatches,
+          feed:
+            payrollFeedItems.length > 0
+              ? [...payrollFeedItems, ...prev.feed].slice(0, 24)
+              : prev.feed,
           status: isSeasonEnd ? 'fim_temporada' : prev.status,
         };
       });
@@ -1909,6 +2333,10 @@ export function App() {
           ? new Date(roundMatches[0].scheduledAt).getTime()
           : NaN;
         if (!Number.isNaN(curTs) && nowMs >= curTs) {
+          setLeague((prev) => ({
+            ...prev,
+            clubs: ensureClubsHaveNoSuspendedStarters(prev.clubs),
+          }));
           setLiveRoundRunning(true);
         }
       }
@@ -1935,6 +2363,8 @@ export function App() {
   ) => {
     setLiveRoundRunning(false);
     setAuthError(null);
+    isEmptyDeletedDraftRef.current = false;
+    skipNextSaveRef.current = false;
     const created = createLeagueFromConfig(config, adminName, preClaimFriends, adminPin);
     const admin =
       created.participants.find((p) => p.id === created.currentUserId) ?? created.participants[0];
@@ -2096,28 +2526,116 @@ export function App() {
     setAuthError(null);
     saveAdminAuthSession(true);
     setIsAdminAuthed(true);
-    setLoginModalMode('new_career');
+    setLoginModalMode('careers');
 
-    const admin =
-      league.participants.find((p) => p.isAdmin) ?? league.participants[0];
-    if (admin) {
-      saveDeviceSession({
-        participantId: admin.id,
-        name: admin.name,
-        pin: admin.pin,
-      });
-      setLeague((prev) => {
-        const targetAdmin =
-          prev.participants.find((p) => p.isAdmin) ?? prev.participants[0];
-        if (!targetAdmin) return prev;
-        return {
-          ...prev,
-          currentUserId: targetAdmin.id,
-          activeHumanClubId: targetAdmin.clubId ?? prev.activeHumanClubId,
-        };
-      });
+    if (!isEmptyDeletedDraftRef.current) {
+      const admin =
+        league.participants.find((p) => p.isAdmin) ?? league.participants[0];
+      if (admin) {
+        saveDeviceSession({
+          participantId: admin.id,
+          name: admin.name,
+          pin: admin.pin,
+        });
+        setLeague((prev) => {
+          const targetAdmin =
+            prev.participants.find((p) => p.isAdmin) ?? prev.participants[0];
+          if (!targetAdmin) return prev;
+          return {
+            ...prev,
+            currentUserId: targetAdmin.id,
+            activeHumanClubId: targetAdmin.clubId ?? prev.activeHumanClubId,
+          };
+        });
+      }
     }
     return true;
+  };
+
+  const handleSelectCareer = async (careerId: string): Promise<boolean> => {
+    setAuthError(null);
+    setLiveRoundRunning(false);
+
+    let target: LeagueState | null = null;
+    if (careerId === league.id && !isEmptyDeletedDraftRef.current) {
+      target = league;
+    } else {
+      const loaded = await loadLeagueById(careerId);
+      if (loaded && isValidLeagueState(loaded)) {
+        target = syncOfficialClubSquads(mergeMissingWorldStars(loaded));
+      }
+    }
+
+    if (!target) {
+      setAuthError('Não foi possível carregar esta carreira.');
+      return false;
+    }
+
+    const adminParticipant =
+      target.participants.find((p) => p.isAdmin) ?? target.participants[0];
+    if (adminParticipant) {
+      saveDeviceSession({
+        participantId: adminParticipant.id,
+        name: adminParticipant.name,
+        pin: adminParticipant.pin,
+      });
+    }
+
+    isEmptyDeletedDraftRef.current = false;
+    skipNextSaveRef.current = false;
+    setLeague({
+      ...target,
+      currentUserId: adminParticipant?.id ?? '',
+      activeHumanClubId: adminParticipant?.clubId ?? target.activeHumanClubId,
+    });
+    setActiveTab('lobby');
+    setInviteModalOpen(false);
+    return true;
+  };
+
+  const handleDeleteCareer = async (
+    careerId: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    const res = await deleteCareerById(careerId);
+    if (!res.ok) return res;
+
+    if (careerId === league.id) {
+      setLiveRoundRunning(false);
+      const remaining = await listAllCareers();
+      const nextSummary = remaining.find((c) => c.id !== careerId);
+      const nextLoaded = nextSummary ? await loadLeagueById(nextSummary.id) : null;
+
+      if (nextLoaded && isValidLeagueState(nextLoaded)) {
+        const synced = syncOfficialClubSquads(mergeMissingWorldStars(nextLoaded));
+        const adminParticipant =
+          synced.participants.find((p) => p.isAdmin) ?? synced.participants[0];
+        if (adminParticipant) {
+          saveDeviceSession({
+            participantId: adminParticipant.id,
+            name: adminParticipant.name,
+            pin: adminParticipant.pin,
+          });
+        }
+        isEmptyDeletedDraftRef.current = false;
+        skipNextSaveRef.current = true;
+        setLeague({
+          ...synced,
+          currentUserId: adminParticipant?.id ?? '',
+          activeHumanClubId: adminParticipant?.clubId ?? synced.activeHumanClubId,
+        });
+      } else {
+        isEmptyDeletedDraftRef.current = true;
+        skipNextSaveRef.current = true;
+        clearDeviceSession();
+        saveAdminAuthSession(true);
+        setLeague((prev) => ({
+          ...prev,
+          currentUserId: '',
+        }));
+      }
+    }
+
+    return { ok: true };
   };
 
   const handleLogout = () => {
@@ -2261,28 +2779,28 @@ export function App() {
 
   const handleStartLiveRound = () => {
     if (isSupabaseConfigured && !isAdminUser) return;
-    if (league.status === 'janela_mercado' || league.currentRound === 1) {
-      setLeague((prev) => {
-        const base =
-          prev.status === 'janela_mercado' ? resolveExpiredOrAllDisputes(prev, true) : prev;
-        const anchoredMatches =
-          base.currentRound === 1
-            ? reanchorFutureRoundsSchedule(
-                base.matches,
-                2,
-                base.config.dailyScheduleTimes,
-                Date.now()
-              )
-            : base.matches;
-        return {
-          ...base,
-          status: 'campeonato',
-          transferWindowOpen: false,
-          transferWindowEndsAt: null,
-          matches: anchoredMatches,
-        };
-      });
-    }
+    setLeague((prev) => {
+      const base =
+        prev.status === 'janela_mercado' ? resolveExpiredOrAllDisputes(prev, true) : prev;
+      const cleanClubs = ensureClubsHaveNoSuspendedStarters(base.clubs);
+      const anchoredMatches =
+        base.currentRound === 1
+          ? reanchorFutureRoundsSchedule(
+              base.matches,
+              2,
+              base.config.dailyScheduleTimes,
+              Date.now()
+            )
+          : base.matches;
+      return {
+        ...base,
+        status: 'campeonato',
+        clubs: cleanClubs,
+        transferWindowOpen: false,
+        transferWindowEndsAt: null,
+        matches: anchoredMatches,
+      };
+    });
     setLiveRoundRunning(true);
   };
 
@@ -2309,17 +2827,29 @@ export function App() {
     });
   };
 
-  const handleUpdateBotConfig = (
+  const handleReallocateBudget = (
     clubId: string,
-    difficulty: BotDifficulty,
-    personality: ClubBotPersonality
+    direction: 'to_wage' | 'to_transfer',
+    amountMillions: number
   ) => {
-    setLeague((prev) => ({
-      ...prev,
-      clubs: prev.clubs.map((c) =>
-        c.id === clubId ? { ...c, botDifficulty: difficulty, botPersonality: personality } : c
-      ),
-    }));
+    setLeague((prev) => applyReallocateBudgetState(prev, clubId, direction, amountMillions));
+    if (isSupabaseConfigured && !isAdminUser && currentUser) {
+      dispatchLeagueAction(league.id, currentUser.id, 'reallocate_budget', {
+        clubId,
+        direction,
+        amountMillions,
+      });
+    }
+  };
+
+  const handleSetRevenueSplit = (clubId: string, transferPct: number) => {
+    setLeague((prev) => applySetRevenueSplitState(prev, clubId, transferPct));
+    if (isSupabaseConfigured && !isAdminUser && currentUser) {
+      dispatchLeagueAction(league.id, currentUser.id, 'set_revenue_split', {
+        clubId,
+        transferPct,
+      });
+    }
   };
 
   const handleBuyFreeAgent = (clubId: string, playerId: string) => {
@@ -2394,14 +2924,16 @@ export function App() {
   const handleUpdateTactics = (
     clubId: string,
     formation: Formation,
-    mentality: TacticalMentality
+    mentality: TacticalMentality,
+    tactics?: ClubTactics
   ) => {
-    setLeague((prev) => applyUpdateTacticsState(prev, clubId, formation, mentality));
+    setLeague((prev) => applyUpdateTacticsState(prev, clubId, formation, mentality, tactics));
     if (isSupabaseConfigured && !isAdminUser && currentUser) {
       dispatchLeagueAction(league.id, currentUser.id, 'update_tactics', {
         clubId,
         formation,
         mentality,
+        tactics,
       });
     }
   };
@@ -2477,98 +3009,180 @@ export function App() {
     setActiveTab('mercado');
   };
 
+  const navItems: Array<{
+    id: Exclude<ActiveTab, 'criar'>;
+    label: string;
+    mobileLabel: string;
+    icon: typeof Home;
+  }> = [
+    { id: 'lobby', label: 'Início', mobileLabel: 'Início', icon: Home },
+    { id: 'clube', label: 'Meu Clube', mobileLabel: 'Meu Clube', icon: Shield },
+    { id: 'campeonato', label: 'Campeonato', mobileLabel: 'Campeonato', icon: Trophy },
+    { id: 'mercado', label: 'Mercado', mobileLabel: 'Mercado', icon: ShoppingBag },
+  ];
+
+  const clubAccent = currentUser?.clubId ? activeHumanClub.primaryColor : '#10B981';
+
   return (
-    <div className="min-h-[100dvh] stadium-bg text-slate-100 flex justify-center">
-      {/* Container Mobile-First (Smartphone iOS/Android) */}
-      <div className="w-full max-w-[480px] min-h-[100dvh] flex flex-col sm:border-x sm:border-white/[0.06] bg-[#06090E]/75 relative">
-        {/* Header Broadcast Alinhado (64px) */}
-        <header className="sticky top-0 z-30 pt-safe backdrop-blur-xl bg-[#070B12]/94 border-b border-white/[0.08] shadow-lg shadow-black/40">
-          <div className="px-3.5 h-16 flex items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <BrasileiraoTrophyLogo size="sm" />
-              <div className="min-w-0 flex flex-col justify-center">
-                <div className="font-display text-lg font-extrabold text-white uppercase tracking-wide truncate leading-none">
-                  {league.config.name}
+    <div className="min-h-[100dvh] console-bg text-[#F1F5F9] flex flex-col">
+      {/* Barra Superior Console Responsiva */}
+      <header
+        className="sticky top-0 z-30 pt-safe bg-[#0B0F15]/95 backdrop-blur-md border-b border-white/[0.08]"
+        style={{
+          boxShadow: `inset 0 2px 0 0 ${clubAccent}, 0 8px 28px -14px rgba(0,0,0,0.85)`,
+        }}
+      >
+        <div className="w-full max-w-[1380px] mx-auto px-2.5 sm:px-6 lg:px-8 h-14 lg:h-16 flex items-center justify-between gap-1.5 sm:gap-3">
+          {/* Esquerda: Marca da Liga */}
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 min-w-0 flex-1 lg:flex-initial overflow-hidden">
+            <BrasileiraoTrophyLogo size="sm" />
+            <div className="min-w-0 flex flex-col justify-center overflow-hidden">
+              <div className="font-display text-sm sm:text-lg lg:text-xl font-extrabold text-white uppercase tracking-wide truncate leading-none">
+                {league.config.name}
+              </div>
+              <div className="flex items-center gap-1 sm:gap-1.5 mt-1 text-[10px] sm:text-[11px] font-semibold leading-none whitespace-nowrap">
+                <span className="text-amber-300 font-bold">T{league.season}</span>
+                <span className="hidden sm:inline text-slate-600">•</span>
+                <span className="hidden sm:inline text-slate-300">Série A</span>
+                <span className="text-slate-600">•</span>
+                <span
+                  className={`inline-flex items-center gap-1 ${
+                    isSupabaseConfigured ? 'text-emerald-400' : 'text-sky-400'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isSupabaseConfigured ? 'bg-emerald-400' : 'bg-sky-400'
+                    }`}
+                  />
+                  {isSupabaseConfigured ? 'Online' : 'Local'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Centro (Desktop Console): Navegação Horizontal EA FC Style */}
+          <nav
+            aria-label="Navegação Principal"
+            className="hidden lg:flex items-center h-full gap-1"
+          >
+            {navItems.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              const badgeCount =
+                tab.id === 'mercado' && league.transferWindowOpen ? incomingPendingApprovals : 0;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative h-full px-4 flex items-center gap-2 text-sm font-semibold transition cursor-pointer ${
+                    active ? 'text-white' : 'text-slate-400 hover:text-slate-100'
+                  }`}
+                >
+                  <Icon
+                    className={`w-4 h-4 ${
+                      active ? 'text-emerald-400 stroke-[2.2]' : 'text-slate-400 stroke-[1.8]'
+                    }`}
+                  />
+                  <span className="font-display text-base uppercase tracking-wider font-bold">
+                    {tab.label}
+                  </span>
+                  {badgeCount > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+                      {badgeCount}
+                    </span>
+                  )}
+                  {active && (
+                    <span className="absolute bottom-0 inset-x-3 h-[2.5px] bg-emerald-400 rounded-t" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Direita: Identidade do Técnico, Caixa e Ações */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div
+              className="h-8 sm:h-9 flex items-center gap-1.5 sm:gap-2 bg-[#11161E] border border-white/[0.1] rounded-md px-1.5 sm:px-2.5 max-w-[96px] sm:max-w-[230px]"
+              style={{
+                borderLeftWidth: '3px',
+                borderLeftColor: clubAccent,
+              }}
+            >
+              {currentUser?.clubId && <ClubCrest club={activeHumanClub} size="xs" />}
+              <div className="min-w-0 leading-tight">
+                <div className="text-[11px] sm:text-xs font-bold text-white truncate">
+                  {currentUser?.clubId ? (
+                    <>
+                      <span className="hidden sm:inline">{currentUser.name.split(' ')[0]} • </span>
+                      {activeHumanClub.shortName}
+                    </>
+                  ) : currentUser ? (
+                    currentUser.name.split(' ')[0]
+                  ) : (
+                    'Convidado'
+                  )}
                 </div>
-                <div className="flex items-center gap-1.5 mt-1 text-[10px] font-semibold leading-none whitespace-nowrap">
-                  <span className="px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 border border-amber-400/25 font-bold">
-                    T{league.season}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-bold">
-                    SÉRIE A
-                  </span>
-                  <span className={isSupabaseConfigured ? 'text-emerald-400' : 'text-sky-400'}>
-                    {isSupabaseConfigured ? '• Online' : '• Local'}
-                  </span>
-                </div>
+                {currentUser?.clubId && (
+                  <div className="hidden sm:block text-[10px] text-emerald-400 font-semibold tabular-nums truncate">
+                    {formatMillionsBRL(activeHumanClub.finances.budget)}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Identidade do Técnico & Clube */}
-              <div
-                className="h-9 flex items-center gap-1.5 bg-[#0D131E] border rounded-xl px-2.5 max-w-[132px]"
-                style={{
-                  borderColor: currentUser?.clubId
-                    ? `${activeHumanClub.primaryColor}70`
-                    : 'rgba(255,255,255,0.12)',
-                }}
-              >
-                {currentUser?.clubId && <ClubCrest club={activeHumanClub} size="xs" />}
-                <span className="text-[11px] font-bold text-white truncate">
-                  {currentUser ? currentUser.name.split(' ')[0] : 'Convidado'}
-                  {currentUser?.clubId ? ` • ${activeHumanClub.shortName}` : ''}
-                </span>
-              </div>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthError(null);
+                setLoginModalMode(isAdminUser ? 'careers' : 'login');
+                setInviteModalOpen(true);
+              }}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-[#11161E] border border-white/[0.1] hover:border-emerald-400/60 text-slate-200 flex items-center justify-center cursor-pointer transition"
+              title={isAdminUser ? 'Central de Carreiras & Login' : 'Login / Entrar com Código'}
+              aria-label="Login e Central de Carreira"
+            >
+              <UserCheck className="w-4 h-4 text-emerald-400" />
+            </button>
 
+            {currentUser && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-md bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition"
+                title="Sair da conta (exigirá PIN para voltar)"
+                aria-label="Sair"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sair</span>
+              </button>
+            )}
+
+            {isAdminUser && (
               <button
                 type="button"
                 onClick={() => {
                   setAuthError(null);
-                  setLoginModalMode('login');
+                  setLoginModalMode('new_career');
                   setInviteModalOpen(true);
                 }}
-                className="w-9 h-9 rounded-xl bg-[#0D131E] border border-white/12 hover:border-emerald-400/60 text-slate-200 flex items-center justify-center cursor-pointer transition"
-                title="Login / Entrar com Código"
-                aria-label="Login e Central de Carreira"
+                className="h-8 sm:h-9 px-2 sm:px-2.5 lg:px-3 rounded-md bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1 cursor-pointer transition"
+                title="Nova Carreira"
+                aria-label="Nova Carreira"
               >
-                <UserCheck className="w-4 h-4 text-emerald-400" />
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span className="hidden xl:inline">Nova Liga</span>
               </button>
-
-              {currentUser && (
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="h-9 px-2.5 rounded-xl bg-rose-500/15 border border-rose-500/35 hover:bg-rose-500/25 text-rose-200 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
-                  title="Sair da conta (exigirá PIN para voltar)"
-                  aria-label="Sair"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Sair
-                </button>
-              )}
-
-              {isAdminUser && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthError(null);
-                    setLoginModalMode('new_career');
-                    setInviteModalOpen(true);
-                  }}
-                  className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-400 hover:brightness-110 text-slate-950 flex items-center justify-center cursor-pointer shadow-md shadow-emerald-500/20 transition"
-                  title="Nova Carreira"
-                  aria-label="Nova Carreira"
-                >
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
-                </button>
-              )}
-            </div>
+            )}
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Conteúdo Principal */}
-        <main className="flex-1 px-3.5 pt-4 pb-24 overflow-x-hidden">
+      {/* Conteúdo Principal Widescreen */}
+      <main className="flex-1 w-full max-w-[1380px] mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 lg:pb-10 overflow-x-hidden">
+        <div key={activeTab} className="animate-console-enter">
           {activeTab === 'criar' && isAdminUser && (
             <LeagueCreatorView
               hasActiveLeague
@@ -2589,7 +3203,6 @@ export function App() {
               onClaimClub={handleClaimClub}
               onConfirmClubsToWindow={handleConfirmClubsToWindow}
               onPreStartChangeHumanCount={handlePreStartChangeHumanCount}
-              onUpdateBotConfig={handleUpdateBotConfig}
               onNavigateTab={(tab) => setActiveTab(tab)}
             />
           )}
@@ -2613,6 +3226,8 @@ export function App() {
               onAutoPickLineup={handleAutoPickLineup}
               onToggleListForSale={handleToggleListForSale}
               onRenewPlayerContract={handleRenewPlayerContract}
+              onReallocateBudget={handleReallocateBudget}
+              onSetRevenueSplit={handleSetRevenueSplit}
               onConfirmSquadAndStartMatches={() => setActiveTab('campeonato')}
             />
           )}
@@ -2629,72 +3244,80 @@ export function App() {
               onStartNextSeason={handleStartNextSeason}
             />
           )}
-        </main>
+        </div>
+      </main>
 
-        {/* Tela de Login & Central de Carreira */}
-        {inviteModalOpen && (
-          <CareerLoginModal
-            league={league}
-            isAdminUser={isAdminUser}
-            authError={authError}
-            canDismiss={Boolean(currentUser)}
-            initialMode={isAdminUser ? loginModalMode : 'login'}
-            onClose={() => {
-              setAuthError(null);
-              setInviteModalOpen(false);
-            }}
-            onAdminLogin={handleAdminLogin}
-            onJoinOrLogin={handleJoinOrLoginParticipant}
-            onJoinByInviteCode={handleJoinByInviteCode}
-            onStartFreshCareer={(freshConfig, adminName, adminPin) => {
-              if (!isAdminUser) return;
-              handleCreateLeague(freshConfig, adminName, false, adminPin);
-              setInviteModalOpen(false);
-            }}
-            onOpenAdvancedCreator={() => {
-              if (!isAdminUser) return;
-              setAuthError(null);
-              setInviteModalOpen(false);
-              setActiveTab('criar');
-            }}
-          />
-        )}
+      {/* Tela de Login & Central de Carreira */}
+      {inviteModalOpen && (
+        <CareerLoginModal
+          league={league}
+          isAdminUser={isAdminUser}
+          authError={authError}
+          canDismiss={Boolean(currentUser) && !isEmptyDeletedDraftRef.current}
+          initialMode={isAdminUser ? loginModalMode : 'login'}
+          onClose={() => {
+            setAuthError(null);
+            setInviteModalOpen(false);
+          }}
+          onAdminLogin={handleAdminLogin}
+          onJoinOrLogin={handleJoinOrLoginParticipant}
+          onJoinByInviteCode={handleJoinByInviteCode}
+          onSelectCareer={handleSelectCareer}
+          onDeleteCareer={handleDeleteCareer}
+          onStartFreshCareer={(freshConfig, adminName, adminPin) => {
+            if (!isAdminUser) return;
+            handleCreateLeague(freshConfig, adminName, false, adminPin);
+            setInviteModalOpen(false);
+          }}
+          onOpenAdvancedCreator={() => {
+            if (!isAdminUser) return;
+            setAuthError(null);
+            setInviteModalOpen(false);
+            setActiveTab('criar');
+          }}
+        />
+      )}
 
-        {/* Bottom Tab Bar Fixa (4 abas sem Leilão) */}
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-30 pb-safe backdrop-blur-xl bg-[#06090E]/95 border-t border-white/[0.08]">
-          <div className="grid grid-cols-4 px-1 pt-1.5">
-            {(
-              [
-                { id: 'lobby', label: 'Início', icon: Home },
-                { id: 'mercado', label: 'Mercado', icon: ShoppingBag },
-                { id: 'clube', label: 'Time', icon: Shield },
-                { id: 'campeonato', label: 'Jogos', icon: Trophy },
-              ] as const
-            ).map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition cursor-pointer relative ${
-                    active ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+      {/* Navegação Inferior Mobile Ergonômica */}
+      <nav
+        aria-label="Navegação Mobile"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 pb-safe bg-[#0B0F15]/96 backdrop-blur-md border-t border-white/[0.08] shadow-[0_-10px_28px_rgba(0,0,0,0.65)]"
+      >
+        <div className="grid grid-cols-4 h-14 px-1">
+          {navItems.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            const badgeCount =
+              tab.id === 'mercado' && league.transferWindowOpen ? incomingPendingApprovals : 0;
+
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition cursor-pointer ${
+                  active ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {active && (
+                  <span className="absolute top-0 inset-x-4 h-[2px] bg-emerald-400 rounded-b" />
+                )}
+                <Icon
+                  className={`w-5 h-5 ${
+                    active ? 'text-emerald-400 stroke-[2.3]' : 'stroke-[1.8]'
                   }`}
-                >
-                  <Icon className={`w-5 h-5 ${active ? 'stroke-[2.3]' : 'stroke-[1.8]'}`} />
-                  <span>{tab.label}</span>
-                  {tab.id === 'mercado' && league.transferWindowOpen && incomingPendingApprovals > 0 && (
-                    <span className="absolute top-0.5 right-4 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                      {incomingPendingApprovals}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      </div>
+                />
+                <span className="leading-none">{tab.mobileLabel}</span>
+                {badgeCount > 0 && (
+                  <span className="absolute top-1.5 right-[22%] min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+                    {badgeCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

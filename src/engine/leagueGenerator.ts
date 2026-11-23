@@ -13,7 +13,8 @@ import {
   LobbyParticipant,
   Match,
 } from '../types/league';
-import { buildLineupSlots, chooseBotTactics } from './botAI';
+import { buildLineupSlots, calcMonthlyPayrollMillions, chooseBotTactics } from './botAI';
+import { normalizeMatchStats } from './matchSimulation';
 
 const BOT_PERSONALITIES: ClubBotPersonality[] = [
   'agressivo',
@@ -150,15 +151,7 @@ function makeInitialMatch(
     possessionClubId: homeClubId,
     playPhase: 'kickoff',
     lastPlayText: 'Aguardando horário da rodada...',
-    stats: {
-      homePossession: 50,
-      homeShots: 0,
-      awayShots: 0,
-      homeOnTarget: 0,
-      awayOnTarget: 0,
-      homeCorners: 0,
-      awayCorners: 0,
-    },
+    stats: normalizeMatchStats(),
     events: [],
   };
 }
@@ -335,13 +328,13 @@ export function createLeagueFromConfig(
   for (let i = 0; i < safeTotal; i++) {
     const tpl = CLUB_TEMPLATES[i % CLUB_TEMPLATES.length];
     const personality = resolveBotPersonality(normalizedConfig.botPersonality, i);
-    const tactics = chooseBotTactics(personality);
-
     const rawSquad = generateBaseSquad(normalizedConfig.squadSize, i, tpl);
+    const tactics = chooseBotTactics(personality, rawSquad);
     const built = buildLineupSlots(rawSquad, tactics.formation);
     const squad = built.squad;
     const lineupSlots = built.lineupSlots;
-    const wageBill = Math.round(squad.reduce((sum, p) => sum + p.wage, 0) * 10) / 10;
+    const wageBill = calcMonthlyPayrollMillions({ squad, tier: tpl.tier });
+    const initialWageBudget = Math.round(wageBill * 5 * 100) / 100;
 
     const clubBudget = normalizedConfig.useRealisticBudgets
       ? tpl.realisticBudget
@@ -355,6 +348,7 @@ export function createLeagueFromConfig(
       primaryColor: tpl.primaryColor,
       secondaryColor: tpl.secondaryColor,
       stadium: tpl.stadium,
+      stadiumCapacity: tpl.stadiumCapacity,
       tier: tpl.tier,
       realisticBudget: tpl.realisticBudget,
       controller: 'bot',
@@ -365,12 +359,19 @@ export function createLeagueFromConfig(
       botDifficulty: normalizedConfig.botDifficulty,
       formation: tactics.formation,
       mentality: tactics.mentality,
+      tactics: tactics.tactics,
       squad,
       lineupSlots,
       finances: {
         budget: clubBudget,
         initialBudget: clubBudget,
         wageBill,
+        wageBudget: initialWageBudget,
+        revenueTransferPct: 45,
+        boxOfficeIncome: 0,
+        totalWagesPaid: 0,
+        lastPayrollRound: 0,
+        financeLedger: [],
         transferSpent: 0,
         transferIncome: 0,
         matchIncome: 0,
