@@ -1,0 +1,18 @@
+{
+  "name": "Brasileirão PRO — Modo Carreira",
+  "short_name": "Brasileirão PRO",
+  "description": "Liga personalizável de futebol com amigos e bots IA em tempo real.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06090E",
+  "theme_color": "#06090E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/trophy-brasileirao.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

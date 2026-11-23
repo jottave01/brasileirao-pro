@@ -1,0 +1,4643 @@
+{
+  "players": [
+    {
+      "name": "Agustín Rossi",
+      "position": "GOL",
+      "age": 31,
+      "nationality": "Argentina",
+      "clubKey": "fla",
+      "faceFile": "352324.png"
+    },
+    {
+      "name": "Andrew",
+      "position": "GOL",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "610417.png"
+    },
+    {
+      "name": "Dyogo Alves",
+      "position": "GOL",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "1082543.png"
+    },
+    {
+      "name": "Alex Sandro",
+      "position": "ZAG",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "79960.png"
+    },
+    {
+      "name": "Léo Pereira",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "288431.png"
+    },
+    {
+      "name": "Danilo",
+      "position": "ZAG",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "32816.png"
+    },
+    {
+      "name": "Guillermo Varela",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Uruguay",
+      "clubKey": "fla",
+      "faceFile": "188862.png"
+    },
+    {
+      "name": "Ayrton Lucas",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "349585.png"
+    },
+    {
+      "name": "Emerson Royal",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "476344.png"
+    },
+    {
+      "name": "Léo Ortiz",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "374136.png"
+    },
+    {
+      "name": "Vitão",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "428783.png"
+    },
+    {
+      "name": "Daniel Sales",
+      "position": "ZAG",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "1082609.png"
+    },
+    {
+      "name": "João Victor",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "671145.png"
+    },
+    {
+      "name": "Jorginho",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Italy",
+      "clubKey": "fla",
+      "faceFile": "102017.png"
+    },
+    {
+      "name": "Saúl Ñíguez",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Spain",
+      "clubKey": "fla",
+      "faceFile": "148928.png"
+    },
+    {
+      "name": "Giorgian de Arrascaeta",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Uruguay",
+      "clubKey": "fla",
+      "faceFile": "248410.png"
+    },
+    {
+      "name": "Erick Pulgar",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Chile",
+      "clubKey": "fla",
+      "faceFile": "215616.png"
+    },
+    {
+      "name": "Jorge Carrascal",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Colombia",
+      "clubKey": "fla",
+      "faceFile": "354145.png"
+    },
+    {
+      "name": "Lucas Paquetá",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "444523.png"
+    },
+    {
+      "name": "Nicolás de la Cruz",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Uruguay",
+      "clubKey": "fla",
+      "faceFile": "397458.png"
+    },
+    {
+      "name": "Samuel Lino",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "694928.png"
+    },
+    {
+      "name": "Luiz Felipe",
+      "position": "MEI",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "373150.png"
+    },
+    {
+      "name": "Bruno Henrique",
+      "position": "ATA",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "277335.png"
+    },
+    {
+      "name": "Luiz Araújo",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "435485.png"
+    },
+    {
+      "name": "Pedro",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "fla",
+      "faceFile": "65278.png"
+    },
+    {
+      "name": "Gonzalo Plata",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Ecuador",
+      "clubKey": "fla",
+      "faceFile": "592735.png"
+    },
+    {
+      "name": "Diego Reyes",
+      "position": "ATA",
+      "age": 19,
+      "nationality": "Mexico",
+      "clubKey": "fla",
+      "faceFile": "131090.png"
+    },
+    {
+      "name": "Joaquin Freitas",
+      "position": "ATA",
+      "age": 20,
+      "nationality": "Argentina",
+      "clubKey": "fla",
+      "faceFile": "1324003.png"
+    },
+    {
+      "name": "Marcelo Lomba",
+      "position": "GOL",
+      "age": 39,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "53015.png"
+    },
+    {
+      "name": "Carlos Miguel",
+      "position": "GOL",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "641458.png"
+    },
+    {
+      "name": "Luiz Fernando",
+      "position": "GOL",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "362790.png"
+    },
+    {
+      "name": "Gustavo Gómez",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Paraguay",
+      "clubKey": "pal",
+      "faceFile": "215390.png"
+    },
+    {
+      "name": "Alexander Barboza",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Argentina",
+      "clubKey": "pal",
+      "faceFile": "379752.png"
+    },
+    {
+      "name": "Murilo",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "458710.png"
+    },
+    {
+      "name": "Joaquín Piquerez",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Uruguay",
+      "clubKey": "pal",
+      "faceFile": "496268.png"
+    },
+    {
+      "name": "Bruno Fuchs",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "563692.png"
+    },
+    {
+      "name": "Khellven",
+      "position": "ZAG",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "653348.png"
+    },
+    {
+      "name": "Agustín Giay",
+      "position": "ZAG",
+      "age": 22,
+      "nationality": "Argentina",
+      "clubKey": "pal",
+      "faceFile": "849582.png"
+    },
+    {
+      "name": "Jefté",
+      "position": "ZAG",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "851595.png"
+    },
+    {
+      "name": "Arthur Gabriel",
+      "position": "ZAG",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "1115722.png"
+    },
+    {
+      "name": "Derick",
+      "position": "ZAG",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "574764.png"
+    },
+    {
+      "name": "Emiliano Martínez",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Argentina",
+      "clubKey": "pal",
+      "faceFile": "111873.png"
+    },
+    {
+      "name": "Felipe Anderson",
+      "position": "MEI",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "159372.png"
+    },
+    {
+      "name": "Lucas Evangelista",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "270188.png"
+    },
+    {
+      "name": "Andreas Pereira",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "203394.png"
+    },
+    {
+      "name": "Marlon Freitas",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "364972.png"
+    },
+    {
+      "name": "Jhon Arias",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Colombia",
+      "clubKey": "pal",
+      "faceFile": "588989.png"
+    },
+    {
+      "name": "Maurício",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "53286.png"
+    },
+    {
+      "name": "Larson",
+      "position": "MEI",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "1116605.png"
+    },
+    {
+      "name": "Victor Gabriel",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "834444.png"
+    },
+    {
+      "name": "Isaac",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "1083069.png"
+    },
+    {
+      "name": "João Paulo",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "81670.png"
+    },
+    {
+      "name": "Paulinho",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "57229.png"
+    },
+    {
+      "name": "Ramón Sosa",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Paraguay",
+      "clubKey": "pal",
+      "faceFile": "745191.png"
+    },
+    {
+      "name": "José Manuel López",
+      "position": "ATA",
+      "age": 25,
+      "nationality": "Argentina",
+      "clubKey": "pal",
+      "faceFile": "844797.png"
+    },
+    {
+      "name": "Vitor Roque",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "943837.png"
+    },
+    {
+      "name": "Eduardo",
+      "position": "ATA",
+      "age": 16,
+      "nationality": "Brasil",
+      "clubKey": "pal",
+      "faceFile": "53999.png"
+    },
+    {
+      "name": "Éverson",
+      "position": "GOL",
+      "age": 36,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "106032.png"
+    },
+    {
+      "name": "Gabriel Delfim",
+      "position": "GOL",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "978121.png"
+    },
+    {
+      "name": "Pedro Cobra",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "1193865.png"
+    },
+    {
+      "name": "Robert",
+      "position": "GOL",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "1084714.png"
+    },
+    {
+      "name": "Kaio",
+      "position": "GOL",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "523363.png"
+    },
+    {
+      "name": "Vitor Hugo",
+      "position": "ZAG",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "149752.png"
+    },
+    {
+      "name": "Lyanco",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "379807.png"
+    },
+    {
+      "name": "Léo Duarte",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "312678.png"
+    },
+    {
+      "name": "Renan Lodi",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "476352.png"
+    },
+    {
+      "name": "Ruan",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "555015.png"
+    },
+    {
+      "name": "Natanael",
+      "position": "ZAG",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "322588.png"
+    },
+    {
+      "name": "Bernard",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "175169.png"
+    },
+    {
+      "name": "Fred",
+      "position": "MEI",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "31005.png"
+    },
+    {
+      "name": "Gustavo Scarpa",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "330085.png"
+    },
+    {
+      "name": "Maycon",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "421935.png"
+    },
+    {
+      "name": "Alan Franco",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Ecuador",
+      "clubKey": "cam",
+      "faceFile": "400960.png"
+    },
+    {
+      "name": "Igor Gomes",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "553459.png"
+    },
+    {
+      "name": "Kevin Castaño",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Colombia",
+      "clubKey": "cam",
+      "faceFile": "857948.png"
+    },
+    {
+      "name": "Victor Hugo",
+      "position": "MEI",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "749559.png"
+    },
+    {
+      "name": "Alexsander",
+      "position": "MEI",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "997714.png"
+    },
+    {
+      "name": "Tomás Pérez",
+      "position": "MEI",
+      "age": 21,
+      "nationality": "Argentina",
+      "clubKey": "cam",
+      "faceFile": "1142432.png"
+    },
+    {
+      "name": "Dudu",
+      "position": "ATA",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "cam",
+      "faceFile": "114937.png"
+    },
+    {
+      "name": "Tomás Cuello",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Argentina",
+      "clubKey": "cam",
+      "faceFile": "503052.png"
+    },
+    {
+      "name": "João Teixeira",
+      "position": "ATA",
+      "age": 18,
+      "nationality": "Portugal",
+      "clubKey": "cam",
+      "faceFile": "182710.png"
+    },
+    {
+      "name": "Gabriel Batista",
+      "position": "GOL",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "401535.png"
+    },
+    {
+      "name": "Warleson",
+      "position": "GOL",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "477460.png"
+    },
+    {
+      "name": "Alex Telles",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "255755.png"
+    },
+    {
+      "name": "Nahuel Ferraresi",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Venezuela",
+      "clubKey": "bot",
+      "faceFile": "466336.png"
+    },
+    {
+      "name": "Paulo Victor",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "67886.png"
+    },
+    {
+      "name": "Vitinho",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "213605.png"
+    },
+    {
+      "name": "Mateo Ponte",
+      "position": "ZAG",
+      "age": 23,
+      "nationality": "Uruguay",
+      "clubKey": "bot",
+      "faceFile": "856047.png"
+    },
+    {
+      "name": "Kadu",
+      "position": "ZAG",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "52828.png"
+    },
+    {
+      "name": "Gabriel Justino",
+      "position": "ZAG",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "1127043.png"
+    },
+    {
+      "name": "Allan",
+      "position": "MEI",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "126422.png"
+    },
+    {
+      "name": "Hakim Ziyech",
+      "position": "MEI",
+      "age": 33,
+      "nationality": "Morocco",
+      "clubKey": "bot",
+      "faceFile": "217111.png"
+    },
+    {
+      "name": "Edenilson",
+      "position": "MEI",
+      "age": 36,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "169052.png"
+    },
+    {
+      "name": "Cristian Medina",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Argentina",
+      "clubKey": "bot",
+      "faceFile": "661133.png"
+    },
+    {
+      "name": "Jordan Barrera",
+      "position": "MEI",
+      "age": 20,
+      "nationality": "Colombia",
+      "clubKey": "bot",
+      "faceFile": "1087334.png"
+    },
+    {
+      "name": "Álvaro Montoro",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Argentina",
+      "clubKey": "bot",
+      "faceFile": "1228194.png"
+    },
+    {
+      "name": "Wallace Davi",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "1279908.png"
+    },
+    {
+      "name": "Lucas Villalba",
+      "position": "ATA",
+      "age": 25,
+      "nationality": "Argentina",
+      "clubKey": "bot",
+      "faceFile": "240913.png"
+    },
+    {
+      "name": "Tiquinho Soares",
+      "position": "ATA",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "103381.png"
+    },
+    {
+      "name": "Arthur Cabral",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "390638.png"
+    },
+    {
+      "name": "Júnior Santos",
+      "position": "ATA",
+      "age": 32,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "592347.png"
+    },
+    {
+      "name": "Matheus Martins",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "bot",
+      "faceFile": "668228.png"
+    },
+    {
+      "name": "Rafael",
+      "position": "GOL",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "61892.png"
+    },
+    {
+      "name": "Young",
+      "position": "GOL",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "894532.png"
+    },
+    {
+      "name": "Felipe Preis",
+      "position": "GOL",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "1202381.png"
+    },
+    {
+      "name": "João Pedro",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Italy",
+      "clubKey": "sao",
+      "faceFile": "129129.png"
+    },
+    {
+      "name": "Rafael Tolói",
+      "position": "ZAG",
+      "age": 36,
+      "nationality": "Italy",
+      "clubKey": "sao",
+      "faceFile": "72441.png"
+    },
+    {
+      "name": "Wendell",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "228433.png"
+    },
+    {
+      "name": "Robert Arboleda",
+      "position": "ZAG",
+      "age": 35,
+      "nationality": "Ecuador",
+      "clubKey": "sao",
+      "faceFile": "139867.png"
+    },
+    {
+      "name": "Lucas Ramon",
+      "position": "ZAG",
+      "age": 32,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "378189.png"
+    },
+    {
+      "name": "Domingos Duarte",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Portugal",
+      "clubKey": "sao",
+      "faceFile": "257376.png"
+    },
+    {
+      "name": "Iago",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "520468.png"
+    },
+    {
+      "name": "Enzo Díaz",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Argentina",
+      "clubKey": "sao",
+      "faceFile": "540458.png"
+    },
+    {
+      "name": "Sabino",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "546033.png"
+    },
+    {
+      "name": "Isac",
+      "position": "ZAG",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "1096506.png"
+    },
+    {
+      "name": "Pedro Lima",
+      "position": "ZAG",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "816135.png"
+    },
+    {
+      "name": "Igor Felisberto",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "1219848.png"
+    },
+    {
+      "name": "Nicolas",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "442258.png"
+    },
+    {
+      "name": "Danielzinho",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "292731.png"
+    },
+    {
+      "name": "Cauly",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "162812.png"
+    },
+    {
+      "name": "Marcos Antonio",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "468301.png"
+    },
+    {
+      "name": "Damián Bobadilla",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Paraguay",
+      "clubKey": "sao",
+      "faceFile": "861852.png"
+    },
+    {
+      "name": "Pablo Maia",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "892089.png"
+    },
+    {
+      "name": "Newton",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "811219.png"
+    },
+    {
+      "name": "Pedro Ferreira",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "1362701.png"
+    },
+    {
+      "name": "Lucas Moura",
+      "position": "ATA",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "77100.png"
+    },
+    {
+      "name": "Jonathan Calleri",
+      "position": "ATA",
+      "age": 33,
+      "nationality": "Argentina",
+      "clubKey": "sao",
+      "faceFile": "284727.png"
+    },
+    {
+      "name": "Luciano",
+      "position": "ATA",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "223560.png"
+    },
+    {
+      "name": "Artur",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "296903.png"
+    },
+    {
+      "name": "Paulo Sérgio",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "53019.png"
+    },
+    {
+      "name": "Ryan Francisco",
+      "position": "ATA",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "1202387.png"
+    },
+    {
+      "name": "Tetê",
+      "position": "ATA",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "371256.png"
+    },
+    {
+      "name": "Brenno",
+      "position": "ATA",
+      "age": 17,
+      "nationality": "Brasil",
+      "clubKey": "sao",
+      "faceFile": "555016.png"
+    },
+    {
+      "name": "Sergio Rochet",
+      "position": "GOL",
+      "age": 33,
+      "nationality": "Uruguay",
+      "clubKey": "int",
+      "faceFile": "264014.png"
+    },
+    {
+      "name": "Anthoni",
+      "position": "GOL",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "869437.png"
+    },
+    {
+      "name": "Kauan",
+      "position": "GOL",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "1094530.png"
+    },
+    {
+      "name": "Diego Esser",
+      "position": "GOL",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "1116612.png"
+    },
+    {
+      "name": "Gabriel Mercado",
+      "position": "ZAG",
+      "age": 39,
+      "nationality": "Argentina",
+      "clubKey": "int",
+      "faceFile": "45319.png"
+    },
+    {
+      "name": "Guillermo Maripán",
+      "position": "ZAG",
+      "age": 32,
+      "nationality": "Chile",
+      "clubKey": "int",
+      "faceFile": "249730.png"
+    },
+    {
+      "name": "Juninho",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "333602.png"
+    },
+    {
+      "name": "Félix Torres",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Ecuador",
+      "clubKey": "int",
+      "faceFile": "468174.png"
+    },
+    {
+      "name": "Matheus Bahia",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "741021.png"
+    },
+    {
+      "name": "Brian Aguirre",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Argentina",
+      "clubKey": "int",
+      "faceFile": "668549.png"
+    },
+    {
+      "name": "Alisson",
+      "position": "ZAG",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "105470.png"
+    },
+    {
+      "name": "Alan Patrick",
+      "position": "MEI",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "104505.png"
+    },
+    {
+      "name": "Thiago Maia",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "294873.png"
+    },
+    {
+      "name": "Ronaldo",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "387925.png"
+    },
+    {
+      "name": "Rodrigo Villagra",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Argentina",
+      "clubKey": "int",
+      "faceFile": "657220.png"
+    },
+    {
+      "name": "Bruno Gomes",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "294576.png"
+    },
+    {
+      "name": "Calebe",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "798114.png"
+    },
+    {
+      "name": "Allex",
+      "position": "MEI",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "1220008.png"
+    },
+    {
+      "name": "Antonio Sanabria",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Paraguay",
+      "clubKey": "int",
+      "faceFile": "234523.png"
+    },
+    {
+      "name": "Johan Carbonero",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Colombia",
+      "clubKey": "int",
+      "faceFile": "572042.png"
+    },
+    {
+      "name": "Raykkonen",
+      "position": "ATA",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "int",
+      "faceFile": "1355429.png"
+    },
+    {
+      "name": "Weverton",
+      "position": "GOL",
+      "age": 38,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "69400.png"
+    },
+    {
+      "name": "Gabriel Grando",
+      "position": "GOL",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "878037.png"
+    },
+    {
+      "name": "Caio Paulista",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "601011.png"
+    },
+    {
+      "name": "Wálter Kannemann",
+      "position": "ZAG",
+      "age": 35,
+      "nationality": "Argentina",
+      "clubKey": "gre",
+      "faceFile": "145400.png"
+    },
+    {
+      "name": "Marcos Rocha",
+      "position": "ZAG",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "75435.png"
+    },
+    {
+      "name": "Fabián Balbuena",
+      "position": "ZAG",
+      "age": 35,
+      "nationality": "Paraguay",
+      "clubKey": "gre",
+      "faceFile": "285548.png"
+    },
+    {
+      "name": "Marlon",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "188516.png"
+    },
+    {
+      "name": "Wagner Leonardo",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "671572.png"
+    },
+    {
+      "name": "Gustavo Martins",
+      "position": "ZAG",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "874223.png"
+    },
+    {
+      "name": "Wallace",
+      "position": "ZAG",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "68833.png"
+    },
+    {
+      "name": "Pedro Gabriel",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "1253927.png"
+    },
+    {
+      "name": "Luis Eduardo",
+      "position": "ZAG",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "1355268.png"
+    },
+    {
+      "name": "Vagner",
+      "position": "ZAG",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "200455.png"
+    },
+    {
+      "name": "Danilo Barbosa",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "273438.png"
+    },
+    {
+      "name": "Dodi",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "373174.png"
+    },
+    {
+      "name": "Filip Krovinovic",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Croatia",
+      "clubKey": "gre",
+      "faceFile": "261988.png"
+    },
+    {
+      "name": "Mathías Villasanti",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Paraguay",
+      "clubKey": "gre",
+      "faceFile": "436385.png"
+    },
+    {
+      "name": "Juan Nardoni",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Argentina",
+      "clubKey": "gre",
+      "faceFile": "689211.png"
+    },
+    {
+      "name": "Erick Noriega",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Peru",
+      "clubKey": "gre",
+      "faceFile": "723853.png"
+    },
+    {
+      "name": "Tiaguinho",
+      "position": "MEI",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "1285798.png"
+    },
+    {
+      "name": "Cristian Pavón",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Argentina",
+      "clubKey": "gre",
+      "faceFile": "373170.png"
+    },
+    {
+      "name": "Martin Braithwaite",
+      "position": "ATA",
+      "age": 35,
+      "nationality": "Denmark",
+      "clubKey": "gre",
+      "faceFile": "95732.png"
+    },
+    {
+      "name": "Jovane Cabral",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Cape Verde",
+      "clubKey": "gre",
+      "faceFile": "448466.png"
+    },
+    {
+      "name": "Carlos Vinícius",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "525287.png"
+    },
+    {
+      "name": "Francis Amuzu",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Ghana",
+      "clubKey": "gre",
+      "faceFile": "423604.png"
+    },
+    {
+      "name": "Matheus Nascimento",
+      "position": "ATA",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "743594.png"
+    },
+    {
+      "name": "Lucca",
+      "position": "ATA",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "gre",
+      "faceFile": "178940.png"
+    },
+    {
+      "name": "Benjamin",
+      "position": "ATA",
+      "age": 17,
+      "nationality": "Ghana",
+      "clubKey": "gre",
+      "faceFile": "1312046.png"
+    },
+    {
+      "name": "Cássio",
+      "position": "GOL",
+      "age": 39,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "50144.png"
+    },
+    {
+      "name": "Otávio Costa",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "997947.png"
+    },
+    {
+      "name": "Leó Aragão",
+      "position": "GOL",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "1022342.png"
+    },
+    {
+      "name": "Marcelo",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "44501.png"
+    },
+    {
+      "name": "Fagner",
+      "position": "ZAG",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "47592.png"
+    },
+    {
+      "name": "William",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "53365.png"
+    },
+    {
+      "name": "Fabrício Bruno",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "432773.png"
+    },
+    {
+      "name": "Gabriel Rojas",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Argentina",
+      "clubKey": "cru",
+      "faceFile": "471639.png"
+    },
+    {
+      "name": "Matías Viña",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Uruguay",
+      "clubKey": "cru",
+      "faceFile": "439072.png"
+    },
+    {
+      "name": "João Marcelo",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "744024.png"
+    },
+    {
+      "name": "Jonathan Jesus",
+      "position": "ZAG",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "1083207.png"
+    },
+    {
+      "name": "Lucas Romero",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Argentina",
+      "clubKey": "cru",
+      "faceFile": "242201.png"
+    },
+    {
+      "name": "Lucas Silva",
+      "position": "MEI",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "218118.png"
+    },
+    {
+      "name": "Gerson",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "341705.png"
+    },
+    {
+      "name": "Matheus Pereira",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "225984.png"
+    },
+    {
+      "name": "Matheus Henrique",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "552549.png"
+    },
+    {
+      "name": "Wanderson",
+      "position": "ATA",
+      "age": 32,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "236202.png"
+    },
+    {
+      "name": "Bruno Rodrigues",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "406766.png"
+    },
+    {
+      "name": "Luis Sinisterra",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Colombia",
+      "clubKey": "cru",
+      "faceFile": "512385.png"
+    },
+    {
+      "name": "Kaio Jorge",
+      "position": "ATA",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "620477.png"
+    },
+    {
+      "name": "Gabriel Pec",
+      "position": "ATA",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "703321.png"
+    },
+    {
+      "name": "Marquinhos",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "181767.png"
+    },
+    {
+      "name": "Keny Arroyo",
+      "position": "ATA",
+      "age": 20,
+      "nationality": "Ecuador",
+      "clubKey": "cru",
+      "faceFile": "1074584.png"
+    },
+    {
+      "name": "João Costa",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Portugal",
+      "clubKey": "cru",
+      "faceFile": "198638.png"
+    },
+    {
+      "name": "Kaique Kenji",
+      "position": "ATA",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cru",
+      "faceFile": "1253814.png"
+    },
+    {
+      "name": "Hugo Souza",
+      "position": "GOL",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "574901.png"
+    },
+    {
+      "name": "Felipe Longo",
+      "position": "GOL",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "1005656.png"
+    },
+    {
+      "name": "Gustavo Henrique",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "208681.png"
+    },
+    {
+      "name": "Gabriel Paulista",
+      "position": "ZAG",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "149498.png"
+    },
+    {
+      "name": "André Ramalho",
+      "position": "ZAG",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "175792.png"
+    },
+    {
+      "name": "Fabrizio Angileri",
+      "position": "ZAG",
+      "age": 32,
+      "nationality": "Argentina",
+      "clubKey": "cor",
+      "faceFile": "268506.png"
+    },
+    {
+      "name": "Matheus Bidu",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "670021.png"
+    },
+    {
+      "name": "Hugo",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "730708.png"
+    },
+    {
+      "name": "André Carrillo",
+      "position": "MEI",
+      "age": 35,
+      "nationality": "Peru",
+      "clubKey": "cor",
+      "faceFile": "135057.png"
+    },
+    {
+      "name": "Jesse Lingard",
+      "position": "MEI",
+      "age": 33,
+      "nationality": "England",
+      "clubKey": "cor",
+      "faceFile": "141660.png"
+    },
+    {
+      "name": "Alex Santana",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "219835.png"
+    },
+    {
+      "name": "Raniele",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "546530.png"
+    },
+    {
+      "name": "Charles",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "486078.png"
+    },
+    {
+      "name": "Rodrigo Garro",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Argentina",
+      "clubKey": "cor",
+      "faceFile": "565009.png"
+    },
+    {
+      "name": "Breno Bidon",
+      "position": "MEI",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "1029227.png"
+    },
+    {
+      "name": "Luiz Gustavo",
+      "position": "MEI",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "10471.png"
+    },
+    {
+      "name": "Dieguinho",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "1257132.png"
+    },
+    {
+      "name": "André",
+      "position": "MEI",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "800176.png"
+    },
+    {
+      "name": "Zakaria Labyad",
+      "position": "ATA",
+      "age": 33,
+      "nationality": "Morocco",
+      "clubKey": "cor",
+      "faceFile": "123349.png"
+    },
+    {
+      "name": "Memphis Depay",
+      "position": "ATA",
+      "age": 32,
+      "nationality": "Netherlands",
+      "clubKey": "cor",
+      "faceFile": "167850.png"
+    },
+    {
+      "name": "Pedro Raúl",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "547443.png"
+    },
+    {
+      "name": "Yuri Alberto",
+      "position": "ATA",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "489893.png"
+    },
+    {
+      "name": "Gui Negão",
+      "position": "ATA",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "1257133.png"
+    },
+    {
+      "name": "Kayque",
+      "position": "ATA",
+      "age": 17,
+      "nationality": "Brasil",
+      "clubKey": "cor",
+      "faceFile": "813037.png"
+    },
+    {
+      "name": "Léo",
+      "position": "GOL",
+      "age": 36,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "55245.png"
+    },
+    {
+      "name": "Victor",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "1109027.png"
+    },
+    {
+      "name": "Fabio",
+      "position": "GOL",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "22415.png"
+    },
+    {
+      "name": "David Duarte",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "373446.png"
+    },
+    {
+      "name": "Kanu",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "524446.png"
+    },
+    {
+      "name": "Luciano Juba",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "676035.png"
+    },
+    {
+      "name": "Marcos Victor",
+      "position": "ZAG",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "980463.png"
+    },
+    {
+      "name": "Zé Guilherme",
+      "position": "ZAG",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "1084816.png"
+    },
+    {
+      "name": "Román Gómez",
+      "position": "ZAG",
+      "age": 22,
+      "nationality": "Argentina",
+      "clubKey": "bah",
+      "faceFile": "1241022.png"
+    },
+    {
+      "name": "Éverton Ribeiro",
+      "position": "MEI",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "52896.png"
+    },
+    {
+      "name": "Michel Araújo",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Uruguay",
+      "clubKey": "bah",
+      "faceFile": "482144.png"
+    },
+    {
+      "name": "Erick",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "633212.png"
+    },
+    {
+      "name": "Rodrigo Nestor",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "468304.png"
+    },
+    {
+      "name": "Jean Lucas",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "578872.png"
+    },
+    {
+      "name": "Nicolás Acevedo",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Uruguay",
+      "clubKey": "bah",
+      "faceFile": "625569.png"
+    },
+    {
+      "name": "Caio Alexandre",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "727751.png"
+    },
+    {
+      "name": "Roger Gabriel",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "1044131.png"
+    },
+    {
+      "name": "Pedrinho",
+      "position": "MEI",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "515208.png"
+    },
+    {
+      "name": "Cristian Olivera",
+      "position": "ATA",
+      "age": 24,
+      "nationality": "Uruguay",
+      "clubKey": "bah",
+      "faceFile": "657746.png"
+    },
+    {
+      "name": "Everaldo",
+      "position": "ATA",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "205041.png"
+    },
+    {
+      "name": "Willian José",
+      "position": "ATA",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "122155.png"
+    },
+    {
+      "name": "Ademir",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "544259.png"
+    },
+    {
+      "name": "Alejo Veliz",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Argentina",
+      "clubKey": "bah",
+      "faceFile": "888493.png"
+    },
+    {
+      "name": "Erick Pulga",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "936544.png"
+    },
+    {
+      "name": "Mateo Sanabria",
+      "position": "ATA",
+      "age": 22,
+      "nationality": "Argentina",
+      "clubKey": "bah",
+      "faceFile": "984480.png"
+    },
+    {
+      "name": "Ruan Pablo",
+      "position": "ATA",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "1220614.png"
+    },
+    {
+      "name": "Dell",
+      "position": "ATA",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "bah",
+      "faceFile": "1328021.png"
+    },
+    {
+      "name": "Santos",
+      "position": "GOL",
+      "age": 36,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "140811.png"
+    },
+    {
+      "name": "Mycael",
+      "position": "GOL",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "743586.png"
+    },
+    {
+      "name": "Carlos Eduardo",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "363794.png"
+    },
+    {
+      "name": "Carlos Terán",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Colombia",
+      "clubKey": "cap",
+      "faceFile": "649184.png"
+    },
+    {
+      "name": "Gilberto",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "164013.png"
+    },
+    {
+      "name": "Juan Felipe Aguirre",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Colombia",
+      "clubKey": "cap",
+      "faceFile": "570521.png"
+    },
+    {
+      "name": "Gastón Benavídez",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Argentina",
+      "clubKey": "cap",
+      "faceFile": "696719.png"
+    },
+    {
+      "name": "Lucas Esquivel",
+      "position": "ZAG",
+      "age": 25,
+      "nationality": "Argentina",
+      "clubKey": "cap",
+      "faceFile": "829969.png"
+    },
+    {
+      "name": "Arthur Dias",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "1233473.png"
+    },
+    {
+      "name": "Claudinho",
+      "position": "ZAG",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "792249.png"
+    },
+    {
+      "name": "Alemão",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "560417.png"
+    },
+    {
+      "name": "Jádson",
+      "position": "MEI",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "205179.png"
+    },
+    {
+      "name": "Bruno Zapelli",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Argentina",
+      "clubKey": "cap",
+      "faceFile": "711600.png"
+    },
+    {
+      "name": "João Cruz",
+      "position": "MEI",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "1004738.png"
+    },
+    {
+      "name": "Chiqueti",
+      "position": "MEI",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "1094387.png"
+    },
+    {
+      "name": "Stiven Mendoza",
+      "position": "ATA",
+      "age": 34,
+      "nationality": "Colombia",
+      "clubKey": "cap",
+      "faceFile": "131101.png"
+    },
+    {
+      "name": "Kevin Viveros",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Colombia",
+      "clubKey": "cap",
+      "faceFile": "580461.png"
+    },
+    {
+      "name": "Renan",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "68102.png"
+    },
+    {
+      "name": "Leozinho",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "cap",
+      "faceFile": "1110658.png"
+    },
+    {
+      "name": "Vitor Eudes",
+      "position": "GOL",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "590039.png"
+    },
+    {
+      "name": "Marcelo Pitaluga",
+      "position": "GOL",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "662334.png"
+    },
+    {
+      "name": "Thiago Silva",
+      "position": "ZAG",
+      "age": 42,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "29241.png"
+    },
+    {
+      "name": "Samuel Xavier",
+      "position": "ZAG",
+      "age": 36,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "198250.png"
+    },
+    {
+      "name": "René",
+      "position": "ZAG",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "212209.png"
+    },
+    {
+      "name": "Guilherme Arana",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "346766.png"
+    },
+    {
+      "name": "Igor Rabello",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "341701.png"
+    },
+    {
+      "name": "Guga",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "592344.png"
+    },
+    {
+      "name": "Ignácio",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "624291.png"
+    },
+    {
+      "name": "Breno",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "697400.png"
+    },
+    {
+      "name": "Ganso",
+      "position": "MEI",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "67920.png"
+    },
+    {
+      "name": "Luciano Acosta",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Argentina",
+      "clubKey": "flu",
+      "faceFile": "315169.png"
+    },
+    {
+      "name": "Otávio",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Portugal",
+      "clubKey": "flu",
+      "faceFile": "231289.png"
+    },
+    {
+      "name": "Nonato",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "546172.png"
+    },
+    {
+      "name": "Martinelli",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "815558.png"
+    },
+    {
+      "name": "Hércules",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "982617.png"
+    },
+    {
+      "name": "Hulk",
+      "position": "ATA",
+      "age": 40,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "80562.png"
+    },
+    {
+      "name": "Germán Cano",
+      "position": "ATA",
+      "age": 38,
+      "nationality": "Argentina",
+      "clubKey": "flu",
+      "faceFile": "54590.png"
+    },
+    {
+      "name": "Jefferson Savarino",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Venezuela",
+      "clubKey": "flu",
+      "faceFile": "309193.png"
+    },
+    {
+      "name": "Yeferson Soteldo",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Venezuela",
+      "clubKey": "flu",
+      "faceFile": "312294.png"
+    },
+    {
+      "name": "Agustín Canobbio",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Uruguay",
+      "clubKey": "flu",
+      "faceFile": "457533.png"
+    },
+    {
+      "name": "Kevin Serna",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Colombia",
+      "clubKey": "flu",
+      "faceFile": "745927.png"
+    },
+    {
+      "name": "John Kennedy",
+      "position": "ATA",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "856085.png"
+    },
+    {
+      "name": "Matheus Reis",
+      "position": "ATA",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "379249.png"
+    },
+    {
+      "name": "Riquelme",
+      "position": "ATA",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "flu",
+      "faceFile": "643119.png"
+    },
+    {
+      "name": "Léo Jardim",
+      "position": "GOL",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "288415.png"
+    },
+    {
+      "name": "Daniel Fuzato",
+      "position": "GOL",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "438682.png"
+    },
+    {
+      "name": "Pablo",
+      "position": "GOL",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "148765.png"
+    },
+    {
+      "name": "Marcão",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "101473.png"
+    },
+    {
+      "name": "José Luis Rodríguez",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Uruguay",
+      "clubKey": "vas",
+      "faceFile": "430339.png"
+    },
+    {
+      "name": "Paulo Henrique",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "214313.png"
+    },
+    {
+      "name": "Carlos Cuesta",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Colombia",
+      "clubKey": "vas",
+      "faceFile": "474589.png"
+    },
+    {
+      "name": "Gabriel Pereira",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "627213.png"
+    },
+    {
+      "name": "Lucas Piton",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Italy",
+      "clubKey": "vas",
+      "faceFile": "670201.png"
+    },
+    {
+      "name": "Lucas Freitas",
+      "position": "ZAG",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "809716.png"
+    },
+    {
+      "name": "Cuiabano",
+      "position": "ZAG",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "891353.png"
+    },
+    {
+      "name": "Alison",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "167825.png"
+    },
+    {
+      "name": "Jair",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "239294.png"
+    },
+    {
+      "name": "Tchê Tchê",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "364261.png"
+    },
+    {
+      "name": "Thiago Mendes",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "135617.png"
+    },
+    {
+      "name": "Santiago Sosa",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Argentina",
+      "clubKey": "vas",
+      "faceFile": "576026.png"
+    },
+    {
+      "name": "Nuno Moreira",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Portugal",
+      "clubKey": "vas",
+      "faceFile": "461937.png"
+    },
+    {
+      "name": "Matheus Carvalho",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "180704.png"
+    },
+    {
+      "name": "Cauan Barros",
+      "position": "MEI",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "1083966.png"
+    },
+    {
+      "name": "Lukas Zuccarello",
+      "position": "MEI",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "1220464.png"
+    },
+    {
+      "name": "Guilherme Estrella",
+      "position": "MEI",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "1083969.png"
+    },
+    {
+      "name": "David",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "373189.png"
+    },
+    {
+      "name": "Brenner",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "412366.png"
+    },
+    {
+      "name": "Facundo Colidio",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Argentina",
+      "clubKey": "vas",
+      "faceFile": "491705.png"
+    },
+    {
+      "name": "Marino Hinestroza",
+      "position": "ATA",
+      "age": 24,
+      "nationality": "Colombia",
+      "clubKey": "vas",
+      "faceFile": "663319.png"
+    },
+    {
+      "name": "Adson",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "vas",
+      "faceFile": "868891.png"
+    },
+    {
+      "name": "Andrés Gómez",
+      "position": "ATA",
+      "age": 24,
+      "nationality": "Colombia",
+      "clubKey": "vas",
+      "faceFile": "957461.png"
+    },
+    {
+      "name": "Tiago Volpi",
+      "position": "GOL",
+      "age": 35,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "227671.png"
+    },
+    {
+      "name": "Cleiton",
+      "position": "GOL",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "468247.png"
+    },
+    {
+      "name": "Fabrício",
+      "position": "GOL",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "86917.png"
+    },
+    {
+      "name": "Juninho Capixaba",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "406676.png"
+    },
+    {
+      "name": "Vanderlan",
+      "position": "ZAG",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "816129.png"
+    },
+    {
+      "name": "Gustavo Marques",
+      "position": "ZAG",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "977465.png"
+    },
+    {
+      "name": "Gabriel",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "79242.png"
+    },
+    {
+      "name": "Matheus Fernandes",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "351892.png"
+    },
+    {
+      "name": "Lucas Barbosa",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "816144.png"
+    },
+    {
+      "name": "Fabinho",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "210548.png"
+    },
+    {
+      "name": "Rodriguinho",
+      "position": "MEI",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "75436.png"
+    },
+    {
+      "name": "Gustavinho",
+      "position": "MEI",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "1101124.png"
+    },
+    {
+      "name": "Yuri",
+      "position": "MEI",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "432161.png"
+    },
+    {
+      "name": "Eduardo Sasha",
+      "position": "ATA",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "162883.png"
+    },
+    {
+      "name": "Fernando",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "51174.png"
+    },
+    {
+      "name": "Wallace Yan",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "rbb",
+      "faceFile": "1082602.png"
+    },
+    {
+      "name": "Emanuel Britez",
+      "position": "ZAG",
+      "age": 34,
+      "nationality": "Argentina",
+      "clubKey": "vit",
+      "faceFile": "262851.png"
+    },
+    {
+      "name": "Ramon",
+      "position": "ZAG",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "312684.png"
+    },
+    {
+      "name": "Cacá",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "603122.png"
+    },
+    {
+      "name": "Nathan",
+      "position": "ZAG",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "294798.png"
+    },
+    {
+      "name": "Diego Tarzia",
+      "position": "ZAG",
+      "age": 23,
+      "nationality": "Argentina",
+      "clubKey": "vit",
+      "faceFile": "1225755.png"
+    },
+    {
+      "name": "Ivan (VIT)",
+      "position": "ZAG",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "364257.png"
+    },
+    {
+      "name": "Walace",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "323954.png"
+    },
+    {
+      "name": "Tomás Pochettino",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Argentina",
+      "clubKey": "vit",
+      "faceFile": "348354.png"
+    },
+    {
+      "name": "Caique",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "68843.png"
+    },
+    {
+      "name": "Zé Vitor",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "649722.png"
+    },
+    {
+      "name": "Osvaldo",
+      "position": "ATA",
+      "age": 39,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "76191.png"
+    },
+    {
+      "name": "Marinho",
+      "position": "ATA",
+      "age": 36,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "74758.png"
+    },
+    {
+      "name": "Renato Kayzer",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "404321.png"
+    },
+    {
+      "name": "Lucas",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "vit",
+      "faceFile": "190314.png"
+    },
+    {
+      "name": "Gabriel Brazão",
+      "position": "GOL",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "371247.png"
+    },
+    {
+      "name": "Diogenes",
+      "position": "GOL",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "907359.png"
+    },
+    {
+      "name": "Rodrigo Falcão",
+      "position": "GOL",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "1089956.png"
+    },
+    {
+      "name": "Rodinei",
+      "position": "ZAG",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "185966.png"
+    },
+    {
+      "name": "Luan Peres",
+      "position": "ZAG",
+      "age": 32,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "347913.png"
+    },
+    {
+      "name": "Lucas Verissimo",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "411662.png"
+    },
+    {
+      "name": "Gonzalo Escobar",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Argentina",
+      "clubKey": "san",
+      "faceFile": "440377.png"
+    },
+    {
+      "name": "Vinicius Lira",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "1253844.png"
+    },
+    {
+      "name": "João Ananias",
+      "position": "ZAG",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "1256755.png"
+    },
+    {
+      "name": "Philippe Coutinho",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "80444.png"
+    },
+    {
+      "name": "Willian Arão",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "210747.png"
+    },
+    {
+      "name": "João Schmidt",
+      "position": "MEI",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "198859.png"
+    },
+    {
+      "name": "Arthur",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "517518.png"
+    },
+    {
+      "name": "Thaciano",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "392487.png"
+    },
+    {
+      "name": "Lima",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "387611.png"
+    },
+    {
+      "name": "Christian Oliva",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Uruguay",
+      "clubKey": "san",
+      "faceFile": "563812.png"
+    },
+    {
+      "name": "Álvaro Barreal",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Argentina",
+      "clubKey": "san",
+      "faceFile": "613873.png"
+    },
+    {
+      "name": "Gabriel Menino",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "608216.png"
+    },
+    {
+      "name": "Gabriel Bontempo",
+      "position": "MEI",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "1089958.png"
+    },
+    {
+      "name": "Neymar",
+      "position": "ATA",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "68290.png"
+    },
+    {
+      "name": "Gustavo Caballero",
+      "position": "ATA",
+      "age": 25,
+      "nationality": "Paraguay",
+      "clubKey": "san",
+      "faceFile": "891672.png"
+    },
+    {
+      "name": "Gabriel Barbosa",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "244275.png"
+    },
+    {
+      "name": "Everton",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "76120.png"
+    },
+    {
+      "name": "Rony",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "371009.png"
+    },
+    {
+      "name": "Benjamín Rollheiser",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Argentina",
+      "clubKey": "san",
+      "faceFile": "491704.png"
+    },
+    {
+      "name": "Moisés",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "128822.png"
+    },
+    {
+      "name": "Mateus Xavier",
+      "position": "ATA",
+      "age": 19,
+      "nationality": "Brasil",
+      "clubKey": "san",
+      "faceFile": "1220141.png"
+    },
+    {
+      "name": "Pedro Morisco",
+      "position": "GOL",
+      "age": 22,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Pedro Rangel",
+      "position": "GOL",
+      "age": 26,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Keiller",
+      "position": "GOL",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Maicon",
+      "position": "ZAG",
+      "age": 37,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Rodrigo Moledo",
+      "position": "ZAG",
+      "age": 38,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Bruno Melo",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Tiago Cóser",
+      "position": "ZAG",
+      "age": 22,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Fabricio Bustos",
+      "position": "LAT",
+      "age": 30,
+      "nationality": "Argentina",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Tinga",
+      "position": "LAT",
+      "age": 33,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Felipe Jonatan",
+      "position": "LAT",
+      "age": 28,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Rodrigo Gelado",
+      "position": "LAT",
+      "age": 22,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Sebastián Gómez",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Colombia",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Nicolás Fonseca",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Uruguay",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Josué",
+      "position": "MEI",
+      "age": 35,
+      "nationality": "Portugal",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Richard",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Vini Paulista",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Lucas Ronier",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Breno Lopes",
+      "position": "ATA",
+      "age": 30,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Pedro Rocha",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Keno",
+      "position": "ATA",
+      "age": 36,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Brian Ocampo",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Uruguay",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Rodrigo Rodrigues",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Walter",
+      "position": "GOL",
+      "age": 38,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Alex Muralha",
+      "position": "GOL",
+      "age": 36,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Georgemy",
+      "position": "GOL",
+      "age": 31,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "João Victor (MIR)",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Lucas Oliveira",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Willian Machado",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Gabriel Knesowitsch",
+      "position": "ZAG",
+      "age": 22,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Reinaldo",
+      "position": "LAT",
+      "age": 36,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Daniel Borges",
+      "position": "LAT",
+      "age": 33,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Igor Formiga",
+      "position": "LAT",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Victor Luís",
+      "position": "LAT",
+      "age": 33,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Neto Moura",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Eduardo (MIR)",
+      "position": "MEI",
+      "age": 36,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Shaylon",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Denilson",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "José Aldo",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Chico Kim",
+      "position": "MEI",
+      "age": 35,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Alesson",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Edson Carioca",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Negueba",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Fernandinho",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Zé Roberto",
+      "position": "ATA",
+      "age": 32,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "André Luis",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Anderson",
+      "position": "GOL",
+      "age": 28,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Rafael Santos",
+      "position": "GOL",
+      "age": 37,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Léo Vieira",
+      "position": "GOL",
+      "age": 35,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Rafael Thyere",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Bruno Leonardo",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Eduardo Doma",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Victor Caetano",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Bruno Pacheco",
+      "position": "LAT",
+      "age": 34,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Heitor",
+      "position": "LAT",
+      "age": 25,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Marcos Vinicius",
+      "position": "LAT",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Mancha",
+      "position": "LAT",
+      "age": 25,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Camilo Reijers",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Higor Meritão",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Giovanni Augusto",
+      "position": "MEI",
+      "age": 37,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Jean Carlos",
+      "position": "MEI",
+      "age": 34,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Rafael Carvalheira",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Vinicius Balieiro",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Yannick Bolasie",
+      "position": "ATA",
+      "age": 37,
+      "nationality": "DR Congo",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Dylan Borrero",
+      "position": "ATA",
+      "age": 24,
+      "nationality": "Colombia",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Marcinho",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Perotti",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Bruno Tubarão",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brazil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Marcelo Rangel",
+      "position": "GOL",
+      "age": 38,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Ivan",
+      "position": "GOL",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Ygor Vinhas",
+      "position": "GOL",
+      "age": 32,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Marllon",
+      "position": "ZAG",
+      "age": 34,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Zé Ivaldo",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Klaus",
+      "position": "ZAG",
+      "age": 32,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Reynaldo",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Matheus Alexandre",
+      "position": "LAT",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Mayk",
+      "position": "LAT",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "João Lucas",
+      "position": "LAT",
+      "age": 28,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Cristian Tassano",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Uruguay",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Patrick de Paula",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Zé Welison",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Vítor Bueno",
+      "position": "MEI",
+      "age": 32,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Jáderson",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Julián Picco",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Argentina",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Paulinho Curuá",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Yago Pikachu",
+      "position": "ATA",
+      "age": 34,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Alef Manga",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Jajá",
+      "position": "ATA",
+      "age": 25,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Gabriel Taliari",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Erick Galeano",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brazil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Evertton Araújo",
+      "position": "MEI",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "fla"
+    },
+    {
+      "name": "Anthony Valencia",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Equador",
+      "clubKey": "fla"
+    },
+    {
+      "name": "Raphael Veiga",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "pal"
+    },
+    {
+      "name": "Aníbal Moreno",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Argentina",
+      "clubKey": "pal"
+    },
+    {
+      "name": "Richard Ríos",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Colômbia",
+      "clubKey": "pal"
+    },
+    {
+      "name": "Angelo Preciado",
+      "position": "LAT",
+      "age": 28,
+      "nationality": "Equador",
+      "clubKey": "cam"
+    },
+    {
+      "name": "Reinier",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "cam"
+    },
+    {
+      "name": "Mateo Cassierra",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Colômbia",
+      "clubKey": "cam"
+    },
+    {
+      "name": "Alan Minda",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Equador",
+      "clubKey": "cam"
+    },
+    {
+      "name": "Thiago Borbas",
+      "position": "ATA",
+      "age": 24,
+      "nationality": "Uruguai",
+      "clubKey": "cam"
+    },
+    {
+      "name": "Cristhian Loor",
+      "position": "GOL",
+      "age": 20,
+      "nationality": "Equador",
+      "clubKey": "bot"
+    },
+    {
+      "name": "Raul",
+      "position": "GOL",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "bot"
+    },
+    {
+      "name": "Fernando Marçal",
+      "position": "LAT",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "bot"
+    },
+    {
+      "name": "Arthur Chaves",
+      "position": "ZAG",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "bot"
+    },
+    {
+      "name": "Kaio Pantaleão",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "bot"
+    },
+    {
+      "name": "Kadir Barría",
+      "position": "ATA",
+      "age": 20,
+      "nationality": "Panamá",
+      "clubKey": "bot"
+    },
+    {
+      "name": "Cédric Soares",
+      "position": "LAT",
+      "age": 35,
+      "nationality": "Portugal",
+      "clubKey": "sao"
+    },
+    {
+      "name": "Alan Franco (SAO)",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Argentina",
+      "clubKey": "sao"
+    },
+    {
+      "name": "Luan",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "sao"
+    },
+    {
+      "name": "Ferreira",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "sao"
+    },
+    {
+      "name": "André Silva",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "sao"
+    },
+    {
+      "name": "Matheus Cunha (GOL)",
+      "position": "GOL",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "int"
+    },
+    {
+      "name": "Alexandro Bernabéi",
+      "position": "LAT",
+      "age": 26,
+      "nationality": "Argentina",
+      "clubKey": "int"
+    },
+    {
+      "name": "Bruno Henrique Corsini",
+      "position": "MEI",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "int"
+    },
+    {
+      "name": "Bruno Tabata",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "int"
+    },
+    {
+      "name": "Rafael Borré",
+      "position": "ATA",
+      "age": 31,
+      "nationality": "Colômbia",
+      "clubKey": "int"
+    },
+    {
+      "name": "Alerrandro",
+      "position": "ATA",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "int"
+    },
+    {
+      "name": "Vitinho (INT)",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "int"
+    },
+    {
+      "name": "Thiago Beltrame",
+      "position": "GOL",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "gre"
+    },
+    {
+      "name": "João Pedro (GRE)",
+      "position": "LAT",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "gre"
+    },
+    {
+      "name": "José Enamorado",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Colômbia",
+      "clubKey": "gre"
+    },
+    {
+      "name": "Kaiki",
+      "position": "LAT",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "cru"
+    },
+    {
+      "name": "Lucas Villalba (CRU)",
+      "position": "ZAG",
+      "age": 32,
+      "nationality": "Argentina",
+      "clubKey": "cru"
+    },
+    {
+      "name": "Zé Lucas",
+      "position": "MEI",
+      "age": 18,
+      "nationality": "Brasil",
+      "clubKey": "cru"
+    },
+    {
+      "name": "Lucho Rodríguez",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Uruguai",
+      "clubKey": "cru"
+    },
+    {
+      "name": "Wesley Gassova",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "cru"
+    },
+    {
+      "name": "Neyser Villarreal",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Colômbia",
+      "clubKey": "cru"
+    },
+    {
+      "name": "Kauê",
+      "position": "GOL",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cor"
+    },
+    {
+      "name": "Matheuzinho",
+      "position": "LAT",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "cor"
+    },
+    {
+      "name": "João Pedro Tchoca",
+      "position": "ZAG",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cor"
+    },
+    {
+      "name": "Pedro Milans",
+      "position": "LAT",
+      "age": 24,
+      "nationality": "Uruguai",
+      "clubKey": "cor"
+    },
+    {
+      "name": "Vitinho (COR)",
+      "position": "ATA",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "cor"
+    },
+    {
+      "name": "Kaio César",
+      "position": "ATA",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cor"
+    },
+    {
+      "name": "Ronaldo (BAH)",
+      "position": "GOL",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "bah"
+    },
+    {
+      "name": "Gabriel Xavier",
+      "position": "ZAG",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "bah"
+    },
+    {
+      "name": "Santiago Ramos Mingo",
+      "position": "ZAG",
+      "age": 24,
+      "nationality": "Argentina",
+      "clubKey": "bah"
+    },
+    {
+      "name": "Matheus Soares",
+      "position": "GOL",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cap"
+    },
+    {
+      "name": "Léo Pelé",
+      "position": "ZAG",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "cap"
+    },
+    {
+      "name": "Léo Derik",
+      "position": "LAT",
+      "age": 21,
+      "nationality": "Brasil",
+      "clubKey": "cap"
+    },
+    {
+      "name": "Juan Portilla",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Colômbia",
+      "clubKey": "cap"
+    },
+    {
+      "name": "Felipinho",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "cap"
+    },
+    {
+      "name": "Alejandro García",
+      "position": "MEI",
+      "age": 25,
+      "nationality": "Colômbia",
+      "clubKey": "cap"
+    },
+    {
+      "name": "Isaac (CAP)",
+      "position": "ATA",
+      "age": 22,
+      "nationality": "Brasil",
+      "clubKey": "cap"
+    },
+    {
+      "name": "Fábio",
+      "position": "GOL",
+      "age": 45,
+      "nationality": "Brasil",
+      "clubKey": "flu"
+    },
+    {
+      "name": "Jemmes",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "flu"
+    },
+    {
+      "name": "Juan Pablo Freytes",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Argentina",
+      "clubKey": "flu"
+    },
+    {
+      "name": "Facundo Bernal",
+      "position": "MEI",
+      "age": 23,
+      "nationality": "Uruguai",
+      "clubKey": "flu"
+    },
+    {
+      "name": "Lima (FLU)",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "flu"
+    },
+    {
+      "name": "Robert Renan",
+      "position": "ZAG",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "vas"
+    },
+    {
+      "name": "Alan Saldivia",
+      "position": "ZAG",
+      "age": 24,
+      "nationality": "Uruguai",
+      "clubKey": "vas"
+    },
+    {
+      "name": "Johan Rojas",
+      "position": "MEI",
+      "age": 24,
+      "nationality": "Colômbia",
+      "clubKey": "vas"
+    },
+    {
+      "name": "Alix Vinicius",
+      "position": "ZAG",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Pedro Henrique",
+      "position": "ZAG",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Eduardo Santos",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Guzmán Rodríguez",
+      "position": "ZAG",
+      "age": 26,
+      "nationality": "Uruguai",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "José Andrés Hurtado",
+      "position": "LAT",
+      "age": 24,
+      "nationality": "Equador",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Agustín Sant'Anna",
+      "position": "LAT",
+      "age": 29,
+      "nationality": "Uruguai",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Eric Ramires",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Brasil",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Ignacio Sosa",
+      "position": "MEI",
+      "age": 23,
+      "nationality": "Uruguai",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Isidro Pitta",
+      "position": "ATA",
+      "age": 27,
+      "nationality": "Paraguai",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "José Herrera",
+      "position": "ATA",
+      "age": 23,
+      "nationality": "Argentina",
+      "clubKey": "rbb"
+    },
+    {
+      "name": "Lucas Arcanjo",
+      "position": "GOL",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Thiago Couto",
+      "position": "GOL",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Fintelman",
+      "position": "GOL",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Neris",
+      "position": "ZAG",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Camutanga",
+      "position": "ZAG",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Zé Marcos",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Luan Cândido",
+      "position": "LAT",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Jamerson",
+      "position": "LAT",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Gabriel Baralhas",
+      "position": "MEI",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Matheuzinho (VIT)",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Lucas Silva (VIT)",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "Caio Dantas",
+      "position": "ATA",
+      "age": 33,
+      "nationality": "Brasil",
+      "clubKey": "vit"
+    },
+    {
+      "name": "João Paulo (SAN)",
+      "position": "GOL",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "san"
+    },
+    {
+      "name": "Igor Vinícius",
+      "position": "LAT",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "san"
+    },
+    {
+      "name": "Mayke",
+      "position": "LAT",
+      "age": 34,
+      "nationality": "Brasil",
+      "clubKey": "san"
+    },
+    {
+      "name": "Adonis Frías",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Argentina",
+      "clubKey": "san"
+    },
+    {
+      "name": "JP Chermont",
+      "position": "LAT",
+      "age": 20,
+      "nationality": "Brasil",
+      "clubKey": "san"
+    },
+    {
+      "name": "Miguelito",
+      "position": "MEI",
+      "age": 22,
+      "nationality": "Bolívia",
+      "clubKey": "san"
+    },
+    {
+      "name": "Benassi",
+      "position": "GOL",
+      "age": 23,
+      "nationality": "Brasil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Jacy",
+      "position": "ZAG",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Thiago Santos",
+      "position": "MEI",
+      "age": 37,
+      "nationality": "Brasil",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Joaquín Lavega",
+      "position": "ATA",
+      "age": 21,
+      "nationality": "Uruguai",
+      "clubKey": "cfc"
+    },
+    {
+      "name": "Thomazella",
+      "position": "GOL",
+      "age": 36,
+      "nationality": "Brasil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Wallisson",
+      "position": "MEI",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Gustavo Cazonatti",
+      "position": "MEI",
+      "age": 30,
+      "nationality": "Brasil",
+      "clubKey": "mir"
+    },
+    {
+      "name": "Matheus Aurélio",
+      "position": "GOL",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Bruno Matias",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Yago Felipe",
+      "position": "MEI",
+      "age": 31,
+      "nationality": "Brasil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Maurício Garcez",
+      "position": "ATA",
+      "age": 29,
+      "nationality": "Brasil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Ênio",
+      "position": "ATA",
+      "age": 25,
+      "nationality": "Brasil",
+      "clubKey": "cha"
+    },
+    {
+      "name": "Marcelinho",
+      "position": "LAT",
+      "age": 24,
+      "nationality": "Brasil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Matheus Felipe",
+      "position": "ZAG",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Zé Ricardo",
+      "position": "MEI",
+      "age": 27,
+      "nationality": "Brasil",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Diego Hernández",
+      "position": "MEI",
+      "age": 26,
+      "nationality": "Uruguai",
+      "clubKey": "rem"
+    },
+    {
+      "name": "Gabriel Poveda",
+      "position": "ATA",
+      "age": 28,
+      "nationality": "Brasil",
+      "clubKey": "rem"
+    }
+  ],
+  "stars": [
+    {
+      "name": "Vinicius Junior",
+      "position": "ATA",
+      "overall": 91,
+      "age": 26,
+      "nationality": "Brasil",
+      "faceFile": "371998.png"
+    },
+    {
+      "name": "Rodrygo",
+      "position": "ATA",
+      "overall": 88,
+      "age": 25,
+      "nationality": "Brasil",
+      "faceFile": "412363.png"
+    },
+    {
+      "name": "Raphinha",
+      "position": "ATA",
+      "overall": 89,
+      "age": 29,
+      "nationality": "Brasil",
+      "faceFile": "411295.png"
+    },
+    {
+      "name": "Estêvão",
+      "position": "ATA",
+      "overall": 86,
+      "age": 19,
+      "nationality": "Brasil",
+      "faceFile": "982552.png"
+    },
+    {
+      "name": "Endrick",
+      "position": "ATA",
+      "overall": 85,
+      "age": 20,
+      "nationality": "Brasil",
+      "faceFile": "971570.png"
+    },
+    {
+      "name": "Neymar",
+      "position": "ATA",
+      "overall": 88,
+      "age": 34,
+      "nationality": "Brasil",
+      "faceFile": "68290.png"
+    },
+    {
+      "name": "Pedro",
+      "position": "ATA",
+      "overall": 86,
+      "age": 29,
+      "nationality": "Spain",
+      "faceFile": "65278.png"
+    },
+    {
+      "name": "Hulk",
+      "position": "ATA",
+      "overall": 85,
+      "age": 39,
+      "nationality": "Brasil",
+      "faceFile": "80562.png"
+    },
+    {
+      "name": "Bruno Guimarães",
+      "position": "MEI",
+      "overall": 88,
+      "age": 28,
+      "nationality": "Brasil",
+      "faceFile": "520624.png"
+    },
+    {
+      "name": "Lucas Paquetá",
+      "position": "MEI",
+      "overall": 87,
+      "age": 29,
+      "nationality": "Brasil",
+      "faceFile": "444523.png"
+    },
+    {
+      "name": "Giorgian de Arrascaeta",
+      "position": "MEI",
+      "overall": 87,
+      "age": 32,
+      "nationality": "Uruguay",
+      "faceFile": "248410.png"
+    },
+    {
+      "name": "Raphael Veiga",
+      "position": "MEI",
+      "overall": 85,
+      "age": 31,
+      "nationality": "Brasil",
+      "faceFile": "432953.png"
+    },
+    {
+      "name": "Gerson",
+      "position": "MEI",
+      "overall": 85,
+      "age": 29,
+      "nationality": "Brasil",
+      "faceFile": "341705.png"
+    },
+    {
+      "name": "Alisson",
+      "position": "GOL",
+      "overall": 90,
+      "age": 33,
+      "nationality": "Brasil",
+      "faceFile": "105470.png"
+    },
+    {
+      "name": "Éderson",
+      "position": "GOL",
+      "overall": 89,
+      "age": 33,
+      "nationality": "Brasil",
+      "faceFile": "76470.png"
+    },
+    {
+      "name": "Marquinhos",
+      "position": "ZAG",
+      "overall": 88,
+      "age": 32,
+      "nationality": "Brasil",
+      "faceFile": "181767.png"
+    },
+    {
+      "name": "Éder Militão",
+      "position": "ZAG",
+      "overall": 87,
+      "age": 28,
+      "nationality": "Brasil",
+      "faceFile": "401530.png"
+    },
+    {
+      "name": "Bremer",
+      "position": "ZAG",
+      "overall": 87,
+      "age": 29,
+      "nationality": "Brasil",
+      "faceFile": "516716.png"
+    },
+    {
+      "name": "Danilo",
+      "position": "LAT",
+      "overall": 83,
+      "age": 35,
+      "nationality": "Brasil",
+      "faceFile": "32816.png"
+    },
+    {
+      "name": "Guilherme Arana",
+      "position": "LAT",
+      "overall": 83,
+      "age": 29,
+      "nationality": "Brasil",
+      "faceFile": "346766.png"
+    },
+    {
+      "name": "Yan Couto",
+      "position": "LAT",
+      "overall": 83,
+      "age": 24,
+      "nationality": "Brasil",
+      "faceFile": "627228.png"
+    },
+    {
+      "name": "Matheus Cunha",
+      "position": "ATA",
+      "overall": 86,
+      "age": 27,
+      "nationality": "Brasil",
+      "faceFile": "517894.png"
+    },
+    {
+      "name": "Luiz Henrique",
+      "position": "ATA",
+      "overall": 85,
+      "age": 25,
+      "nationality": "Brasil",
+      "faceFile": "631275.png"
+    }
+  ]
+}
