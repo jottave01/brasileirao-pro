@@ -79,24 +79,38 @@ export function getNextBrasiliaSlots(
   return slots;
 }
 
+export const FIXED_SCHEDULE_WINDOW_MS = 12 * 60 * 1000;
+
+export function isWithinFixedScheduleWindow(
+  scheduledAtIso: string | undefined,
+  nowMs: number = Date.now()
+): boolean {
+  if (!scheduledAtIso) return false;
+  const ts = new Date(scheduledAtIso).getTime();
+  if (Number.isNaN(ts)) return false;
+  return nowMs >= ts && nowMs <= ts + FIXED_SCHEDULE_WINDOW_MS;
+}
+
+export function isFixedScheduleExpired(
+  scheduledAtIso: string | undefined,
+  nowMs: number = Date.now()
+): boolean {
+  if (!scheduledAtIso) return false;
+  const ts = new Date(scheduledAtIso).getTime();
+  if (Number.isNaN(ts)) return false;
+  return nowMs > ts + FIXED_SCHEDULE_WINDOW_MS;
+}
+
 export function computeRoundScheduledAt(
   round: number,
   dailyScheduleTimes: [string, string] = ['12:00', '22:00'],
-  fromTimestampMs?: number
+  fromTimestampMs: number = Date.now()
 ): string {
-  if (fromTimestampMs !== undefined) {
-    const slots = getNextBrasiliaSlots(round, dailyScheduleTimes, fromTimestampMs);
-    return slots[round - 1] ?? slots[slots.length - 1] ?? new Date().toISOString();
-  }
-  const dayOffset = Math.floor((round - 1) / 2);
-  const slotIdx = (round - 1) % 2;
-  const timeStr = dailyScheduleTimes[slotIdx] ?? (slotIdx === 0 ? '12:00' : '22:00');
-  const [hh, mm] = parseScheduleHours(timeStr);
-  const { year, month, day } = getBrasiliaDateParts(Date.now());
-  return buildBrasiliaSlotIso(year, month, dayOffset, hh, mm, day);
+  const slots = getNextBrasiliaSlots(round, dailyScheduleTimes, fromTimestampMs);
+  return slots[round - 1] ?? slots[slots.length - 1] ?? new Date().toISOString();
 }
 
-/** Reancora todas as rodadas a partir de `fromRound` para os próximos horários 12:00 e 22:00 (Brasília) */
+/** Reancora todas as rodadas a partir de `fromRound` para os próximos horários fixos futuros (Brasília) */
 export function reanchorFutureRoundsSchedule(
   matches: Match[],
   fromRound: number,
@@ -104,7 +118,11 @@ export function reanchorFutureRoundsSchedule(
   afterMs: number = Date.now()
 ): Match[] {
   const futureRounds = Array.from(
-    new Set(matches.filter((m) => m.round >= fromRound).map((m) => m.round))
+    new Set(
+      matches
+        .filter((m) => m.round >= fromRound && m.status !== 'finalizada')
+        .map((m) => m.round)
+    )
   ).sort((a, b) => a - b);
 
   if (futureRounds.length === 0) return matches;
@@ -116,6 +134,7 @@ export function reanchorFutureRoundsSchedule(
   });
 
   return matches.map((m) => {
+    if (m.status === 'finalizada') return m;
     const sched = slotByRound.get(m.round);
     return sched ? { ...m, scheduledAt: sched } : m;
   });

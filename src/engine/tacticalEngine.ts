@@ -9,9 +9,11 @@ import {
   OffensiveStyle,
   Player,
   PlayerPosition,
+  PlayStyle,
   PressingStyle,
   TacticalIntensity,
   TacticalMentality,
+  TacticalPosture,
 } from '../types/league';
 import {
   ensurePlayerAttributes,
@@ -25,6 +27,27 @@ export interface FormationSlotSpec {
   pitchX: number;
   pitchY: number;
 }
+
+export interface FormationOptionMeta {
+  id: Formation;
+  label: string;
+  tag?: string;
+}
+
+export const FORMATION_OPTIONS: FormationOptionMeta[] = [
+  { id: '4-4-2', label: '4-4-2' },
+  { id: '4-3-3', label: '4-3-3' },
+  { id: '3-5-2', label: '3-5-2' },
+  { id: '3-4-3', label: '3-4-3' },
+  { id: '5-4-1', label: '5-4-1', tag: 'Retranca' },
+  { id: '4-2-4', label: '4-2-4', tag: 'Tudo ou nada' },
+  { id: '4-2-3-1', label: '4-2-3-1' },
+  { id: '4-1-4-1', label: '4-1-4-1' },
+  { id: '4-3-1-2', label: '4-3-1-2' },
+  { id: '4-4-2 losango', label: '4-4-2 losango' },
+  { id: '5-3-2', label: '5-3-2', tag: 'Retranca' },
+  { id: '3-4-2-1', label: '3-4-2-1' },
+];
 
 export const FORMATION_LAYOUT: Record<Formation, FormationSlotSpec[]> = {
   '4-3-3': [
@@ -105,6 +128,84 @@ export const FORMATION_LAYOUT: Record<Formation, FormationSlotSpec[]> = {
     { role: 'CA', label: 'CA', pitchX: 37, pitchY: 17 },
     { role: 'CA', label: 'CA', pitchX: 63, pitchY: 17 },
   ],
+  '5-4-1': [
+    { role: 'GOL', label: 'GOL', pitchX: 50, pitchY: 89 },
+    { role: 'LE', label: 'LE', pitchX: 12, pitchY: 67 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 31, pitchY: 74 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 50, pitchY: 75 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 69, pitchY: 74 },
+    { role: 'LD', label: 'LD', pitchX: 88, pitchY: 67 },
+    { role: 'PE', label: 'ME', pitchX: 17, pitchY: 47 },
+    { role: 'VOL', label: 'VOL', pitchX: 39, pitchY: 52 },
+    { role: 'MC', label: 'MC', pitchX: 61, pitchY: 52 },
+    { role: 'PD', label: 'MD', pitchX: 83, pitchY: 47 },
+    { role: 'CA', label: 'CA', pitchX: 50, pitchY: 18 },
+  ],
+  '4-2-4': [
+    { role: 'GOL', label: 'GOL', pitchX: 50, pitchY: 89 },
+    { role: 'LE', label: 'LE', pitchX: 15, pitchY: 71 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 37, pitchY: 74 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 63, pitchY: 74 },
+    { role: 'LD', label: 'LD', pitchX: 85, pitchY: 71 },
+    { role: 'VOL', label: 'VOL', pitchX: 36, pitchY: 50 },
+    { role: 'MC', label: 'MC', pitchX: 64, pitchY: 50 },
+    { role: 'PE', label: 'PE', pitchX: 15, pitchY: 22 },
+    { role: 'CA', label: 'CA', pitchX: 38, pitchY: 15 },
+    { role: 'CA', label: 'CA', pitchX: 62, pitchY: 15 },
+    { role: 'PD', label: 'PD', pitchX: 85, pitchY: 22 },
+  ],
+  '4-1-4-1': [
+    { role: 'GOL', label: 'GOL', pitchX: 50, pitchY: 89 },
+    { role: 'LE', label: 'LE', pitchX: 15, pitchY: 70 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 37, pitchY: 73 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 63, pitchY: 73 },
+    { role: 'LD', label: 'LD', pitchX: 85, pitchY: 70 },
+    { role: 'VOL', label: 'VOL', pitchX: 50, pitchY: 56 },
+    { role: 'PE', label: 'ME', pitchX: 17, pitchY: 38 },
+    { role: 'MC', label: 'MC', pitchX: 38, pitchY: 41 },
+    { role: 'MEI', label: 'MEI', pitchX: 62, pitchY: 41 },
+    { role: 'PD', label: 'MD', pitchX: 83, pitchY: 38 },
+    { role: 'CA', label: 'CA', pitchX: 50, pitchY: 15 },
+  ],
+  '4-3-1-2': [
+    { role: 'GOL', label: 'GOL', pitchX: 50, pitchY: 89 },
+    { role: 'LE', label: 'LE', pitchX: 15, pitchY: 70 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 37, pitchY: 73 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 63, pitchY: 73 },
+    { role: 'LD', label: 'LD', pitchX: 85, pitchY: 70 },
+    { role: 'MC', label: 'MC', pitchX: 28, pitchY: 50 },
+    { role: 'VOL', label: 'VOL', pitchX: 50, pitchY: 54 },
+    { role: 'MC', label: 'MC', pitchX: 72, pitchY: 50 },
+    { role: 'MEI', label: 'MEI', pitchX: 50, pitchY: 34 },
+    { role: 'CA', label: 'CA', pitchX: 36, pitchY: 16 },
+    { role: 'CA', label: 'CA', pitchX: 64, pitchY: 16 },
+  ],
+  '4-4-2 losango': [
+    { role: 'GOL', label: 'GOL', pitchX: 50, pitchY: 89 },
+    { role: 'LE', label: 'LE', pitchX: 14, pitchY: 69 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 37, pitchY: 73 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 63, pitchY: 73 },
+    { role: 'LD', label: 'LD', pitchX: 86, pitchY: 69 },
+    { role: 'VOL', label: 'VOL', pitchX: 50, pitchY: 57 },
+    { role: 'MC', label: 'MC', pitchX: 28, pitchY: 44 },
+    { role: 'MC', label: 'MC', pitchX: 72, pitchY: 44 },
+    { role: 'MEI', label: 'MEI', pitchX: 50, pitchY: 32 },
+    { role: 'CA', label: 'CA', pitchX: 36, pitchY: 16 },
+    { role: 'CA', label: 'CA', pitchX: 64, pitchY: 16 },
+  ],
+  '3-4-2-1': [
+    { role: 'GOL', label: 'GOL', pitchX: 50, pitchY: 89 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 25, pitchY: 73 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 50, pitchY: 74 },
+    { role: 'ZAG', label: 'ZAG', pitchX: 75, pitchY: 73 },
+    { role: 'LE', label: 'ALA E', pitchX: 15, pitchY: 49 },
+    { role: 'VOL', label: 'VOL', pitchX: 39, pitchY: 53 },
+    { role: 'MC', label: 'MC', pitchX: 61, pitchY: 53 },
+    { role: 'LD', label: 'ALA D', pitchX: 85, pitchY: 49 },
+    { role: 'MEI', label: 'MEI', pitchX: 34, pitchY: 31 },
+    { role: 'MEI', label: 'MEI', pitchX: 66, pitchY: 31 },
+    { role: 'CA', label: 'CA', pitchX: 50, pitchY: 14 },
+  ],
 };
 
 export interface FormationTacticalProfile {
@@ -127,8 +228,8 @@ export const FORMATION_TACTICAL_PROFILE: Record<Formation, FormationTacticalProf
     centralShield: 0,
     wingBackExposure: 1,
     pressResistance: 2,
-    styleLabel: 'Amplitude & Pressão Alta',
-    strengths: 'Ataque forte pelas pontas (PE/PD) e pressão alta na saída adversária',
+    styleLabel: 'Amplitude & Pressão',
+    strengths: 'Ataque forte pelas pontas (PE/PD) e pressão equilibrada na saída rival',
     weaknesses: 'Pode sofrer superioridade numérica contra 5 meio-campistas',
   },
   '4-4-2': {
@@ -138,9 +239,9 @@ export const FORMATION_TACTICAL_PROFILE: Record<Formation, FormationTacticalProf
     centralShield: 1,
     wingBackExposure: 1,
     pressResistance: 0,
-    styleLabel: 'Linhas Compactas & Dupla de Área',
-    strengths: 'Presença dupla de área (2 CAs) e duas linhas compactas para contra-atacar',
-    weaknesses: 'Espaço entrelinhas vulnerável contra um camisa 10 (4-2-3-1) ou 3-5-2',
+    styleLabel: 'Linhas Compactas & Dupla',
+    strengths: 'Dupla de área e duas linhas compactas para defender e contra-atacar',
+    weaknesses: 'Espaço entrelinhas vulnerável contra um camisa 10 (4-2-3-1)',
   },
   '4-2-3-1': {
     midControl: 3,
@@ -149,8 +250,8 @@ export const FORMATION_TACTICAL_PROFILE: Record<Formation, FormationTacticalProf
     centralShield: 2,
     wingBackExposure: 1,
     pressResistance: 3,
-    styleLabel: 'Controle Central & Meia Criativo',
-    strengths: 'Dupla de volantes + camisa 10 domina a posse e protege a entrada da área',
+    styleLabel: 'Controle & Camisa 10',
+    strengths: 'Dupla de volantes e meia armador controlam o ritmo e protegem a área',
     weaknesses: 'Centroavante isolado se os pontas ficarem presos na marcação',
   },
   '3-5-2': {
@@ -160,9 +261,9 @@ export const FORMATION_TACTICAL_PROFILE: Record<Formation, FormationTacticalProf
     centralShield: 2,
     wingBackExposure: 3,
     pressResistance: 2,
-    styleLabel: 'Superioridade no Meio & Alas',
-    strengths: 'Domínio numérico do meio-campo com 5 peças e dois atacantes infiltrando',
-    weaknesses: 'Corredores laterais expostos às costas dos alas contra 4-3-3 ou 3-4-3',
+    styleLabel: 'Força no Meio & Alas',
+    strengths: 'Superioridade no meio-campo com 5 peças e dois atacantes infiltrando',
+    weaknesses: 'Corredores laterais expostos às costas dos alas contra pontas abertos',
   },
   '3-4-3': {
     midControl: 1,
@@ -171,9 +272,64 @@ export const FORMATION_TACTICAL_PROFILE: Record<Formation, FormationTacticalProf
     centralShield: -1,
     wingBackExposure: 4,
     pressResistance: 1,
-    styleLabel: 'Ataque Total pelos Flancos',
+    styleLabel: 'Ataque pelos Flancos',
     strengths: 'Sobrecarga ofensiva máxima pelos lados e volume na área rival',
-    weaknesses: 'Transição defensiva frágil pelas laterais e miolo exposto sem 2º volante',
+    weaknesses: 'Transição defensiva frágil pelas laterais e miolo exposto',
+  },
+  '5-4-1': {
+    midControl: 0,
+    wingThreat: 1,
+    centralBoxPresence: 0,
+    centralShield: 4,
+    wingBackExposure: 0,
+    pressResistance: 0,
+    styleLabel: 'Retranca & Bloqueio Total',
+    strengths: 'Duas linhas muito fechadas que reduzem ao máximo as chances do adversário',
+    weaknesses: 'Pouca presença ofensiva se tentar propor posse ou pressão alta',
+  },
+  '4-2-4': {
+    midControl: -2,
+    wingThreat: 4,
+    centralBoxPresence: 4,
+    centralShield: -2,
+    wingBackExposure: 3,
+    pressResistance: -1,
+    styleLabel: 'Tudo ou Nada Ofensivo',
+    strengths: 'Quatro atacantes pressionando a última linha e máximo poder de fogo',
+    weaknesses: 'Meio-campo com apenas dois homens sofre contra contra-ataques e posse',
+  },
+  '4-1-4-1': {
+    midControl: 3,
+    wingThreat: 2,
+    centralBoxPresence: 1,
+    centralShield: 3,
+    wingBackExposure: 1,
+    pressResistance: 2,
+    styleLabel: 'Cobertura & Equilíbrio',
+    strengths: 'Primeiro volante protege a zaga enquanto quatro meias fecham espaços e apoiam',
+    weaknesses: 'Centroavante precisa de apoio rápido dos meias para não ficar isolado',
+  },
+  '4-3-1-2': {
+    midControl: 3,
+    wingThreat: 0,
+    centralBoxPresence: 3,
+    centralShield: 1,
+    wingBackExposure: 2,
+    pressResistance: 2,
+    styleLabel: 'Funil Central & Tabela',
+    strengths: 'Triangulação letal por dentro com camisa 10 servindo dois atacantes',
+    weaknesses: 'Sem pontas abertos, sofre para defender os lados do campo',
+  },
+  '4-4-2 losango': {
+    midControl: 4,
+    wingThreat: 0,
+    centralBoxPresence: 3,
+    centralShield: 2,
+    wingBackExposure: 3,
+    pressResistance: 3,
+    styleLabel: 'Losango Técnico Central',
+    strengths: 'Domínio no miolo com volante, dois meias e armador atrás da dupla de área',
+    weaknesses: 'Laterais ficam sobrecarregados na marcação pelos flancos',
   },
   '5-3-2': {
     midControl: 1,
@@ -182,11 +338,145 @@ export const FORMATION_TACTICAL_PROFILE: Record<Formation, FormationTacticalProf
     centralShield: 4,
     wingBackExposure: 0,
     pressResistance: 1,
-    styleLabel: 'Bloqueio Defensivo & Ligação Direta',
+    styleLabel: 'Retranca & Ligação Direta',
     strengths: 'Três zagueiros fecham o funil central e neutralizam duplas de ataque',
-    weaknesses: 'Menor criatividade pelas pontas ao propor o jogo contra retrancas',
+    weaknesses: 'Menor amplitude para propor jogo contra outras retrancas',
+  },
+  '3-4-2-1': {
+    midControl: 3,
+    wingThreat: 2,
+    centralBoxPresence: 2,
+    centralShield: 1,
+    wingBackExposure: 2,
+    pressResistance: 3,
+    styleLabel: 'Dois Meias Entrelinhas',
+    strengths: 'Dois armadores entrelinhas alimentam o centroavante com apoio dos alas',
+    weaknesses: 'Costas dos alas exigem cobertura rápida dos zagueiros abertos',
   },
 };
+
+export interface PlayStyleSpec {
+  id: PlayStyle;
+  label: string;
+  description: string;
+  recommendedFormations: Formation[];
+  tacticsBase: Omit<ClubTactics, 'playStyle'>;
+}
+
+export const PLAY_STYLE_OPTIONS: PlayStyle[] = [
+  'Equilibrado',
+  'Posse de bola',
+  'Contra-ataque',
+  'Jogo pelas pontas',
+  'Ataque pelo meio',
+  'Pressão alta',
+  'Ligação direta',
+];
+
+export const PLAY_STYLE_SPECS: Record<PlayStyle, PlayStyleSpec> = {
+  Equilibrado: {
+    id: 'Equilibrado',
+    label: 'Equilibrado',
+    description: 'Compacto entre defesa e ataque. Alterna passe curto e verticalidade conforme o jogo pede.',
+    recommendedFormations: ['4-4-2', '4-3-3', '4-2-3-1', '4-1-4-1'],
+    tacticsBase: {
+      buildUpStyle: 'Equilibrada',
+      offensiveStyle: 'Posse de bola',
+      pressing: 'Bloco médio',
+      defensiveLine: 'Equilibrada',
+      intensity: 'Normal',
+    },
+  },
+  'Posse de bola': {
+    id: 'Posse de bola',
+    label: 'Posse de bola',
+    description: 'Troca de passes curta e paciente para controlar o ritmo. Rende mais com meio técnico; sofre contra pressão forte.',
+    recommendedFormations: ['4-2-3-1', '4-3-3', '4-4-2 losango', '3-4-2-1', '4-1-4-1'],
+    tacticsBase: {
+      buildUpStyle: 'Saída curta',
+      offensiveStyle: 'Posse de bola',
+      pressing: 'Pressão após perda',
+      defensiveLine: 'Adiantada',
+      intensity: 'Normal',
+    },
+  },
+  'Contra-ataque': {
+    id: 'Contra-ataque',
+    label: 'Contra-ataque',
+    description: 'Velocidade na frente e defesa firme. Rende mais contra quem se lança ao ataque.',
+    recommendedFormations: ['4-3-3', '4-4-2', '5-3-2', '5-4-1', '4-2-3-1', '3-5-2'],
+    tacticsBase: {
+      buildUpStyle: 'Contra-ataques rápidos',
+      offensiveStyle: 'Transições rápidas',
+      pressing: 'Bloco médio',
+      defensiveLine: 'Recuada',
+      intensity: 'Normal',
+    },
+  },
+  'Jogo pelas pontas': {
+    id: 'Jogo pelas pontas',
+    label: 'Jogo pelas pontas',
+    description: 'Amplitude máxima com pontas e laterais buscando a linha de fundo e cruzamentos na área.',
+    recommendedFormations: ['4-3-3', '3-4-3', '4-2-3-1', '4-4-2', '4-1-4-1', '4-2-4'],
+    tacticsBase: {
+      buildUpStyle: 'Equilibrada',
+      offensiveStyle: 'Jogo pelas laterais',
+      pressing: 'Bloco médio',
+      defensiveLine: 'Equilibrada',
+      intensity: 'Normal',
+    },
+  },
+  'Ataque pelo meio': {
+    id: 'Ataque pelo meio',
+    label: 'Ataque pelo meio',
+    description: 'Triangulações rápidas e passes verticais por dentro com meias criativos infiltrando a área.',
+    recommendedFormations: ['4-3-1-2', '4-4-2 losango', '4-2-3-1', '3-5-2', '3-4-2-1'],
+    tacticsBase: {
+      buildUpStyle: 'Saída curta',
+      offensiveStyle: 'Ataque pelo meio',
+      pressing: 'Bloco médio',
+      defensiveLine: 'Equilibrada',
+      intensity: 'Normal',
+    },
+  },
+  'Pressão alta': {
+    id: 'Pressão alta',
+    label: 'Pressão alta',
+    description: 'Sufoca a saída de bola adversária perto do gol rival. Exige fôlego e defensores ágeis.',
+    recommendedFormations: ['4-3-3', '4-2-3-1', '3-4-3', '4-2-4', '3-4-2-1'],
+    tacticsBase: {
+      buildUpStyle: 'Equilibrada',
+      offensiveStyle: 'Transições rápidas',
+      pressing: 'Pressão alta',
+      defensiveLine: 'Adiantada',
+      intensity: 'Alta',
+    },
+  },
+  'Ligação direta': {
+    id: 'Ligação direta',
+    label: 'Ligação direta',
+    description: 'Bolas longas da defesa direto para os atacantes e disputa pela segunda bola. Quebra marcação alta.',
+    recommendedFormations: ['4-4-2', '5-3-2', '5-4-1', '3-5-2', '4-2-4'],
+    tacticsBase: {
+      buildUpStyle: 'Ligações diretas',
+      offensiveStyle: 'Transições rápidas',
+      pressing: 'Pressão baixa',
+      defensiveLine: 'Recuada',
+      intensity: 'Normal',
+    },
+  },
+};
+
+export const TACTICAL_POSTURES: Array<{
+  id: TacticalPosture;
+  label: string;
+  shortDesc: string;
+}> = [
+  { id: 'Atacar', label: 'Atacar', shortDesc: 'Time mais adiantado buscando o gol com maior volume ofensivo' },
+  { id: 'Equilibrado', label: 'Equilibrado', shortDesc: 'Equilíbrio sólido entre proteção defensiva e chegada ao ataque' },
+  { id: 'Defender', label: 'Defender', shortDesc: 'Prioriza fechar a área e proteger o placar com linhas baixas' },
+  { id: 'Pressão total', label: 'Pressão total', shortDesc: 'Marcação máxima em todo o campo (alto gasto físico e risco)' },
+];
 
 export const BUILD_UP_OPTIONS: BuildUpStyle[] = [
   'Saída curta',
@@ -219,104 +509,160 @@ export const DEFENSIVE_LINE_OPTIONS: DefensiveLineHeight[] = [
 export const INTENSITY_OPTIONS: TacticalIntensity[] = ['Baixa', 'Normal', 'Alta'];
 
 export const DEFAULT_CLUB_TACTICS: ClubTactics = {
-  buildUpStyle: 'Equilibrada',
-  offensiveStyle: 'Posse de bola',
-  pressing: 'Bloco médio',
-  defensiveLine: 'Equilibrada',
-  intensity: 'Normal',
+  playStyle: 'Equilibrado',
+  ...PLAY_STYLE_SPECS.Equilibrado.tacticsBase,
 };
 
 export interface TacticalPresetSpec {
   id: string;
   name: string;
   shortDesc: string;
-  mentality: TacticalMentality;
+  playStyle: PlayStyle;
+  mentality: TacticalPosture;
   tactics: ClubTactics;
+}
+
+export function normalizePosture(mentality?: TacticalMentality): TacticalPosture {
+  switch (mentality) {
+    case 'Atacar':
+    case 'Ofensiva':
+      return 'Atacar';
+    case 'Defender':
+    case 'Retranca':
+      return 'Defender';
+    case 'Pressão total':
+    case 'Tudo ou Nada':
+      return 'Pressão total';
+    case 'Equilibrado':
+    case 'Equilibrada':
+    case 'Contra-Ataque':
+    default:
+      return 'Equilibrado';
+  }
+}
+
+export function inferPlayStyleFromClub(
+  club: Pick<Club, 'tactics' | 'mentality' | 'botPersonality'>
+): PlayStyle {
+  if (club.tactics?.playStyle && PLAY_STYLE_SPECS[club.tactics.playStyle]) {
+    return club.tactics.playStyle;
+  }
+  if (club.mentality === 'Contra-Ataque') return 'Contra-ataque';
+  if (club.mentality === 'Retranca') return 'Ligação direta';
+  if (club.tactics) {
+    if (club.tactics.buildUpStyle === 'Contra-ataques rápidos') return 'Contra-ataque';
+    if (club.tactics.pressing === 'Pressão alta') return 'Pressão alta';
+    if (club.tactics.buildUpStyle === 'Ligações diretas') return 'Ligação direta';
+    if (club.tactics.offensiveStyle === 'Jogo pelas laterais' || club.tactics.offensiveStyle === 'Cruzamentos') {
+      return 'Jogo pelas pontas';
+    }
+    if (club.tactics.offensiveStyle === 'Ataque pelo meio') return 'Ataque pelo meio';
+    if (club.tactics.offensiveStyle === 'Posse de bola' && club.tactics.buildUpStyle === 'Saída curta') {
+      return 'Posse de bola';
+    }
+  }
+  switch (club.botPersonality) {
+    case 'agressivo':
+      return 'Pressão alta';
+    case 'galactico':
+      return 'Posse de bola';
+    case 'tatico':
+      return 'Contra-ataque';
+    case 'economico':
+      return 'Ligação direta';
+    default:
+      return 'Equilibrado';
+  }
+}
+
+export function buildTacticsForPlayStyle(
+  playStyle: PlayStyle,
+  posture: TacticalMentality = 'Equilibrado'
+): ClubTactics {
+  const normPosture = normalizePosture(posture);
+  const base = { ...PLAY_STYLE_SPECS[playStyle].tacticsBase };
+
+  if (normPosture === 'Atacar') {
+    if (base.defensiveLine === 'Recuada') base.defensiveLine = 'Equilibrada';
+    if (base.pressing === 'Pressão baixa') base.pressing = 'Bloco médio';
+  } else if (normPosture === 'Defender') {
+    base.defensiveLine = 'Recuada';
+    if (base.pressing === 'Pressão alta') base.pressing = 'Bloco médio';
+    if (base.intensity === 'Alta') base.intensity = 'Normal';
+  } else if (normPosture === 'Pressão total') {
+    base.pressing = 'Pressão alta';
+    base.defensiveLine = 'Adiantada';
+    base.intensity = 'Alta';
+  }
+
+  return {
+    playStyle,
+    ...base,
+  };
 }
 
 export const TACTICAL_PRESETS: TacticalPresetSpec[] = [
   {
     id: 'equilibrado',
     name: 'Equilibrado',
-    shortDesc: 'Bloco médio sólido, saída segura e ataque balanceado',
-    mentality: 'Equilibrada',
-    tactics: {
-      buildUpStyle: 'Equilibrada',
-      offensiveStyle: 'Posse de bola',
-      pressing: 'Bloco médio',
-      defensiveLine: 'Equilibrada',
-      intensity: 'Normal',
-    },
+    shortDesc: PLAY_STYLE_SPECS.Equilibrado.description,
+    playStyle: 'Equilibrado',
+    mentality: 'Equilibrado',
+    tactics: buildTacticsForPlayStyle('Equilibrado', 'Equilibrado'),
   },
   {
     id: 'posse',
-    name: 'Posse Controlada',
-    shortDesc: 'Saída curta apoiada, triangulações centrais e recomposição pós-perda',
-    mentality: 'Ofensiva',
-    tactics: {
-      buildUpStyle: 'Saída curta',
-      offensiveStyle: 'Posse de bola',
-      pressing: 'Pressão após perda',
-      defensiveLine: 'Adiantada',
-      intensity: 'Normal',
-    },
-  },
-  {
-    id: 'gegenpressing',
-    name: 'Gegenpressing',
-    shortDesc: 'Pressão alta sufocante e transições verticais (alto gasto físico)',
-    mentality: 'Ofensiva',
-    tactics: {
-      buildUpStyle: 'Equilibrada',
-      offensiveStyle: 'Transições rápidas',
-      pressing: 'Pressão alta',
-      defensiveLine: 'Adiantada',
-      intensity: 'Alta',
-    },
+    name: 'Posse de bola',
+    shortDesc: PLAY_STYLE_SPECS['Posse de bola'].description,
+    playStyle: 'Posse de bola',
+    mentality: 'Atacar',
+    tactics: buildTacticsForPlayStyle('Posse de bola', 'Atacar'),
   },
   {
     id: 'contra_ataque',
-    name: 'Contra-Ataque Letal',
-    shortDesc: 'Bloco médio/recuado para atrair o rival e ferir nas costas',
-    mentality: 'Contra-Ataque',
-    tactics: {
-      buildUpStyle: 'Contra-ataques rápidos',
-      offensiveStyle: 'Transições rápidas',
-      pressing: 'Bloco médio',
-      defensiveLine: 'Recuada',
-      intensity: 'Normal',
-    },
-  },
-  {
-    id: 'bloco_baixo',
-    name: 'Bloco Baixo',
-    shortDesc: 'Área trancada, proteção de placar, mínimo desgaste e ligação direta',
-    mentality: 'Retranca',
-    tactics: {
-      buildUpStyle: 'Ligações diretas',
-      offensiveStyle: 'Transições rápidas',
-      pressing: 'Pressão baixa',
-      defensiveLine: 'Recuada',
-      intensity: 'Baixa',
-    },
+    name: 'Contra-ataque',
+    shortDesc: PLAY_STYLE_SPECS['Contra-ataque'].description,
+    playStyle: 'Contra-ataque',
+    mentality: 'Defender',
+    tactics: buildTacticsForPlayStyle('Contra-ataque', 'Defender'),
   },
   {
     id: 'pontas',
-    name: 'Jogo Pelas Pontas',
-    shortDesc: 'Amplitude máxima com laterais/pontas e cruzamentos na área',
-    mentality: 'Ofensiva',
-    tactics: {
-      buildUpStyle: 'Equilibrada',
-      offensiveStyle: 'Jogo pelas laterais',
-      pressing: 'Bloco médio',
-      defensiveLine: 'Equilibrada',
-      intensity: 'Normal',
-    },
+    name: 'Jogo pelas pontas',
+    shortDesc: PLAY_STYLE_SPECS['Jogo pelas pontas'].description,
+    playStyle: 'Jogo pelas pontas',
+    mentality: 'Atacar',
+    tactics: buildTacticsForPlayStyle('Jogo pelas pontas', 'Atacar'),
+  },
+  {
+    id: 'meio',
+    name: 'Ataque pelo meio',
+    shortDesc: PLAY_STYLE_SPECS['Ataque pelo meio'].description,
+    playStyle: 'Ataque pelo meio',
+    mentality: 'Atacar',
+    tactics: buildTacticsForPlayStyle('Ataque pelo meio', 'Atacar'),
+  },
+  {
+    id: 'pressao_alta',
+    name: 'Pressão alta',
+    shortDesc: PLAY_STYLE_SPECS['Pressão alta'].description,
+    playStyle: 'Pressão alta',
+    mentality: 'Pressão total',
+    tactics: buildTacticsForPlayStyle('Pressão alta', 'Pressão total'),
+  },
+  {
+    id: 'ligacao_direta',
+    name: 'Ligação direta',
+    shortDesc: PLAY_STYLE_SPECS['Ligação direta'].description,
+    playStyle: 'Ligação direta',
+    mentality: 'Defender',
+    tactics: buildTacticsForPlayStyle('Ligação direta', 'Defender'),
   },
 ];
 
 export function tacticsEqual(a: ClubTactics, b: ClubTactics): boolean {
   return (
+    (a.playStyle ?? '') === (b.playStyle ?? '') &&
     a.buildUpStyle === b.buildUpStyle &&
     a.offensiveStyle === b.offensiveStyle &&
     a.pressing === b.pressing &&
@@ -328,8 +674,10 @@ export function tacticsEqual(a: ClubTactics, b: ClubTactics): boolean {
 export function getClubTactics(
   club: Pick<Club, 'tactics' | 'mentality' | 'botPersonality'>
 ): ClubTactics {
+  const playStyle = inferPlayStyleFromClub(club);
   if (
     club.tactics &&
+    club.tactics.playStyle &&
     club.tactics.buildUpStyle &&
     club.tactics.offensiveStyle &&
     club.tactics.pressing &&
@@ -338,53 +686,7 @@ export function getClubTactics(
   ) {
     return club.tactics;
   }
-
-  switch (club.mentality) {
-    case 'Retranca':
-      return {
-        buildUpStyle: 'Ligações diretas',
-        offensiveStyle: 'Transições rápidas',
-        pressing: 'Pressão baixa',
-        defensiveLine: 'Recuada',
-        intensity: 'Baixa',
-      };
-    case 'Contra-Ataque':
-      return {
-        buildUpStyle: 'Contra-ataques rápidos',
-        offensiveStyle: 'Transições rápidas',
-        pressing: 'Bloco médio',
-        defensiveLine: 'Recuada',
-        intensity: 'Normal',
-      };
-    case 'Tudo ou Nada':
-      return {
-        buildUpStyle: 'Ligações diretas',
-        offensiveStyle: 'Jogo pelas laterais',
-        pressing: 'Pressão alta',
-        defensiveLine: 'Adiantada',
-        intensity: 'Alta',
-      };
-    case 'Ofensiva':
-      if (club.botPersonality === 'galactico') {
-        return {
-          buildUpStyle: 'Saída curta',
-          offensiveStyle: 'Posse de bola',
-          pressing: 'Pressão após perda',
-          defensiveLine: 'Adiantada',
-          intensity: 'Normal',
-        };
-      }
-      return {
-        buildUpStyle: 'Equilibrada',
-        offensiveStyle: 'Jogo pelas laterais',
-        pressing: 'Pressão alta',
-        defensiveLine: 'Adiantada',
-        intensity: 'Alta',
-      };
-    case 'Equilibrada':
-    default:
-      return { ...DEFAULT_CLUB_TACTICS };
-  }
+  return buildTacticsForPlayStyle(playStyle, club.mentality);
 }
 
 /** Escala os 11 titulares priorizando jogadores elegíveis (não suspensos) */
@@ -393,8 +695,7 @@ export function buildLineupSlots(
   formation: Formation,
   preserveExisting?: LineupSlot[]
 ): { squad: Player[]; lineupSlots: LineupSlot[] } {
-  const layout = FORMATION_LAYOUT[formation];
-  // Elegíveis ((suspendedMatches ?? 0) === 0) sempre antes dos suspensos
+  const layout = FORMATION_LAYOUT[formation] ?? FORMATION_LAYOUT['4-3-3'];
   const sorted = [...squad].sort((a, b) => {
     const aSusp = (a.suspendedMatches ?? 0) > 0 ? 1 : 0;
     const bSusp = (b.suspendedMatches ?? 0) > 0 ? 1 : 0;
@@ -451,7 +752,7 @@ export function buildLineupSlots(
     }
   });
 
-  // 3. Melhor encaixe elegível restante (e fallback suspenso apenas se elenco tiver < 11 elegíveis)
+  // 3. Melhor encaixe elegível restante
   layout.forEach((spec, idx) => {
     if (slots[idx]) return;
     const bestFit = sorted
@@ -486,43 +787,42 @@ export function chooseBotTactics(
   squad?: Player[]
 ): {
   formation: Formation;
-  mentality: TacticalMentality;
+  mentality: TacticalPosture;
   tactics: ClubTactics;
 } {
   let formation: Formation = '4-4-2';
-  let mentality: TacticalMentality = 'Equilibrada';
-  let tactics: ClubTactics = { ...DEFAULT_CLUB_TACTICS };
+  let playStyle: PlayStyle = 'Equilibrado';
+  let mentality: TacticalPosture = 'Equilibrado';
 
   switch (personality) {
     case 'agressivo':
       formation = '4-3-3';
-      mentality = 'Ofensiva';
-      tactics = { ...TACTICAL_PRESETS[2].tactics }; // Gegenpressing
+      playStyle = 'Pressão alta';
+      mentality = 'Atacar';
       break;
     case 'galactico':
       formation = '4-2-3-1';
-      mentality = 'Ofensiva';
-      tactics = { ...TACTICAL_PRESETS[1].tactics }; // Posse Controlada
+      playStyle = 'Posse de bola';
+      mentality = 'Atacar';
       break;
     case 'tatico':
       formation = '3-5-2';
-      mentality = 'Contra-Ataque';
-      tactics = { ...TACTICAL_PRESETS[3].tactics }; // Contra-Ataque Letal
+      playStyle = 'Contra-ataque';
+      mentality = 'Equilibrado';
       break;
     case 'economico':
       formation = '5-3-2';
-      mentality = 'Retranca';
-      tactics = { ...TACTICAL_PRESETS[4].tactics }; // Bloco Baixo
+      playStyle = 'Ligação direta';
+      mentality = 'Defender';
       break;
     case 'equilibrado':
     default:
       formation = '4-4-2';
-      mentality = 'Equilibrada';
-      tactics = { ...TACTICAL_PRESETS[0].tactics };
+      playStyle = 'Equilibrado';
+      mentality = 'Equilibrado';
       break;
   }
 
-  // Ajusta formação e instruções se o elenco real tiver muita afinidade ou falta de peças
   if (squad && squad.length >= 11) {
     const countPos = (roles: PlayerPosition[]) =>
       squad.filter((p) => roles.includes(p.position)).length;
@@ -531,7 +831,7 @@ export function chooseBotTactics(
     const strikers = countPos(['CA']);
     const mids = countPos(['VOL', 'MC', 'MEI']);
 
-    if ((formation === '3-5-2' || formation === '5-3-2') && zags < 3) {
+    if ((['3-5-2', '5-3-2', '5-4-1'] as Formation[]).includes(formation) && zags < 3) {
       formation = mids >= 4 ? '4-2-3-1' : '4-4-2';
     }
     if (formation === '4-3-3' && wingers < 2 && strikers >= 2) {
@@ -544,25 +844,25 @@ export function chooseBotTactics(
     }));
     const cbs = starters.filter((x) => x.role === 'ZAG' && x.player).map((x) => ensurePlayerAttributes(x.player!));
     const avgCbPace = cbs.length ? cbs.reduce((s, a) => s + a.velocidade, 0) / cbs.length : 74;
-    if (tactics.defensiveLine === 'Adiantada' && avgCbPace < 70) {
-      tactics.defensiveLine = 'Equilibrada';
-    }
-    const avgCbPass = cbs.length ? cbs.reduce((s, a) => s + a.passe, 0) / cbs.length : 72;
-    if (tactics.buildUpStyle === 'Saída curta' && avgCbPass < 66) {
-      tactics.buildUpStyle = 'Equilibrada';
+    if (playStyle === 'Pressão alta' && avgCbPace < 69) {
+      playStyle = 'Equilibrado';
     }
   }
 
-  return { formation, mentality, tactics };
+  return {
+    formation,
+    mentality,
+    tactics: buildTacticsForPlayStyle(playStyle, mentality),
+  };
 }
 
 export interface TacticalCompatibilityReport {
-  score: number; // 35..100
+  score: number; // 35..99
   label: string;
   tone: 'emerald' | 'amber' | 'rose';
   strengths: string[];
   warnings: string[];
-  cohesionMultiplier: number; // ~0.88..1.05
+  cohesionMultiplier: number; // ~0.85..1.05
 }
 
 export function evaluateTacticalCompatibility(params: {
@@ -572,118 +872,102 @@ export function evaluateTacticalCompatibility(params: {
   starters?: Array<Player & { slotRole?: PlayerPosition }>;
 }): TacticalCompatibilityReport {
   const { formation, mentality, tactics, starters } = params;
+  const playStyle = tactics.playStyle ?? 'Equilibrado';
+  const posture = normalizePosture(mentality);
+  const spec = PLAY_STYLE_SPECS[playStyle];
+
   let score = 78;
   const strengths: string[] = [];
   const warnings: string[] = [];
 
-  // 1. Harmonia Formação × Estilo Ofensivo
-  if (
-    (formation === '4-3-3' || formation === '3-4-3') &&
-    (tactics.offensiveStyle === 'Jogo pelas laterais' ||
-      tactics.offensiveStyle === 'Cruzamentos' ||
-      tactics.offensiveStyle === 'Transições rápidas')
-  ) {
+  // 1. Harmonia Formação × Estilo de Jogo
+  if (spec.recommendedFormations.includes(formation)) {
     score += 7;
-    strengths.push(`${formation} potencializa corredores de ponta no estilo ${tactics.offensiveStyle}.`);
+    strengths.push(`${formation} encaixa muito bem com o estilo ${playStyle}.`);
   } else if (
-    (formation === '4-2-3-1' || formation === '3-5-2') &&
-    (tactics.offensiveStyle === 'Posse de bola' || tactics.offensiveStyle === 'Ataque pelo meio')
+    (formation === '5-4-1' || formation === '5-3-2') &&
+    (playStyle === 'Pressão alta' || playStyle === 'Posse de bola')
   ) {
-    score += 7;
-    strengths.push(`${formation} garante superioridade interior para ${tactics.offensiveStyle}.`);
+    score -= 10;
+    warnings.push(`${formation} é retranca e perde eficiência em ${playStyle}.`);
   } else if (
-    formation === '4-4-2' &&
-    (tactics.offensiveStyle === 'Cruzamentos' || tactics.offensiveStyle === 'Transições rápidas')
+    formation === '4-2-4' &&
+    (playStyle === 'Posse de bola' || playStyle === 'Ataque pelo meio')
   ) {
-    score += 6;
-    strengths.push('Dupla de área no 4-4-2 maximiza cruzamentos e transições.');
-  } else if (formation === '5-3-2' && tactics.offensiveStyle === 'Jogo pelas laterais') {
-    score -= 7;
-    warnings.push('5-3-2 sem pontas naturais perde força em Jogo pelas laterais.');
-  } else if (formation === '5-3-2' && tactics.offensiveStyle === 'Posse de bola') {
-    score -= 4;
-    warnings.push('5-3-2 oferece poucas linhas de passe ofensivas para Posse prolongada.');
-  }
-
-  // 2. Coerência entre Pressão × Linha Defensiva (sem deixar buraco entre linhas)
-  if (tactics.pressing === 'Pressão alta' && tactics.defensiveLine === 'Recuada') {
-    score -= 16;
-    warnings.push('Conflito grave: Pressão alta com Linha Recuada abre enorme espaço no meio!');
-  } else if (tactics.pressing === 'Pressão baixa' && tactics.defensiveLine === 'Adiantada') {
-    score -= 15;
-    warnings.push('Conflito grave: Pressão baixa com Linha Adiantada deixa bolas livres nas costas.');
+    score -= 9;
+    warnings.push('4-2-4 tem apenas dois meio-campistas para sustentar esse estilo.');
   } else if (
-    (tactics.pressing === 'Pressão alta' || tactics.pressing === 'Pressão após perda') &&
-    tactics.defensiveLine === 'Adiantada'
-  ) {
-    score += 6;
-    strengths.push('Bloco compacto e coordenado no campo rival para sufocar a saída.');
-  } else if (tactics.pressing === 'Pressão baixa' && tactics.defensiveLine === 'Recuada') {
-    score += 6;
-    strengths.push('Bloco baixo extremamente compacto protegendo a entrada da área.');
-  }
-
-  // 3. Mentalidade × Instruções
-  if (
-    mentality === 'Retranca' &&
-    (tactics.pressing === 'Pressão alta' || tactics.defensiveLine === 'Adiantada')
-  ) {
-    score -= 14;
-    warnings.push('Mentalidade Retranca conflita com pressão ou linha defensiva alta.');
-  } else if (
-    (mentality === 'Ofensiva' || mentality === 'Tudo ou Nada') &&
-    tactics.pressing === 'Pressão baixa' &&
-    tactics.defensiveLine === 'Recuada'
+    (formation === '4-3-1-2' || formation === '4-4-2 losango' || formation === '5-3-2') &&
+    playStyle === 'Jogo pelas pontas'
   ) {
     score -= 11;
-    warnings.push('Postura ofensiva perde força se o time recua toda a marcação.');
-  } else if (mentality === 'Tudo ou Nada' && tactics.intensity === 'Baixa') {
-    score -= 12;
-    warnings.push('Tudo ou Nada exige intensidade Normal ou Alta para funcionar.');
-  } else if (mentality === 'Retranca' && tactics.intensity === 'Alta') {
-    score -= 6;
-    warnings.push('Intensidade Alta em Retranca desgasta o time sem propor jogo.');
+    warnings.push(`${formation} não tem pontas naturais para o Jogo pelas pontas.`);
   } else if (
-    mentality === 'Contra-Ataque' &&
-    (tactics.buildUpStyle === 'Contra-ataques rápidos' ||
-      tactics.offensiveStyle === 'Transições rápidas')
+    (formation === '4-3-3' || formation === '3-4-3') &&
+    playStyle === 'Ataque pelo meio'
   ) {
-    score += 5;
-    strengths.push('Transições velozes perfeitamente alinhadas com a postura de Contra-Ataque.');
+    score -= 4;
+    warnings.push(`${formation} abre os pontas e reduz opções por dentro.`);
   }
 
-  // 4. Construção × Estilo Ofensivo
-  if (
-    tactics.buildUpStyle === 'Saída curta' &&
-    (tactics.offensiveStyle === 'Posse de bola' || tactics.offensiveStyle === 'Ataque pelo meio')
-  ) {
+  // 2. Coerência Postura × Formação × Estilo de Jogo
+  if ((formation === '5-4-1' || formation === '5-3-2') && posture === 'Pressão total') {
+    score -= 14;
+    warnings.push(`Conflito: ${formation} (Retranca) não combina com Pressão total.`);
+  } else if ((formation === '5-4-1' || formation === '5-3-2') && posture === 'Atacar') {
+    score -= 7;
+    warnings.push(`${formation} rende melhor em Defender ou Equilibrado.`);
+  } else if (formation === '4-2-4' && posture === 'Defender') {
+    score -= 14;
+    warnings.push('Conflito: 4-2-4 (Tudo ou nada) deixa buracos se tentar jogar em Defender.');
+  } else if (playStyle === 'Contra-ataque' && posture === 'Pressão total') {
+    score -= 10;
+    warnings.push('Contra-ataque perde espaço nas costas do rival quando o time faz Pressão total.');
+  } else if (playStyle === 'Contra-ataque' && (posture === 'Defender' || posture === 'Equilibrado')) {
     score += 4;
-  } else if (
-    tactics.buildUpStyle === 'Contra-ataques rápidos' &&
-    tactics.offensiveStyle === 'Posse de bola'
-  ) {
-    score -= 6;
-    warnings.push('Contra-ataques rápidos conflita com ritmo paciente de Posse de bola.');
+    strengths.push('Postura sólida cria o cenário ideal para disparar no contra-ataque.');
+  } else if (playStyle === 'Pressão alta' && posture === 'Defender') {
+    score -= 13;
+    warnings.push('Conflito: Pressão alta exige linha adiantada, não postura Defender.');
+  } else if (playStyle === 'Pressão alta' && (posture === 'Pressão total' || posture === 'Atacar')) {
+    score += 4;
+    strengths.push('Postura agressiva potencializa a recuperação alta de bola.');
+  } else if (playStyle === 'Ligação direta' && posture === 'Pressão total') {
+    score -= 7;
+    warnings.push('Ligação direta pede menos desgaste para brigar pela segunda bola.');
   }
 
-  // 5. Compatibilidade com os atributos reais dos titulares
+  // 3. Encaixe real dos 11 titulares nas posições e características
   if (starters && starters.length >= 11) {
+    const outOfPosCount = starters.filter(
+      (p) => getPositionFit(p, p.slotRole ?? p.position).penalty < 0
+    ).length;
+    const criticalOutCount = starters.filter(
+      (p) => getPositionFit(p, p.slotRole ?? p.position).penalty <= -12
+    ).length;
+
+    if (outOfPosCount === 0) {
+      score += 5;
+    } else {
+      score -= outOfPosCount * 2.5 + criticalOutCount * 3;
+      if (outOfPosCount >= 2) {
+        warnings.push(`${outOfPosCount} jogadores improvisados fora de posição reduzem o encaixe.`);
+      }
+    }
+
     const attrsList = starters.map((p) => ({
       role: p.slotRole ?? p.position,
-      ovr: p.overall,
       a: ensurePlayerAttributes(p),
     }));
+    const avg = (arr: number[], fb: number) =>
+      arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : fb;
 
     const cbs = attrsList.filter((x) => x.role === 'ZAG');
     const mids = attrsList.filter((x) => x.role === 'VOL' || x.role === 'MC' || x.role === 'MEI');
     const attackers = attrsList.filter((x) => x.role === 'CA' || x.role === 'PE' || x.role === 'PD');
     const strikers = attrsList.filter((x) => x.role === 'CA');
 
-    const avg = (arr: number[], fb: number) =>
-      arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : fb;
-
     const avgCbPace = avg(cbs.map((x) => (x.a.velocidade + x.a.aceleracao) / 2), 73);
-    const avgCbPass = avg(cbs.map((x) => x.a.passe), 70);
     const avgMidTech = avg(mids.map((x) => (x.a.passe + x.a.visao) / 2), 75);
     const avgAttPace = avg(attackers.map((x) => (x.a.velocidade + x.a.aceleracao) / 2), 76);
     const avgStaminaAttr = avg(
@@ -692,62 +976,49 @@ export function evaluateTacticalCompatibility(params: {
     );
     const avgCaStrength = avg(strikers.map((x) => (x.a.forca + x.a.posicionamento) / 2), 75);
 
-    if (tactics.defensiveLine === 'Adiantada') {
-      if (avgCbPace < 69) {
-        score -= 7;
-        warnings.push(`Linha Adiantada arriscada: zaga lenta (vel. média ${Math.round(avgCbPace)}).`);
-      } else if (avgCbPace >= 76) {
-        score += 3;
-      }
-    }
-
-    if (tactics.buildUpStyle === 'Saída curta') {
-      if (avgCbPass < 66) {
-        score -= 6;
-        warnings.push(`Saída curta arriscada: defensores têm passe limitado (${Math.round(avgCbPass)}).`);
-      } else if (avgMidTech >= 79) {
-        score += 4;
-        strengths.push('Meio técnico garante saída curta limpa sob pressão.');
-      }
-    }
-
-    if (
-      (tactics.pressing === 'Pressão alta' || tactics.intensity === 'Alta') &&
-      avgStaminaAttr < 72
-    ) {
-      score -= 6;
-      warnings.push('Elenco com baixa resistência sofrerá queda acentuada no 2º tempo.');
-    }
-
-    if (
-      (tactics.buildUpStyle === 'Contra-ataques rápidos' ||
-        tactics.offensiveStyle === 'Transições rápidas') &&
-      avgAttPace >= 79
-    ) {
+    if (playStyle === 'Posse de bola' && avgMidTech >= 78) {
       score += 4;
-      strengths.push('Ataque veloz potencializa contragolpes em profundidade.');
+    } else if (playStyle === 'Posse de bola' && avgMidTech < 70) {
+      score -= 5;
+      warnings.push('Meio-campo com pouco passe/visão dificulta sustentar Posse de bola.');
     }
 
-    if (tactics.offensiveStyle === 'Cruzamentos' && avgCaStrength < 73) {
-      score -= 4;
-      warnings.push('Cruzamentos perdem eficiência sem centroavante forte na área.');
+    if (playStyle === 'Contra-ataque' && avgAttPace >= 77) {
+      score += 5;
+    } else if (playStyle === 'Contra-ataque' && avgAttPace < 71) {
+      score -= 5;
+      warnings.push('Ataque lento perde eficiência na velocidade do Contra-ataque.');
+    }
+
+    if ((playStyle === 'Pressão alta' || posture === 'Pressão total') && avgCbPace < 69) {
+      score -= 6;
+      warnings.push('Zaga lenta fica exposta nas costas jogando com linha alta.');
+    }
+
+    if ((playStyle === 'Pressão alta' || posture === 'Pressão total') && avgStaminaAttr < 72) {
+      score -= 5;
+      warnings.push('Baixa resistência física compromete a pressão no 2º tempo.');
+    }
+
+    if ((playStyle === 'Jogo pelas pontas' || playStyle === 'Ligação direta') && avgCaStrength >= 78) {
+      score += 4;
     }
   }
 
-  const clampedScore = Math.max(35, Math.min(100, Math.round(score)));
+  const clampedScore = Math.max(35, Math.min(99, Math.round(score)));
   const tone: 'emerald' | 'amber' | 'rose' =
-    clampedScore >= 76 ? 'emerald' : clampedScore >= 58 ? 'amber' : 'rose';
+    clampedScore >= 78 ? 'emerald' : clampedScore >= 62 ? 'amber' : 'rose';
   const label =
-    clampedScore >= 86
-      ? `Encaixe Elite (${clampedScore}%)`
-      : clampedScore >= 76
-      ? `Boa Sinergia (${clampedScore}%)`
+    clampedScore >= 85
+      ? 'Encaixe Alto'
+      : clampedScore >= 72
+      ? 'Bom Encaixe'
       : clampedScore >= 58
-      ? `Ajustável (${clampedScore}%)`
-      : `Conflito Tático (${clampedScore}%)`;
+      ? 'Encaixe Regular'
+      : 'Encaixe Ruim';
 
-  // Fator de coesão justo (boa sinergia dá fluidez real; conflito tático penaliza decisões)
-  const cohesionMultiplier = Math.max(0.84, Math.min(1.07, 1.0 + (clampedScore - 72) * 0.0038));
+  // Encaixe ruim penaliza chances reais em campo; encaixe bom garante fluidez
+  const cohesionMultiplier = Math.max(0.84, Math.min(1.06, 1.0 + (clampedScore - 76) * 0.0038));
 
   return {
     score: clampedScore,
@@ -760,6 +1031,9 @@ export function evaluateTacticalCompatibility(params: {
 }
 
 export interface TacticalBehaviorProfile {
+  playStyle: PlayStyle;
+  posture: TacticalPosture;
+  formation: Formation;
   tactics: ClubTactics;
   compatibility: TacticalCompatibilityReport;
   shortPassWeight: number;
@@ -769,16 +1043,18 @@ export interface TacticalBehaviorProfile {
   crossWeight: number;
   wingBias: number; // 0..1
   centralBias: number; // 0..1
-  minPressAttZone: 1 | 2 | 3 | 4; // menor zona do atacante onde o defensor pressiona ativamente
+  minPressAttZone: 1 | 2 | 3 | 4;
   pressAggression: number; // 0.65..1.45
   lineHeight: -1 | 0 | 1;
   offsideTrapRate: number;
-  behindLineExposure: number; // maior = mais vulnerável a lançamentos e contragolpes
-  boxCompactness: number; // maior = bloqueia mais chutes e reduz qualidade da área
-  tempo: number; // ritmo de ações / circulação vs verticalidade imediata
+  behindLineExposure: number;
+  boxCompactness: number;
+  tempo: number;
   staminaBurnRate: number;
   foulRiskMod: number;
-  shootEagerness: number; // maior = finaliza antes com mais volume; menor = trabalha até boa chance
+  shootEagerness: number;
+  attackBiasBonus: number;
+  defenseBiasBonus: number;
 }
 
 export function computeTacticalBehaviorProfile(
@@ -786,10 +1062,13 @@ export function computeTacticalBehaviorProfile(
   starters?: Array<Player & { slotRole?: PlayerPosition }>,
   redCardCount = 0
 ): TacticalBehaviorProfile {
-  const tactics = getClubTactics(club);
+  const playStyle = inferPlayStyleFromClub(club);
+  const posture = normalizePosture(club.mentality);
+  const tactics = buildTacticsForPlayStyle(playStyle, posture);
+
   const compatibility = evaluateTacticalCompatibility({
     formation: club.formation,
-    mentality: club.mentality,
+    mentality: posture,
     tactics,
     starters,
   });
@@ -797,218 +1076,203 @@ export function computeTacticalBehaviorProfile(
   let shortPassWeight = 1.0;
   let verticalPassWeight = 1.0;
   let longBallWeight = 0.45;
-  let dribbleWeight = 0.7;
+  let dribbleWeight = 0.72;
   let crossWeight = 0.65;
   let wingBias = 0.48;
   let centralBias = 0.52;
   let tempo = 1.0;
   let shootEagerness = 1.0;
-
-  // Estilo de Construção
-  switch (tactics.buildUpStyle) {
-    case 'Saída curta':
-      shortPassWeight *= 1.44;
-      verticalPassWeight *= 0.94;
-      longBallWeight *= 0.45;
-      tempo *= 0.96;
-      break;
-    case 'Ligações diretas':
-      shortPassWeight *= 0.7;
-      longBallWeight *= 1.85;
-      verticalPassWeight *= 1.12;
-      tempo *= 1.04;
-      break;
-    case 'Contra-ataques rápidos':
-      shortPassWeight *= 0.78;
-      verticalPassWeight *= 1.24;
-      longBallWeight *= 1.25;
-      dribbleWeight *= 1.12;
-      tempo *= 1.07;
-      break;
-    case 'Equilibrada':
-    default:
-      break;
-  }
-
-  // Estilo Ofensivo
-  switch (tactics.offensiveStyle) {
-    case 'Posse de bola':
-      shortPassWeight *= 1.28;
-      verticalPassWeight *= 1.04;
-      crossWeight *= 0.72;
-      centralBias = 0.58;
-      wingBias = 0.42;
-      tempo *= 0.97;
-      shootEagerness *= 1.02;
-      break;
-    case 'Jogo pelas laterais':
-      wingBias = 0.72;
-      centralBias = 0.28;
-      crossWeight *= 1.38;
-      dribbleWeight *= 1.22;
-      break;
-    case 'Ataque pelo meio':
-      centralBias = 0.74;
-      wingBias = 0.26;
-      verticalPassWeight *= 1.3;
-      crossWeight *= 0.55;
-      break;
-    case 'Cruzamentos':
-      wingBias = 0.74;
-      centralBias = 0.26;
-      crossWeight *= 1.85;
-      shootEagerness *= 1.03;
-      break;
-    case 'Transições rápidas':
-      verticalPassWeight *= 1.16;
-      dribbleWeight *= 1.12;
-      shortPassWeight *= 0.9;
-      tempo *= 1.05;
-      shootEagerness *= 1.01;
-      break;
-  }
-
-  // Influência da Formação na ocupação
-  if (club.formation === '4-3-3' || club.formation === '3-4-3') {
-    wingBias = Math.min(0.8, wingBias + 0.08);
-    centralBias = 1 - wingBias;
-    dribbleWeight *= 1.1;
-  } else if (club.formation === '3-5-2' || club.formation === '4-2-3-1') {
-    centralBias = Math.min(0.8, centralBias + 0.08);
-    wingBias = 1 - centralBias;
-    shortPassWeight *= 1.08;
-  } else if (club.formation === '5-3-2') {
-    wingBias = Math.max(0.24, wingBias - 0.08);
-    centralBias = 1 - wingBias;
-  }
-
-  // Pressão (minPressAttZone: 1=pressiona saída no campo rival, 4=espera atrás do meio)
   let minPressAttZone: 1 | 2 | 3 | 4 = 3;
   let pressAggression = 1.0;
   let pressingDrainMult = 1.0;
   let foulRiskMod = 1.0;
+  let lineHeight: -1 | 0 | 1 = 0;
+  let behindLineExposure = 1.0;
+  let boxCompactness = 1.0;
+  let attackBiasBonus = 0;
+  let defenseBiasBonus = 0;
 
-  switch (tactics.pressing) {
-    case 'Pressão baixa':
-      minPressAttZone = 4;
-      pressAggression = 0.84;
-      pressingDrainMult = 0.92;
-      foulRiskMod = 0.88;
+  // 1. Efeito Real do Estilo de Jogo
+  switch (playStyle) {
+    case 'Posse de bola':
+      shortPassWeight = 1.48;
+      verticalPassWeight = 1.02;
+      longBallWeight = 0.22;
+      crossWeight = 0.52;
+      centralBias = 0.58;
+      wingBias = 0.42;
+      tempo = 0.96;
+      minPressAttZone = 2;
+      pressAggression = 1.12;
+      pressingDrainMult = 1.04;
+      lineHeight = 1;
+      behindLineExposure = 1.04;
+      shootEagerness = 1.0;
       break;
-    case 'Bloco médio':
+    case 'Contra-ataque':
+      shortPassWeight = 0.78;
+      verticalPassWeight = 1.32;
+      longBallWeight = 0.68;
+      dribbleWeight = 0.85;
+      tempo = 1.05;
       minPressAttZone = 3;
-      pressAggression = 0.98;
-      pressingDrainMult = 0.99;
-      foulRiskMod = 0.96;
+      pressAggression = 0.94;
+      pressingDrainMult = 0.97;
+      lineHeight = -1;
+      behindLineExposure = 0.94;
+      boxCompactness = 1.04;
+      defenseBiasBonus += 0.4;
+      shootEagerness = 1.02;
+      break;
+    case 'Jogo pelas pontas':
+      shortPassWeight = 1.04;
+      verticalPassWeight = 1.06;
+      dribbleWeight = 0.96;
+      crossWeight = 1.24;
+      wingBias = 0.72;
+      centralBias = 0.28;
+      minPressAttZone = 3;
+      pressAggression = 1.0;
+      shootEagerness = 1.03;
+      break;
+    case 'Ataque pelo meio':
+      shortPassWeight = 1.24;
+      verticalPassWeight = 1.28;
+      longBallWeight = 0.28;
+      crossWeight = 0.36;
+      centralBias = 0.75;
+      wingBias = 0.25;
+      minPressAttZone = 3;
+      pressAggression = 1.02;
+      shootEagerness = 1.03;
       break;
     case 'Pressão alta':
+      shortPassWeight = 1.04;
+      verticalPassWeight = 1.18;
+      longBallWeight = 0.38;
+      dribbleWeight = 0.78;
+      tempo = 1.06;
       minPressAttZone = 1;
-      pressAggression = 1.26;
-      pressingDrainMult = 1.13;
-      foulRiskMod = 1.14;
-      break;
-    case 'Pressão após perda':
-      minPressAttZone = 2;
-      pressAggression = 1.18;
-      pressingDrainMult = 1.09;
+      pressAggression = 1.24;
+      pressingDrainMult = 1.07;
       foulRiskMod = 1.11;
+      lineHeight = 1;
+      behindLineExposure = 1.04;
+      boxCompactness = 0.99;
+      attackBiasBonus += 0.45;
+      break;
+    case 'Ligação direta':
+      shortPassWeight = 0.65;
+      verticalPassWeight = 1.12;
+      longBallWeight = 1.15;
+      crossWeight = 0.82;
+      tempo = 1.03;
+      minPressAttZone = 4;
+      pressAggression = 0.88;
+      pressingDrainMult = 0.93;
+      foulRiskMod = 0.92;
+      lineHeight = -1;
+      behindLineExposure = 0.95;
+      boxCompactness = 1.03;
+      break;
+    case 'Equilibrado':
+    default:
       break;
   }
 
-  // Linha Defensiva
-  const lineHeight: -1 | 0 | 1 =
-    tactics.defensiveLine === 'Adiantada'
-      ? 1
-      : tactics.defensiveLine === 'Recuada'
-      ? -1
-      : 0;
+  // 2. Influência da Formação na ocupação de campo e proteção
+  const formProfile = FORMATION_TACTICAL_PROFILE[club.formation] ?? FORMATION_TACTICAL_PROFILE['4-3-3'];
+  if (formProfile.wingThreat >= 3) {
+    wingBias = Math.min(0.8, wingBias + 0.08);
+    centralBias = 1 - wingBias;
+    dribbleWeight *= 1.06;
+  } else if (formProfile.wingThreat === 0) {
+    wingBias = Math.max(0.22, wingBias - 0.1);
+    centralBias = 1 - wingBias;
+    shortPassWeight *= 1.05;
+  }
 
-  let behindLineExposure = lineHeight === 1 ? 1.05 : lineHeight === -1 ? 0.96 : 1.0;
-  let boxCompactness = lineHeight === -1 ? 1.03 : lineHeight === 1 ? 0.98 : 1.0;
+  if (formProfile.centralShield >= 3) {
+    boxCompactness *= 1.03;
+    behindLineExposure *= 0.96;
+  } else if (formProfile.centralShield < 0) {
+    boxCompactness *= 0.96;
+    behindLineExposure *= 1.04;
+  }
+
+  if (club.formation === '4-2-4') {
+    shootEagerness *= 1.09;
+    attackBiasBonus += 0.5;
+    defenseBiasBonus -= 0.45;
+  } else if (club.formation === '5-4-1' || club.formation === '5-3-2') {
+    shootEagerness *= 0.9;
+    defenseBiasBonus += 0.45;
+  }
+
+  // 3. Efeito Real das 4 Posturas (Atacar / Equilibrado / Defender / Pressão total)
+  let postureDrainMult = 1.0;
+  switch (posture) {
+    case 'Atacar':
+      pressAggression *= 1.07;
+      behindLineExposure *= 1.03;
+      boxCompactness *= 0.97;
+      shootEagerness *= 1.08;
+      verticalPassWeight *= 1.07;
+      tempo *= 1.03;
+      postureDrainMult = 1.05;
+      attackBiasBonus += 0.65;
+      defenseBiasBonus -= 0.35;
+      break;
+    case 'Defender':
+      lineHeight = -1;
+      minPressAttZone = 4;
+      pressAggression *= 0.88;
+      boxCompactness *= 1.05;
+      behindLineExposure *= 0.93;
+      shootEagerness *= 0.87;
+      tempo *= 0.95;
+      postureDrainMult = 0.92;
+      foulRiskMod *= 0.9;
+      attackBiasBonus -= 0.45;
+      defenseBiasBonus += 0.7;
+      break;
+    case 'Pressão total':
+      lineHeight = 1;
+      minPressAttZone = 1;
+      pressAggression = Math.min(1.4, pressAggression * 1.18);
+      behindLineExposure *= 1.05;
+      boxCompactness *= 0.97;
+      tempo *= 1.06;
+      shootEagerness *= 1.1;
+      postureDrainMult = 1.11;
+      foulRiskMod *= 1.14;
+      attackBiasBonus += 0.85;
+      defenseBiasBonus -= 0.28;
+      break;
+    case 'Equilibrado':
+    default:
+      break;
+  }
+
   const offsideTrapRate = lineHeight === 1 ? 0.056 : lineHeight === 0 ? 0.032 : 0.016;
 
-  if (tactics.pressing === 'Pressão alta') {
-    behindLineExposure *= 1.02;
-  } else if (tactics.pressing === 'Pressão baixa') {
-    boxCompactness *= 1.02;
-  }
-
-  if (club.formation === '5-3-2') {
-    boxCompactness *= 1.02;
-  } else if (club.formation === '3-4-3') {
-    behindLineExposure *= 1.02;
-    boxCompactness *= 0.98;
-  }
-
-  // Intensidade
-  let intensityDrainMult = 1.0;
-  switch (tactics.intensity) {
-    case 'Baixa':
-      intensityDrainMult = 0.9;
-      pressAggression *= 0.92;
-      tempo *= 0.96;
-      foulRiskMod *= 0.88;
-      break;
-    case 'Alta':
-      intensityDrainMult = 1.13;
-      pressAggression *= 1.12;
-      tempo *= 1.05;
-      foulRiskMod *= 1.13;
-      break;
-    case 'Normal':
-    default:
-      break;
-  }
-
-  // Mentalidade modula risco e postura
-  let mentalityDrainMult = 1.0;
-  switch (club.mentality) {
-    case 'Retranca':
-      boxCompactness *= 1.04;
-      behindLineExposure *= 0.95;
-      shootEagerness *= 0.82;
-      tempo *= 0.95;
-      mentalityDrainMult = 0.95;
-      break;
-    case 'Contra-Ataque':
-      verticalPassWeight *= 1.08;
-      boxCompactness *= 1.01;
-      shootEagerness *= 0.96;
-      mentalityDrainMult = 0.98;
-      break;
-    case 'Ofensiva':
-      pressAggression *= 1.06;
-      behindLineExposure *= 1.02;
-      shootEagerness *= 1.06;
-      mentalityDrainMult = 1.04;
-      break;
-    case 'Tudo ou Nada':
-      pressAggression *= 1.12;
-      behindLineExposure *= 1.05;
-      boxCompactness *= 0.96;
-      tempo *= 1.05;
-      shootEagerness *= 1.12;
-      mentalityDrainMult = 1.1;
-      break;
-    case 'Equilibrada':
-    default:
-      break;
-  }
-
-  // Impacto realista de jogar com 10 (expulsão)
+  // Impacto realista de expulsão
   if (redCardCount > 0) {
     pressAggression *= redCardCount === 1 ? 0.82 : 0.65;
     shortPassWeight *= 0.9;
     tempo *= 0.92;
-    intensityDrainMult *= 1.12; // restantes correm mais
+    postureDrainMult *= 1.12;
   }
 
   const staminaBurnRate = Math.max(
-    0.8,
-    Math.min(1.36, pressingDrainMult * intensityDrainMult * mentalityDrainMult)
+    0.78,
+    Math.min(1.22, pressingDrainMult * postureDrainMult)
   );
 
   return {
+    playStyle,
+    posture,
+    formation: club.formation,
     tactics,
     compatibility,
     shortPassWeight,
@@ -1028,7 +1292,98 @@ export function computeTacticalBehaviorProfile(
     staminaBurnRate,
     foulRiskMod,
     shootEagerness,
+    attackBiasBonus,
+    defenseBiasBonus,
   };
+}
+
+/**
+ * Calcula vantagem tática real (pedra-papel-tesoura equilibrado) entre estilos e posturas em confronto.
+ * Ex: Contra-ataque rende mais contra quem se lança ao ataque; Ligação direta fura Pressão alta.
+ */
+export function computeTacticalMatchupModifiers(
+  attProfile: TacticalBehaviorProfile,
+  defProfile: TacticalBehaviorProfile
+): {
+  counterAttackBonus: number;
+  passScoreEdge: number;
+  shotChanceEdge: number;
+} {
+  let counterAttackBonus = 0;
+  let passScoreEdge = 0;
+  let shotChanceEdge = 0;
+
+  const defCommitsForward =
+    defProfile.posture === 'Atacar' ||
+    defProfile.posture === 'Pressão total' ||
+    defProfile.playStyle === 'Pressão alta' ||
+    defProfile.formation === '4-2-4' ||
+    defProfile.formation === '3-4-3';
+
+  const defSitsDeep =
+    defProfile.posture === 'Defender' ||
+    defProfile.formation === '5-4-1' ||
+    defProfile.formation === '5-3-2';
+
+  // Contra-ataque rende mais contra quem se lança ao ataque; sofre para criar contra retrancas
+  if (attProfile.playStyle === 'Contra-ataque') {
+    if (defCommitsForward) {
+      counterAttackBonus += 0.1;
+      shotChanceEdge += 1.5;
+    } else if (defSitsDeep) {
+      shotChanceEdge -= 1.7;
+    }
+  }
+
+  // Pressão alta sufoca saída curta que não usa Ligação direta ou Contra-ataque rápido
+  if (
+    attProfile.playStyle === 'Pressão alta' &&
+    defProfile.playStyle !== 'Ligação direta' &&
+    defProfile.playStyle !== 'Contra-ataque'
+  ) {
+    passScoreEdge += 0.9;
+    shotChanceEdge += 1.1;
+  }
+
+  // Ligação direta quebra Pressão alta / Pressão total
+  if (
+    attProfile.playStyle === 'Ligação direta' &&
+    (defProfile.playStyle === 'Pressão alta' || defProfile.posture === 'Pressão total')
+  ) {
+    passScoreEdge += 2.2;
+    counterAttackBonus += 0.08;
+  }
+
+  // Jogo pelas pontas castiga formações estreitas sem pontas
+  if (
+    attProfile.playStyle === 'Jogo pelas pontas' &&
+    (defProfile.formation === '4-3-1-2' ||
+      defProfile.formation === '4-4-2 losango' ||
+      defProfile.formation === '5-3-2')
+  ) {
+    passScoreEdge += 1.6;
+    shotChanceEdge += 1.4;
+  }
+
+  // Ataque pelo meio explora formações com pouco povoamento no meio-campo (4-2-4 / 4-4-2)
+  if (
+    attProfile.playStyle === 'Ataque pelo meio' &&
+    (defProfile.formation === '4-2-4' || defProfile.formation === '4-4-2')
+  ) {
+    passScoreEdge += 1.8;
+    shotChanceEdge += 1.2;
+  }
+
+  // Posse de bola controla times passivos que não pressionam
+  if (
+    attProfile.playStyle === 'Posse de bola' &&
+    defProfile.posture === 'Equilibrado' &&
+    defProfile.playStyle !== 'Contra-ataque'
+  ) {
+    passScoreEdge += 1.5;
+  }
+
+  return { counterAttackBonus, passScoreEdge, shotChanceEdge };
 }
 
 export function getEffectiveStarters(club: Club, redCardedIds: string[] = []) {
@@ -1063,6 +1418,13 @@ export function getEffectiveStarters(club: Club, redCardedIds: string[] = []) {
     }));
 }
 
+export function computeTeamNota(club: Club): number {
+  const starters = getEffectiveStarters(club);
+  if (starters.length === 0) return 65.0;
+  const avg = starters.reduce((sum, p) => sum + p.effectiveOvr, 0) / starters.length;
+  return Math.round(avg * 10) / 10;
+}
+
 export interface TacticalReadout {
   netAtkBonus: number;
   netDefBonus: number;
@@ -1080,14 +1442,13 @@ export interface TacticalReadout {
   advice: string;
 }
 
-/** Compatível com evaluateFormationSynergy usada em ClubManagementView e UI tática */
 export function evaluateFormationSynergy(
   formation: Formation,
   mentality: TacticalMentality,
   tactics?: ClubTactics,
   club?: Club
 ): { atkDelta: number; defDelta: number; label: string; tone: 'emerald' | 'amber' | 'rose'; score: number; warnings: string[] } {
-  const effTactics = tactics ?? (club ? getClubTactics(club) : getClubTactics({ mentality, botPersonality: 'equilibrado' }));
+  const effTactics = tactics ?? (club ? getClubTactics(club) : buildTacticsForPlayStyle('Equilibrado', mentality));
   const starters = club ? getEffectiveStarters(club) : undefined;
   const report = evaluateTacticalCompatibility({
     formation,
@@ -1096,10 +1457,11 @@ export function evaluateFormationSynergy(
     starters,
   });
 
-  const deltaBase = (report.score - 72) * 0.08;
+  const posture = normalizePosture(mentality);
+  const deltaBase = (report.score - 74) * 0.08;
   return {
-    atkDelta: Math.round((mentality === 'Ofensiva' || mentality === 'Tudo ou Nada' ? deltaBase + 1 : deltaBase) * 10) / 10,
-    defDelta: Math.round((mentality === 'Retranca' || mentality === 'Contra-Ataque' ? deltaBase + 1 : deltaBase) * 10) / 10,
+    atkDelta: Math.round((posture === 'Atacar' || posture === 'Pressão total' ? deltaBase + 1 : deltaBase) * 10) / 10,
+    defDelta: Math.round((posture === 'Defender' ? deltaBase + 1 : deltaBase) * 10) / 10,
     label: report.label,
     tone: report.tone,
     score: report.score,
@@ -1115,6 +1477,7 @@ export function evaluateTacticalMatchup(ownClub: Club, oppClub: Club): TacticalR
   const oppStarters = getEffectiveStarters(oppClub);
   const ownBehavior = computeTacticalBehaviorProfile(ownClub, ownStarters);
   const oppBehavior = computeTacticalBehaviorProfile(oppClub, oppStarters);
+  const matchupMods = computeTacticalMatchupModifiers(ownBehavior, oppBehavior);
 
   const ownAvgStamina = ownStarters.length
     ? Math.round(ownStarters.reduce((s, p) => s + p.stamina, 0) / ownStarters.length)
@@ -1126,55 +1489,41 @@ export function evaluateTacticalMatchup(ownClub: Club, oppClub: Club): TacticalR
   const outOfPosPenaltyCount = ownStarters.filter((p) => p.fitPenalty < 0).length;
   const cohesionPenalty = outOfPosPenaltyCount * 0.95;
 
-  // Duelos táticos entre formações e instruções
   const rawMidDiff = ownProfile.midControl - oppProfile.midControl;
   const styleMidBias =
-    (ownBehavior.tactics.offensiveStyle === 'Posse de bola' ? 1.2 : 0) -
-    (oppBehavior.tactics.offensiveStyle === 'Posse de bola' ? 1.2 : 0) +
-    (ownBehavior.tactics.pressing === 'Pressão alta' ? 0.6 : 0);
+    (ownBehavior.playStyle === 'Posse de bola' || ownBehavior.playStyle === 'Ataque pelo meio' ? 1.2 : 0) -
+    (oppBehavior.playStyle === 'Posse de bola' || oppBehavior.playStyle === 'Ataque pelo meio' ? 1.2 : 0) +
+    (ownBehavior.playStyle === 'Pressão alta' ? 0.6 : 0);
 
   const midControlBonus =
-    Math.round((rawMidDiff * 1.15 + styleMidBias - cohesionPenalty * 0.5) * 10) / 10;
+    Math.round((rawMidDiff * 1.1 + styleMidBias - cohesionPenalty * 0.5) * 10) / 10;
 
   const flankAttackEdge =
-    (ownBehavior.wingBias - 0.45) * 6 +
-    (oppProfile.wingBackExposure - ownProfile.wingBackExposure) * 0.65;
-  const counterExploitEdge =
-    (ownBehavior.tactics.buildUpStyle === 'Contra-ataques rápidos' ||
-      ownBehavior.tactics.offensiveStyle === 'Transições rápidas' ||
-      ownClub.mentality === 'Contra-Ataque') &&
-    oppBehavior.lineHeight === 1
-      ? 2.8
-      : 0;
-  const pressVsShortBuildUp =
-    ownBehavior.tactics.pressing === 'Pressão alta' &&
-    oppBehavior.tactics.buildUpStyle === 'Saída curta'
-      ? 1.8
-      : 0;
+    (ownBehavior.wingBias - 0.45) * 5.5 +
+    (oppProfile.wingBackExposure - ownProfile.wingBackExposure) * 0.6;
 
-  const compatBonus = (ownBehavior.compatibility.score - 70) * 0.12;
+  const compatBonus = (ownBehavior.compatibility.score - 72) * 0.12;
   let atkBonus =
     compatBonus +
-    flankAttackEdge * 0.45 +
-    counterExploitEdge +
-    pressVsShortBuildUp +
-    (ownClub.mentality === 'Ofensiva' ? 1.8 : ownClub.mentality === 'Tudo ou Nada' ? 3.2 : ownClub.mentality === 'Retranca' ? -2.0 : 0) -
+    flankAttackEdge * 0.4 +
+    matchupMods.shotChanceEdge +
+    ownBehavior.attackBiasBonus * 2.1 -
     cohesionPenalty;
 
   let defBonus =
     compatBonus * 0.9 +
     (ownBehavior.boxCompactness - 1) * 8 +
-    (ownProfile.centralShield - oppProfile.centralBoxPresence) * 0.55 -
-    (ownClub.mentality === 'Ofensiva' ? 1.4 : ownClub.mentality === 'Tudo ou Nada' ? 3.2 : 0) -
+    (ownProfile.centralShield - oppProfile.centralBoxPresence) * 0.5 +
+    ownBehavior.defenseBiasBonus * 2.1 -
     cohesionPenalty;
 
   let fatigueWarning = false;
   if (
     ownAvgStamina < 58 &&
-    (ownBehavior.tactics.intensity === 'Alta' || ownBehavior.tactics.pressing === 'Pressão alta')
+    (ownBehavior.posture === 'Pressão total' || ownBehavior.playStyle === 'Pressão alta')
   ) {
-    atkBonus -= 2.0;
-    defBonus -= 3.2;
+    atkBonus -= 1.8;
+    defBonus -= 3.0;
     fatigueWarning = true;
   }
 
@@ -1204,26 +1553,25 @@ export function evaluateTacticalMatchup(ownClub: Club, oppClub: Club): TacticalR
   const oppWall = oppGol * 0.55 + oppBestZag * 0.45;
   const finishingEdge = (ownFinisher - oppWall) * 0.008;
 
-  let headline = `Duelo equilibrado (${ownClub.formation} vs ${oppClub.formation})`;
-  if (counterExploitEdge >= 2.0) {
-    headline = `Contra-ataque letal contra linha ${oppBehavior.tactics.defensiveLine} rival`;
+  let headline = `Duelo tático: ${ownClub.formation} (${ownBehavior.playStyle}) vs ${oppClub.formation} (${oppBehavior.playStyle})`;
+  if (matchupMods.counterAttackBonus >= 0.12) {
+    headline = `Contra-ataque encaixado contra a postura ofensiva rival`;
   } else if (flankAttackEdge >= 2.0) {
-    headline = `Vantagem pelos corredores (${ownBehavior.tactics.offensiveStyle})`;
+    headline = `Vantagem pelos corredores (${ownBehavior.playStyle})`;
   } else if (midControlBonus >= 2.0) {
-    headline = `Controle do meio-campo (${ownClub.formation} supera ${oppClub.formation})`;
+    headline = `Superioridade no meio-campo (${ownClub.formation} vs ${oppClub.formation})`;
   } else if (midControlBonus <= -2.0) {
-    headline = `Inferioridade no meio contra ${oppClub.formation} (${oppBehavior.tactics.offensiveStyle})`;
+    headline = `Meio-campo pressionado por ${oppClub.formation} (${oppBehavior.playStyle})`;
   }
 
-  let advice = ownBehavior.compatibility.strengths[0] ?? ownProfile.strengths;
+  let advice =
+    ownBehavior.compatibility.strengths[0] ?? PLAY_STYLE_SPECS[ownBehavior.playStyle].description;
   if (fatigueWarning) {
-    advice = `Desgaste crítico (${ownAvgStamina}%): faça substituições ou reduza Intensidade/Pressão!`;
+    advice = `Desgaste elevado (${ownAvgStamina}%): faça substituições ou alivie a pressão!`;
   } else if (ownBehavior.compatibility.warnings.length > 0) {
     advice = ownBehavior.compatibility.warnings[0];
   } else if (outOfPosPenaltyCount >= 2) {
-    advice = `${outOfPosPenaltyCount} titulares improvisados — ajuste a escalação para recuperar entrosamento.`;
-  } else if (oppBehavior.lineHeight === 1 && ownBehavior.tactics.buildUpStyle === 'Saída curta') {
-    advice = `Rival marca em Linha Adiantada: considere Ligações diretas ou Contra-ataques para ferir as costas!`;
+    advice = `${outOfPosPenaltyCount} titulares improvisados reduzem o encaixe (${ownBehavior.compatibility.score}/99).`;
   }
 
   return {
@@ -1237,7 +1585,9 @@ export function evaluateTacticalMatchup(ownClub: Club, oppClub: Club): TacticalR
     oppAvgStamina,
     compatibilityScore: ownBehavior.compatibility.score,
     compatibilityWarnings: ownBehavior.compatibility.warnings,
-    synergyLabel: fatigueWarning ? 'Queda Física na Pressão' : ownBehavior.compatibility.label,
+    synergyLabel: fatigueWarning
+      ? 'Queda Física na Pressão'
+      : `Encaixe ${ownBehavior.compatibility.score}/99`,
     synergyTone: fatigueWarning ? 'rose' : ownBehavior.compatibility.tone,
     headline,
     advice,

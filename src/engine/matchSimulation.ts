@@ -9,6 +9,7 @@ import {
   Player,
   PlayerPosition,
   PlayPhase,
+  ShotOutcome,
   TacticalMentality,
 } from '../types/league';
 import {
@@ -24,8 +25,8 @@ import {
 } from './playerAttributes';
 import {
   computeTacticalBehaviorProfile,
+  computeTacticalMatchupModifiers,
   FORMATION_LAYOUT,
-  getEffectiveStarters,
   TacticalBehaviorProfile,
 } from './tacticalEngine';
 
@@ -192,18 +193,18 @@ function getActorPitchCoords(
   const slotIdx = playerId ? (club.lineupSlots ?? []).findIndex((s) => s.playerId === playerId) : -1;
   const spec = slotIdx >= 0 ? layout[slotIdx] : undefined;
 
-  const zoneXMap = isHome ? [12, 31, 50, 72, 87] : [88, 69, 50, 28, 13];
+  const zoneXMap = isHome ? [12, 31, 50, 74, 88] : [88, 69, 50, 26, 12];
   const baseZoneX = zoneXMap[zone - 1];
 
   const laneYMap =
     lane === 'left'
       ? isHome
-        ? 22
-        : 78
+        ? 24
+        : 76
       : lane === 'right'
       ? isHome
-        ? 78
-        : 22
+        ? 76
+        : 24
       : 50;
 
   if (!spec) {
@@ -211,13 +212,13 @@ function getActorPitchCoords(
   }
 
   const slotBaseX = isHome
-    ? 8 + ((100 - spec.pitchY) / 100) * 62
-    : 92 - ((100 - spec.pitchY) / 100) * 62;
+    ? 8 + ((100 - spec.pitchY) / 100) * 64
+    : 92 - ((100 - spec.pitchY) / 100) * 64;
   const slotBaseY = isHome ? spec.pitchX : 100 - spec.pitchX;
 
   return {
-    x: clamp(Math.round(baseZoneX * 0.65 + slotBaseX * 0.35), 6, 94),
-    y: clamp(Math.round(laneYMap * 0.6 + slotBaseY * 0.4), 10, 90),
+    x: clamp(Math.round((baseZoneX * 0.72 + slotBaseX * 0.28) * 10) / 10, 6, 94),
+    y: clamp(Math.round((laneYMap * 0.65 + slotBaseY * 0.35) * 10) / 10, 10, 90),
   };
 }
 
@@ -347,6 +348,7 @@ interface HighlightCandidate {
   fromBallY?: number;
   activePlayerId?: string;
   secondaryPlayerId?: string;
+  shotOutcome?: ShotOutcome;
   possessionSide: 'home' | 'away';
   playPhase: PlayPhase;
   text: string;
@@ -402,12 +404,14 @@ export function simulateMatchMinuteStep(
         ...match,
         isHalftime: false,
         halftimeRemainingSec: 0,
+        halftimeTriggered: true,
         ballX: 50,
         ballY: 50,
         activePlayerId: undefined,
         secondaryPlayerId: undefined,
         fromBallX: undefined,
         fromBallY: undefined,
+        shotOutcome: undefined,
         playPhase: 'kickoff',
         lastPlayText: 'Apita o árbitro! Começa o 2º tempo.',
       },
@@ -416,9 +420,25 @@ export function simulateMatchMinuteStep(
     };
   }
 
+  // Se o minuto 45 acabou de exibir um lance de gol/destaque no tick anterior, entra agora no intervalo sem avançar o relógio
+  if (match.currentMinute === 45 && !match.halftimeTriggered && stepMinutes === 1) {
+    return {
+      match: {
+        ...match,
+        isHalftime: true,
+        halftimeRemainingSec: 30,
+        halftimeTriggered: true,
+        shotOutcome: undefined,
+        lastPlayText: 'Intervalo! 30s para mexer na tática e fazer substituições.',
+      },
+      homeStaminaDrain: 0,
+      awayStaminaDrain: 0,
+    };
+  }
+
   const prevMin = match.currentMinute;
   const targetMinute = Math.min(90, prevMin + stepMinutes);
-  const enteredHalftime = prevMin < 45 && targetMinute >= 45 && stepMinutes <= 3;
+  const crossedHalftimeMinute = prevMin < 45 && targetMinute >= 45 && stepMinutes <= 3;
 
   const stats = normalizeMatchStats(match.stats);
   const newEvents: MatchEvent[] = [...match.events];
@@ -779,7 +799,8 @@ export function simulateMatchMinuteStep(
       );
     };
 
-    for (let possIdx = 0; possIdx < possessionsInMinute; possIdx++) {
+    let goalScoredThisMinute = false;
+    for (let possIdx = 0; possIdx < possessionsInMinute && !goalScoredThisMinute; possIdx++) {
       let lastCarrier: PitchActor | undefined;
       let lastAssister: PitchActor | undefined;
       let passStreak = 0;
@@ -788,7 +809,7 @@ export function simulateMatchMinuteStep(
       let freeKickLane: 'left' | 'center' | 'right' = lane;
       let possessionAlive = true;
 
-      for (let step = 0; step < SIM_BALANCE.maxStepsPerPossession && possessionAlive; step++) {
+      for (let step = 0; step < SIM_BALANCE.maxStepsPerPossession && possessionAlive && !goalScoredThisMinute; step++) {
         const isHomeAtt = attSide === 'home';
         const attClub = isHomeAtt ? effHome : effAway;
         const defClub = isHomeAtt ? effAway : effHome;
@@ -796,13 +817,16 @@ export function simulateMatchMinuteStep(
         const defActors = isHomeAtt ? awayActors : homeActors;
         const attProfile = isHomeAtt ? homeProfile : awayProfile;
         const defProfile = isHomeAtt ? awayProfile : homeProfile;
+        const matchupMods = computeTacticalMatchupModifiers(attProfile, defProfile);
         const attCrowd = isHomeAtt ? SIM_BALANCE.homeCrowdEdge : 0;
         const defCrowd = !isHomeAtt ? SIM_BALANCE.homeCrowdEdge : 0;
         const attRedCount = isHomeAtt ? simState.homeRedCardedIds.length : simState.awayRedCardedIds.length;
         const defRedCount = isHomeAtt ? simState.awayRedCardedIds.length : simState.homeRedCardedIds.length;
 
-        const attCohesionBonus = (attProfile.compatibility.cohesionMultiplier - 1) * 24;
-        const defCohesionBonus = (defProfile.compatibility.cohesionMultiplier - 1) * 24;
+        const attCohesionBonus =
+          (attProfile.compatibility.cohesionMultiplier - 1) * 26 + attProfile.attackBiasBonus;
+        const defCohesionBonus =
+          (defProfile.compatibility.cohesionMultiplier - 1) * 26 + defProfile.defenseBiasBonus;
         const attManPenalty = attRedCount * SIM_BALANCE.redCardDuelPenaltyPerPlayer;
         const defManPenalty = defRedCount * SIM_BALANCE.redCardDuelPenaltyPerPlayer;
 
@@ -839,6 +863,31 @@ export function simulateMatchMinuteStep(
             else stats.awayBigChances += 1;
           }
 
+          const rawFrom =
+            shotCtx === 'penalti'
+              ? { x: isHomeAtt ? 89.9 : 10.1, y: 50 }
+              : getActorPitchCoords(
+                  attClub,
+                  shooter.player.id,
+                  isHomeAtt,
+                  shotCtx === 'fora_area' ? 4 : 5,
+                  lane
+                );
+          const fromCoords = {
+            x:
+              shotCtx === 'penalti'
+                ? rawFrom.x
+                : shotCtx === 'fora_area'
+                ? clamp(rawFrom.x, isHomeAtt ? 70 : 17, isHomeAtt ? 83 : 30)
+                : clamp(rawFrom.x, isHomeAtt ? 85 : 5, isHomeAtt ? 95 : 15),
+            y:
+              shotCtx === 'penalti'
+                ? 50
+                : shotCtx === 'fora_area'
+                ? clamp(rawFrom.y, 26, 74)
+                : clamp(rawFrom.y, 34, 66),
+          };
+
           const shooterFinish = getEffectiveMatchAttribute(
             shooter.player,
             'finalizacao',
@@ -872,7 +921,7 @@ export function simulateMatchMinuteStep(
             const blockProb = clamp(
               logisticDuelProb(
                 defBlockRating,
-                shooterFinish * 0.5 + shooterPos * 0.5 + attCrowd,
+                shooterFinish * 0.5 + shooterPos * 0.5 + attCrowd + matchupMods.shotChanceEdge * 0.4,
                 SIM_BALANCE.shotBlockBaseRate * effectiveBoxCompact * contextBlockMult,
                 SIM_BALANCE.duelScaleDivisor,
                 0.03,
@@ -883,15 +932,20 @@ export function simulateMatchMinuteStep(
             );
             if (Math.random() < blockProb) {
               bumpRating(simState.playerRatings, oppDefender.player.id, 0.14);
-              const fromCoords = getActorPitchCoords(attClub, shooter.player.id, isHomeAtt, attZone, lane);
+              const blockX = isHomeAtt
+                ? Math.min(96, Math.round((fromCoords.x + 4.5) * 10) / 10)
+                : Math.max(4, Math.round((fromCoords.x - 4.5) * 10) / 10);
+              const blockY = Math.round((fromCoords.y * 0.7 + 50 * 0.3) * 10) / 10;
+
               considerHighlight({
                 priority: 45,
-                ballX: isHomeAtt ? 88 : 12,
-                ballY: 50,
+                ballX: blockX,
+                ballY: blockY,
                 fromBallX: fromCoords.x,
                 fromBallY: fromCoords.y,
-                activePlayerId: oppDefender.player.id,
-                secondaryPlayerId: shooter.player.id,
+                activePlayerId: shooter.player.id,
+                secondaryPlayerId: oppDefender.player.id,
+                shotOutcome: 'bloqueio',
                 possessionSide: isHomeAtt ? 'home' : 'away',
                 playPhase: isHomeAtt ? 'finalizacao_casa' : 'finalizacao_fora',
                 text: `🛡️ ${oppDefender.player.knownName} se joga na frente e bloqueia o chute de ${shooter.player.knownName}!`,
@@ -916,9 +970,10 @@ export function simulateMatchMinuteStep(
             }
           }
 
-          // 2. Pontaria (no gol vs para fora)
-          const baseAccuracy =
-            shotCtx === 'penalti'
+          // 2. Pontaria (no gol vs trave / para fora)
+          const counterAccuracyBoost = context === 'counter' ? matchupMods.counterAttackBonus * 0.25 : 0;
+          const baseAccuracy = clamp(
+            (shotCtx === 'penalti'
               ? 0.86
               : shotCtx === '1v1'
               ? 0.6
@@ -930,10 +985,18 @@ export function simulateMatchMinuteStep(
               ? 0.34
               : shotCtx === 'fora_area'
               ? 0.24
-              : SIM_BALANCE.onTargetBaseRate;
+              : SIM_BALANCE.onTargetBaseRate) + counterAccuracyBoost,
+            0.18,
+            0.9
+          );
 
           const accuracyProb = logisticDuelProb(
-            shooterFinish * 0.72 + shooterPos * 0.28 + attCrowd + attCohesionBonus - attManPenalty,
+            shooterFinish * 0.72 +
+              shooterPos * 0.28 +
+              attCrowd +
+              attCohesionBonus +
+              matchupMods.shotChanceEdge * 0.65 -
+              attManPenalty,
             defBlockRating * 0.35 + 48,
             baseAccuracy,
             SIM_BALANCE.shotFinishScaleDivisor,
@@ -941,40 +1004,72 @@ export function simulateMatchMinuteStep(
             0.9
           );
 
-          const fromCoords = getActorPitchCoords(
-            attClub,
-            shooter.player.id,
-            isHomeAtt,
-            shotCtx === 'fora_area' ? 4 : 5,
-            lane
-          );
-
           if (Math.random() > accuracyProb) {
-            if (isBigChance) {
-              bumpRating(simState.playerRatings, shooter.player.id, -0.22);
+            const postHitChance = isBigChance ? 0.16 : 0.08;
+            const hitPost = Math.random() < postHitChance;
+            const nearPost = !hitPost && (isBigChance || Math.random() < 0.35);
+            const sideSign = Math.random() < 0.5 ? -1 : 1;
+
+            if (hitPost) {
+              // Bate exatamente no poste da baliza (SVG: y=152 => 41.4 | y=208 => 58.6, x=576/24 => 100/0)
+              const postY = sideSign < 0 ? 41.4 : 58.6;
+              bumpRating(simState.playerRatings, shooter.player.id, 0.18);
               newEvents.push({
                 minute: curMin,
-                type: 'chance_clara',
+                type: isBigChance ? 'chance_clara' : 'chute',
                 clubId: attClub.id,
                 playerName: shooter.player.knownName,
                 playerId: shooter.player.id,
-                description: `💨 Chance clara desperdiçada! ${shooter.player.knownName} bate para fora!`,
+                description: `💥 NA TRAVE! ${shooter.player.knownName} finaliza firme e carimba o poste!`,
+              });
+              considerHighlight({
+                priority: 78,
+                ballX: isHomeAtt ? 100 : 0,
+                ballY: postY,
+                fromBallX: fromCoords.x,
+                fromBallY: fromCoords.y,
+                activePlayerId: shooter.player.id,
+                secondaryPlayerId: assister?.player.id,
+                shotOutcome: 'trave',
+                possessionSide: attSide,
+                playPhase: isHomeAtt ? 'finalizacao_casa' : 'finalizacao_fora',
+                text: `💥 NA TRAVE! ${shooter.player.knownName} (${attClub.shortName}) acerta o poste com violência!`,
+              });
+            } else {
+              if (isBigChance) {
+                bumpRating(simState.playerRatings, shooter.player.id, -0.22);
+                newEvents.push({
+                  minute: curMin,
+                  type: 'chance_clara',
+                  clubId: attClub.id,
+                  playerName: shooter.player.knownName,
+                  playerId: shooter.player.id,
+                  description: `💨 Chance clara desperdiçada! ${shooter.player.knownName} bate para fora!`,
+                });
+              }
+              const missY = nearPost
+                ? sideSign < 0
+                  ? 39.2
+                  : 60.8
+                : sideSign < 0
+                ? Math.round((33.5 + Math.random() * 4) * 10) / 10
+                : Math.round((62.5 + Math.random() * 4) * 10) / 10;
+              considerHighlight({
+                priority: isBigChance ? 64 : 42,
+                ballX: isHomeAtt ? 100.4 : -0.4,
+                ballY: missY,
+                fromBallX: fromCoords.x,
+                fromBallY: fromCoords.y,
+                activePlayerId: shooter.player.id,
+                secondaryPlayerId: assister?.player.id,
+                shotOutcome: 'fora',
+                possessionSide: attSide,
+                playPhase: isHomeAtt ? 'finalizacao_casa' : 'finalizacao_fora',
+                text: nearPost
+                  ? `⚡ Quase! ${shooter.player.knownName} solta o pé e a bola tira tinta da trave!`
+                  : `⚡ ${shooter.player.knownName} (${attClub.shortName}) finaliza cruzado pela linha de fundo.`,
               });
             }
-            considerHighlight({
-              priority: isBigChance ? 64 : 42,
-              ballX: isHomeAtt ? 96 : 4,
-              ballY: Math.random() < 0.5 ? 30 : 70,
-              fromBallX: fromCoords.x,
-              fromBallY: fromCoords.y,
-              activePlayerId: shooter.player.id,
-              secondaryPlayerId: assister?.player.id,
-              possessionSide: attSide,
-              playPhase: isHomeAtt ? 'finalizacao_casa' : 'finalizacao_fora',
-              text: isBigChance
-                ? `⚡ Quase! ${shooter.player.knownName} recebe na boa e manda tirando tinta da trave!`
-                : `⚡ ${shooter.player.knownName} (${attClub.shortName}) finaliza cruzado pela linha de fundo.`,
-            });
             possessionAlive = false;
             attSide = isHomeAtt ? 'away' : 'home';
             attZone = 1;
@@ -989,8 +1084,13 @@ export function simulateMatchMinuteStep(
 
           const keeperReflex = getEffectiveMatchAttribute(oppKeeper.player, 'reflexos', 'GOL');
           const keeperPos = getEffectiveMatchAttribute(oppKeeper.player, 'posicionamento', 'GOL');
-          const keeperSkill = keeperReflex * 0.65 + keeperPos * 0.35 + defCrowd * 0.45;
-          const finishSkill = shooterFinish * 0.78 + shooterPos * 0.22 + attCrowd * 0.55 + attCohesionBonus * 0.4;
+          const keeperSkill = keeperReflex * 0.65 + keeperPos * 0.35 + defCrowd * 0.45 + defCohesionBonus * 0.2;
+          const finishSkill =
+            shooterFinish * 0.78 +
+            shooterPos * 0.22 +
+            attCrowd * 0.55 +
+            attCohesionBonus * 0.45 +
+            matchupMods.shotChanceEdge * 0.45;
 
           const baseGoalRate =
             shotCtx === 'penalti'
@@ -1017,9 +1117,10 @@ export function simulateMatchMinuteStep(
           );
 
           if (Math.random() < goalProb) {
-            // GOOOOL! (estritamente decorrente de finalização no alvo)
+            // GOOOOL! (estritamente decorrente de finalização no alvo, 100% sincronizado no campo)
             if (isHomeAtt) homeGoals += 1;
             else awayGoals += 1;
+            goalScoredThisMinute = true;
 
             const validAssist =
               assister && assister.player.id !== shooter.player.id ? assister : undefined;
@@ -1057,12 +1158,13 @@ export function simulateMatchMinuteStep(
 
             considerHighlight({
               priority: 100,
-              ballX: isHomeAtt ? 97 : 3,
-              ballY: Math.round(46 + Math.random() * 8),
+              ballX: isHomeAtt ? 101.2 : -1.2,
+              ballY: Math.round((44.5 + Math.random() * 11) * 10) / 10,
               fromBallX: fromCoords.x,
               fromBallY: fromCoords.y,
               activePlayerId: shooter.player.id,
               secondaryPlayerId: validAssist?.player.id,
+              shotOutcome: 'gol',
               possessionSide: attSide,
               playPhase: isHomeAtt ? 'gol_casa' : 'gol_fora',
               text: goalText,
@@ -1076,7 +1178,7 @@ export function simulateMatchMinuteStep(
             return;
           }
 
-          // DEFESA DO GOLEIRO! (contabiliza obrigatoriamente quando chute no alvo não vira gol)
+          // DEFESA DO GOLEIRO!
           if (isHomeAtt) stats.awaySaves += 1;
           else stats.homeSaves += 1;
 
@@ -1099,15 +1201,15 @@ export function simulateMatchMinuteStep(
             shotCtx !== 'penalti' &&
             saveRoll < SIM_BALANCE.reboundAfterKeeperSaveProb
           ) {
-            // Rebote perigoso na área!
             considerHighlight({
               priority: 72,
-              ballX: isHomeAtt ? 90 : 10,
-              ballY: 50,
+              ballX: isHomeAtt ? 94.5 : 5.5,
+              ballY: Math.round((47 + Math.random() * 6) * 10) / 10,
               fromBallX: fromCoords.x,
               fromBallY: fromCoords.y,
               activePlayerId: shooter.player.id,
               secondaryPlayerId: oppKeeper.player.id,
+              shotOutcome: 'defesa',
               possessionSide: attSide,
               playPhase: isHomeAtt ? 'finalizacao_casa' : 'finalizacao_fora',
               text: `🧤 ${oppKeeper.player.knownName} espalma para o meio da área — bola viva no rebote!`,
@@ -1128,12 +1230,13 @@ export function simulateMatchMinuteStep(
             else stats.awayCorners += 1;
             considerHighlight({
               priority: 62,
-              ballX: isHomeAtt ? 94 : 6,
-              ballY: Math.random() < 0.5 ? 20 : 80,
+              ballX: isHomeAtt ? 100.3 : -0.3,
+              ballY: Math.random() < 0.5 ? 37.5 : 62.5,
               fromBallX: fromCoords.x,
               fromBallY: fromCoords.y,
               activePlayerId: shooter.player.id,
               secondaryPlayerId: oppKeeper.player.id,
+              shotOutcome: 'escanteio',
               possessionSide: attSide,
               playPhase: isHomeAtt ? 'finalizacao_casa' : 'finalizacao_fora',
               text: `🧤 Defesaça! ${oppKeeper.player.knownName} desvia finalização de ${shooter.player.knownName} pela linha de fundo! Escanteio.`,
@@ -1148,12 +1251,13 @@ export function simulateMatchMinuteStep(
 
           considerHighlight({
             priority: isBigChance ? 68 : 50,
-            ballX: isHomeAtt ? 93 : 7,
-            ballY: 50,
+            ballX: isHomeAtt ? 96.7 : 3.3,
+            ballY: Math.round((45.5 + Math.random() * 9) * 10) / 10,
             fromBallX: fromCoords.x,
             fromBallY: fromCoords.y,
             activePlayerId: shooter.player.id,
             secondaryPlayerId: oppKeeper.player.id,
+            shotOutcome: 'defesa',
             possessionSide: attSide,
             playPhase: isHomeAtt ? 'finalizacao_casa' : 'finalizacao_fora',
             text: `🧤 ${oppKeeper.player.knownName} segura firme a batida de ${shooter.player.knownName}!`,
@@ -1780,7 +1884,8 @@ export function simulateMatchMinuteStep(
           visionSkill * 0.45 +
           sustainedPossessionEase +
           attCrowd +
-          attCohesionBonus -
+          attCohesionBonus +
+          matchupMods.passScoreEdge -
           attManPenalty;
         let defIntScore =
           (getEffectiveMatchAttribute(oppDefender.player, 'marcacao', oppDefender.slotRole, { isPressing: pressActiveHere }) * 0.5 +
@@ -1795,7 +1900,8 @@ export function simulateMatchMinuteStep(
         if (chosenAction === 'passe_vertical') {
           basePassP =
             SIM_BALANCE.baseVerticalSuccess +
-            (context === 'counter' || passStreak >= 3 ? 0.09 : 0);
+            (context === 'counter' || passStreak >= 3 ? 0.09 : 0) +
+            (context === 'counter' ? matchupMods.counterAttackBonus * 0.3 : 0);
           attPassScore =
             attPassScore * 0.65 +
             recPos * 0.2 +
@@ -1805,7 +1911,8 @@ export function simulateMatchMinuteStep(
         } else if (chosenAction === 'lancamento') {
           basePassP =
             SIM_BALANCE.baseLongBallSuccess +
-            (context === 'counter' && defProfile.behindLineExposure > 1.03 ? 0.1 : 0);
+            (context === 'counter' && defProfile.behindLineExposure > 1.03 ? 0.1 : 0) +
+            (context === 'counter' ? matchupMods.counterAttackBonus * 0.25 : 0);
           attPassScore =
             attPassScore * 0.55 +
             getEffectiveMatchAttribute(receiver.player, 'forca', receiver.slotRole) * 0.25 +
@@ -2018,33 +2125,46 @@ export function simulateMatchMinuteStep(
   stats.homePassesCompleted = Math.min(stats.homePassesCompleted, stats.homePasses);
   stats.awayPassesCompleted = Math.min(stats.awayPassesCompleted, stats.awayPasses);
 
+  const isGoalHighlight =
+    bestHighlight.playPhase === 'gol_casa' || bestHighlight.playPhase === 'gol_fora';
+  const hasImportantAt45 = crossedHalftimeMinute && (isGoalHighlight || bestHighlight.priority >= 75);
+  const enterHalftimeNow = crossedHalftimeMinute && !hasImportantAt45;
+  const halftimeDoneFlag = enterHalftimeNow ? true : Boolean(match.halftimeTriggered);
+
+  const roundCoord = (v: number | undefined) =>
+    v === undefined ? undefined : Math.round(v * 10) / 10;
+
   return {
     match: {
       ...match,
       homeGoals,
       awayGoals,
       currentMinute: targetMinute,
-      isHalftime: enteredHalftime,
-      halftimeRemainingSec: enteredHalftime ? 30 : 0,
+      isHalftime: enterHalftimeNow,
+      halftimeRemainingSec: enterHalftimeNow ? 30 : 0,
+      halftimeTriggered: halftimeDoneFlag,
       status: targetMinute >= 90 ? 'finalizada' : 'ao_vivo',
       homeSubsUsed,
       awaySubsUsed,
       homeSubbedOutIds,
       awaySubbedOutIds,
-      ballX: Math.round(bestHighlight.ballX),
-      ballY: Math.round(bestHighlight.ballY),
+      ballX: Math.round(bestHighlight.ballX * 10) / 10,
+      ballY: Math.round(bestHighlight.ballY * 10) / 10,
       activePlayerId: bestHighlight.activePlayerId,
       secondaryPlayerId: bestHighlight.secondaryPlayerId,
-      fromBallX: bestHighlight.fromBallX,
-      fromBallY: bestHighlight.fromBallY,
+      fromBallX: roundCoord(bestHighlight.fromBallX),
+      fromBallY: roundCoord(bestHighlight.fromBallY),
+      shotOutcome: bestHighlight.shotOutcome,
       possessionClubId:
         bestHighlight.possessionSide === 'home' ? effHome.id : effAway.id,
       playPhase: bestHighlight.playPhase,
       lastPlayText:
         targetMinute >= 90
-          ? `Fim de jogo! ${effHome.shortName} ${homeGoals} x ${awayGoals} ${effAway.shortName}.`
-          : enteredHalftime
-          ? 'Intervalo! 30s para mexer na tática, instruções e substituições.'
+          ? isGoalHighlight || bestHighlight.priority >= 75
+            ? `${bestHighlight.text} • Fim de jogo: ${effHome.shortName} ${homeGoals} x ${awayGoals} ${effAway.shortName}!`
+            : `Fim de jogo! ${effHome.shortName} ${homeGoals} x ${awayGoals} ${effAway.shortName}.`
+          : enterHalftimeNow
+          ? 'Intervalo! 30s para mexer na tática e fazer substituições.'
           : bestHighlight.text,
       stats,
       events: newEvents.sort((a, b) => a.minute - b.minute),

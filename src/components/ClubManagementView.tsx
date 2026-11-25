@@ -29,10 +29,7 @@ import {
 import {
   calcMonthlyPayrollMillions,
   calculateClubStrength,
-  evaluateFormationSynergy,
   FORMATION_LAYOUT,
-  FORMATION_TACTICAL_PROFILE,
-  getClubTactics,
   getPositionFit,
   isClubInFinancialDebt,
   PAYROLL_INTERVAL_ROUNDS,
@@ -242,10 +239,6 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
     const p = club.squad.find((pl) => pl.id === s.playerId);
     return p && (p.suspendedMatches ?? 0) > 0;
   }).length;
-  const formationProfile =
-    FORMATION_TACTICAL_PROFILE[club.formation] ?? FORMATION_TACTICAL_PROFILE['4-3-3'];
-  const clubTactics = getClubTactics(club);
-  const synergy = evaluateFormationSynergy(club.formation, club.mentality, clubTactics, club);
 
   const totalIncome =
     club.finances.matchIncome + club.finances.prizeIncome + club.finances.transferIncome;
@@ -697,43 +690,12 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
 
           {/* Direita (5 cols): Controles Táticos + Banco de Reservas */}
           <div className="lg:col-span-5 space-y-4">
-            {/* Formação, Postura e Auto-Pick */}
+            {/* Estilo de Jogo, Formação, Postura e Auto-Pick */}
             <div className="console-panel p-4 space-y-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-1">
-                  <select
-                    value={club.formation}
-                    disabled={!isOwned}
-                    onChange={(e) => {
-                      setSelectedSlotIdx(null);
-                      setSelectedBenchId(null);
-                      onUpdateTactics(club.id, e.target.value as Formation, club.mentality, clubTactics);
-                    }}
-                    className="px-3 py-2 rounded-md bg-[#090C10] border border-white/12 text-xs font-bold text-white disabled:opacity-60"
-                  >
-                    <option value="4-3-3">4-3-3</option>
-                    <option value="4-4-2">4-4-2</option>
-                    <option value="4-2-3-1">4-2-3-1</option>
-                    <option value="3-5-2">3-5-2</option>
-                    <option value="3-4-3">3-4-3</option>
-                    <option value="5-3-2">5-3-2</option>
-                  </select>
-                  <select
-                    value={club.mentality}
-                    disabled={!isOwned}
-                    onChange={(e) =>
-                      onUpdateTactics(club.id, club.formation, e.target.value as TacticalMentality, clubTactics)
-                    }
-                    className="flex-1 px-3 py-2 rounded-md bg-[#090C10] border border-white/12 text-xs font-semibold text-white disabled:opacity-60"
-                  >
-                    <option value="Retranca">Retranca</option>
-                    <option value="Contra-Ataque">Contra-Ataque</option>
-                    <option value="Equilibrada">Equilibrada</option>
-                    <option value="Ofensiva">Ofensiva</option>
-                    <option value="Tudo ou Nada">Tudo ou Nada</option>
-                  </select>
-                </div>
-
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-display text-base font-extrabold uppercase tracking-wider text-white">
+                  Tática da Equipe
+                </span>
                 {isOwned && (
                   <button
                     type="button"
@@ -742,46 +704,23 @@ export const ClubManagementView: React.FC<ClubManagementViewProps> = ({
                       setSelectedBenchId(null);
                       onAutoPickLineup(club.id);
                     }}
-                    className="px-3 py-2 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
+                    className="px-3 py-1.5 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
                   >
-                    <Wand2 className="w-3.5 h-3.5" /> Auto
+                    <Wand2 className="w-3.5 h-3.5" /> Auto Escalar
                   </button>
                 )}
-              </div>
-
-              {/* Prancheta Tática da Formação & Sinergia */}
-              <div className="bg-[#090C10] border border-white/[0.07] rounded-md p-3 space-y-1.5">
-                <div className="flex flex-wrap items-center justify-between gap-1.5">
-                  <span className="text-xs font-bold text-white">
-                    <span className="whitespace-nowrap">{club.formation}</span> •{' '}
-                    {formationProfile.styleLabel}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
-                      synergy.tone === 'emerald'
-                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                        : synergy.tone === 'rose'
-                        ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
-                        : 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
-                    }`}
-                  >
-                    {synergy.label}
-                  </span>
-                </div>
-                <div className="text-xs text-emerald-300/90 leading-snug">
-                  + {formationProfile.strengths}
-                </div>
-                <div className="text-xs text-slate-400 leading-snug">
-                  − {formationProfile.weaknesses}
-                </div>
               </div>
 
               <TacticalInstructionsPanel
                 club={club}
                 disabled={!isOwned}
-                onChangeTactics={(nextFormation, nextMentality, nextTactics) =>
-                  onUpdateTactics(club.id, nextFormation, nextMentality, nextTactics)
-                }
+                onChangeTactics={(nextFormation, nextMentality, nextTactics) => {
+                  if (nextFormation !== club.formation) {
+                    setSelectedSlotIdx(null);
+                    setSelectedBenchId(null);
+                  }
+                  onUpdateTactics(club.id, nextFormation, nextMentality, nextTactics);
+                }}
               />
 
               {isOwned && (

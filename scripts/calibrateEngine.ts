@@ -139,6 +139,18 @@ function checkMatchInvariants(match: Match, label: string): void {
       }
     }
   }
+  const goalEvents = match.events.filter((e) => e.type === 'gol');
+  const homeGoalEvs = goalEvents.filter((e) => e.clubId === match.homeClubId).length;
+  const awayGoalEvs = goalEvents.filter((e) => e.clubId === match.awayClubId).length;
+  if (homeGoalEvs !== match.homeGoals || awayGoalEvs !== match.awayGoals) {
+    invariantFailures.push(
+      `[${label}] goals (${match.homeGoals}-${match.awayGoals}) != goal events (${homeGoalEvs}-${awayGoalEvs})`
+    );
+  }
+  const goalMinutes = goalEvents.map((e) => e.minute);
+  if (new Set(goalMinutes).size !== goalMinutes.length) {
+    invariantFailures.push(`[${label}] multiple goals in same minute (${goalMinutes.join(',')})`);
+  }
 }
 
 function simulateFullMatch(
@@ -153,7 +165,8 @@ function simulateFullMatch(
     match.manualControlClubs = [home.id, away.id];
   }
 
-  for (let min = 0; min < 90; min++) {
+  let safety = 0;
+  while (match.status !== 'finalizada' && safety++ < 110) {
     if (match.isHalftime) {
       match.isHalftime = false;
       match.halftimeRemainingSec = 0;
@@ -553,8 +566,22 @@ for (let i = 0; i < TACTICAL_PRESETS.length; i++) {
   for (let j = i + 1; j < TACTICAL_PRESETS.length; j++) {
     const pA = TACTICAL_PRESETS[i];
     const pB = TACTICAL_PRESETS[j];
-    const fA: Formation = pA.id === 'bloco_baixo' ? '5-3-2' : pA.id === 'posse' ? '4-2-3-1' : '4-3-3';
-    const fB: Formation = pB.id === 'bloco_baixo' ? '5-3-2' : pB.id === 'posse' ? '4-2-3-1' : '4-3-3';
+    const fA: Formation =
+      pA.id === 'ligacao_direta'
+        ? '5-3-2'
+        : pA.id === 'posse' || pA.id === 'meio'
+        ? '4-2-3-1'
+        : pA.id === 'contra_ataque'
+        ? '4-4-2'
+        : '4-3-3';
+    const fB: Formation =
+      pB.id === 'ligacao_direta'
+        ? '5-3-2'
+        : pB.id === 'posse' || pB.id === 'meio'
+        ? '4-2-3-1'
+        : pB.id === 'contra_ataque'
+        ? '4-4-2'
+        : '4-3-3';
     const cA = createSyntheticClub(pA.id, 80, { formation: fA, mentality: pA.mentality, tactics: pA.tactics });
     const cB = createSyntheticClub(pB.id, 80, { formation: fB, mentality: pB.mentality, tactics: pB.tactics });
     for (let k = 0; k < 40; k++) {
@@ -625,7 +652,7 @@ const diffPairs: Array<[BotDifficulty, BotDifficulty]> = [
   ['lendario', 'medio'],
 ];
 const presetFormationFor = (id: string): Formation =>
-  id === 'bloco_baixo' ? '5-3-2' : id === 'posse' ? '4-2-3-1' : '4-3-3';
+  id === 'ligacao_direta' ? '5-3-2' : id === 'posse' || id === 'meio' ? '4-2-3-1' : id === 'contra_ataque' ? '4-4-2' : '4-3-3';
 let aiHierarchyOk = true;
 for (const [dA, dB] of diffPairs) {
   let wA = 0, dr = 0, wB = 0, changesA = 0, changesB = 0;

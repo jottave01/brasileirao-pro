@@ -10,7 +10,7 @@ export const BRASILEIRAO_TARGETS = {
 
 export const SIM_BALANCE = {
   // Volume de posses/passes (~350-420 passes/time com ~78-83% acerto, ~12-14 chutes/time, ~2.45 gols/jogo)
-  possessionsPerMinuteBase: 2.42,
+  possessionsPerMinuteBase: 2.34,
   maxStepsPerPossession: 8,
 
   // Vantagem realista de jogar em casa (~0.95 pts -> ~44-48% Casa, ~25-29% Empate, ~24-28% Fora)
@@ -21,8 +21,8 @@ export const SIM_BALANCE = {
   shotFinishScaleDivisor: 22.5,
 
   // Execução base
-  basePassSuccess: 0.915,
-  baseVerticalSuccess: 0.54,
+  basePassSuccess: 0.926,
+  baseVerticalSuccess: 0.56,
   baseLongBallSuccess: 0.34,
   baseDribbleSuccess: 0.53,
   baseCrossSuccess: 0.22,
@@ -36,8 +36,8 @@ export const SIM_BALANCE = {
   penaltyRateOnBoxFoul: 0.4,
 
   // Funil realista de Finalizações (~12-14.5 chutes/time -> ~4.2-5.1 no alvo -> ~2.35-2.65 gols/jogo)
-  baseShootTriggerZone4: 0.007,
-  baseShootTriggerZone5: 0.088,
+  baseShootTriggerZone4: 0.0056,
+  baseShootTriggerZone5: 0.072,
   shotBlockBaseRate: 0.22,
   onTargetBaseRate: 0.31,
   goalOnTargetBaseRate: 0.175,

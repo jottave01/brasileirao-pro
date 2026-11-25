@@ -1,7 +1,13 @@
 import React from 'react';
 import { Ticket, Users } from 'lucide-react';
 import { Club, Match } from '../types/league';
-import { FORMATION_LAYOUT, getClubTactics, normalizeMatchStats } from '../engine/botAI';
+import {
+  FORMATION_LAYOUT,
+  getClubTactics,
+  inferPlayStyleFromClub,
+  normalizeMatchStats,
+  normalizePosture,
+} from '../engine/botAI';
 import { formatMillionsBRL } from '../data/seedData';
 import { ClubCrest } from './ClubBadge';
 
@@ -200,13 +206,16 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
   };
 
   const ballSvgX = 24 + (match.ballX / 100) * 552;
-  const ballSvgY = 20 + (match.ballY / 100) * 320;
+  const ballSvgY = 18 + (match.ballY / 100) * 324;
   const fromSvgX =
     match.fromBallX !== undefined ? 24 + (match.fromBallX / 100) * 552 : undefined;
   const fromSvgY =
-    match.fromBallY !== undefined ? 20 + (match.fromBallY / 100) * 320 : undefined;
+    match.fromBallY !== undefined ? 18 + (match.fromBallY / 100) * 324 : undefined;
 
   const isGoal = match.playPhase === 'gol_casa' || match.playPhase === 'gol_fora';
+  const isPostHit = match.shotOutcome === 'trave';
+  const isBlock = match.shotOutcome === 'bloqueio';
+  const isKeeperSave = match.shotOutcome === 'defesa' || match.shotOutcome === 'escanteio';
   const lastGoal = [...match.events].reverse().find((e) => e.type === 'gol');
   const goalClub =
     match.playPhase === 'gol_casa'
@@ -230,12 +239,20 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
     match.playPhase === 'cruzamento_fora';
   const ballAtFeet = showPassTrail || match.playPhase === 'meio_campo';
   const trailTargetX =
-    match.playPhase === 'finalizacao_casa' || match.playPhase === 'gol_casa' ? 578 : 22;
+    match.playPhase === 'finalizacao_casa' || match.playPhase === 'gol_casa' ? 576 : 24;
   const renderedBallX = ballAtFeet ? Math.min(574, ballSvgX + 7) : ballSvgX;
   const renderedBallY = ballAtFeet ? Math.min(338, ballSvgY + 4) : ballSvgY;
 
   const phaseBadge = isGoal
     ? { label: 'GOOOL!', cls: 'bg-amber-400 text-slate-950' }
+    : isPostHit
+    ? { label: 'NA TRAVE!', cls: 'bg-amber-500 text-slate-950' }
+    : isBlock
+    ? { label: 'BLOQUEIO', cls: 'bg-sky-500 text-slate-950' }
+    : match.shotOutcome === 'escanteio'
+    ? { label: 'ESCANTEIO', cls: 'bg-emerald-400 text-slate-950' }
+    : isKeeperSave
+    ? { label: 'DEFESA!', cls: 'bg-sky-400 text-slate-950' }
     : showShotTrail
     ? { label: 'FINALIZAÇÃO', cls: 'bg-rose-500 text-white' }
     : match.playPhase === 'contra_ataque_casa' || match.playPhase === 'contra_ataque_fora'
@@ -298,7 +315,9 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                 </span>
               )}
               <span>{homeClub.formation}</span>
-              <span className="hidden sm:inline">• {homeClub.mentality}</span>
+              <span className="hidden sm:inline">
+                • {inferPlayStyleFromClub(homeClub)} ({normalizePosture(homeClub.mentality)})
+              </span>
             </div>
           </div>
           <ClubCrest club={homeClub} size="md" />
@@ -350,7 +369,9 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
             </div>
             <div className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1">
               <span>{awayClub.formation}</span>
-              <span className="hidden sm:inline">• {awayClub.mentality}</span>
+              <span className="hidden sm:inline">
+                • {inferPlayStyleFromClub(awayClub)} ({normalizePosture(awayClub.mentality)})
+              </span>
               {awayRedIds.length > 0 && (
                 <span className="px-1 rounded bg-rose-600 text-white text-[9px] font-extrabold shrink-0">
                   🟥 {awayRedIds.length}
@@ -363,7 +384,7 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
 
       {/* Campo 2D Broadcast */}
       <div className="relative bg-[#06150E] p-2 sm:p-3">
-        {match.status === 'ao_vivo' && !match.isHalftime && (
+        {((match.status === 'ao_vivo' && !match.isHalftime) || isGoal) && (
           <div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-10 pointer-events-none">
             <span
               className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider shadow ${phaseBadge.cls}`}
@@ -447,10 +468,24 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
               y1={fromSvgY ?? ballSvgY}
               x2={fromSvgX !== undefined ? ballSvgX : trailTargetX}
               y2={fromSvgY !== undefined ? ballSvgY : 180}
-              stroke="rgba(250, 204, 21, 0.88)"
+              stroke={isPostHit ? 'rgba(245, 158, 11, 0.95)' : 'rgba(250, 204, 21, 0.88)'}
               strokeWidth="2.6"
               strokeDasharray="6 4"
             />
+          )}
+
+          {isPostHit && (
+            <g>
+              <circle
+                cx={ballSvgX}
+                cy={ballSvgY}
+                r="13"
+                fill="rgba(245, 158, 11, 0.25)"
+                stroke="#F59E0B"
+                strokeWidth="2"
+              />
+              <circle cx={ballSvgX} cy={ballSvgY} r="4.5" fill="#FDE047" />
+            </g>
           )}
 
           {/* Jogadores da Casa (remove expulsos do campo) */}
@@ -471,6 +506,13 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                 showShotTrail && fromSvgX !== undefined && fromSvgY !== undefined
                   ? { x: fromSvgX, y: fromSvgY }
                   : { x: ballSvgX, y: ballSvgY };
+            } else if (isSecondary && isBlock) {
+              pos = { x: ballSvgX, y: ballSvgY };
+            } else if (isSecondary && isKeeperSave) {
+              pos =
+                match.shotOutcome === 'escanteio'
+                  ? { x: 34, y: Math.max(150, Math.min(210, ballSvgY)) }
+                  : { x: Math.min(58, Math.max(30, ballSvgX)), y: Math.max(152, Math.min(208, ballSvgY)) };
             } else if (
               isSecondary &&
               showPassTrail &&
@@ -478,10 +520,13 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
               fromSvgY !== undefined
             ) {
               pos = { x: fromSvgX, y: fromSvgY };
+            } else if (spec.role === 'GOL' && match.playPhase === 'gol_fora') {
+              pos = { x: 34, y: Math.max(155, Math.min(205, ballSvgY)) };
             }
             return (
               <g
                 key={`home-slot-${idx}`}
+                className="pitch-motion"
                 filter="url(#playerGlow)"
                 style={{
                   transform: `translate(${pos.x}px, ${pos.y}px)`,
@@ -576,6 +621,13 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
                 showShotTrail && fromSvgX !== undefined && fromSvgY !== undefined
                   ? { x: fromSvgX, y: fromSvgY }
                   : { x: ballSvgX, y: ballSvgY };
+            } else if (isSecondary && isBlock) {
+              pos = { x: ballSvgX, y: ballSvgY };
+            } else if (isSecondary && isKeeperSave) {
+              pos =
+                match.shotOutcome === 'escanteio'
+                  ? { x: 566, y: Math.max(150, Math.min(210, ballSvgY)) }
+                  : { x: Math.max(542, Math.min(570, ballSvgX)), y: Math.max(152, Math.min(208, ballSvgY)) };
             } else if (
               isSecondary &&
               showPassTrail &&
@@ -583,10 +635,13 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
               fromSvgY !== undefined
             ) {
               pos = { x: fromSvgX, y: fromSvgY };
+            } else if (spec.role === 'GOL' && match.playPhase === 'gol_casa') {
+              pos = { x: 566, y: Math.max(155, Math.min(205, ballSvgY)) };
             }
             return (
               <g
                 key={`away-slot-${idx}`}
+                className="pitch-motion"
                 filter="url(#playerGlow)"
                 style={{
                   transform: `translate(${pos.x}px, ${pos.y}px)`,
@@ -672,6 +727,7 @@ export const LiveMatchPitch: React.FC<LiveMatchPitchProps> = ({
 
           {/* Bola Animada */}
           <g
+            className="pitch-motion"
             style={{
               transform: `translate(${renderedBallX}px, ${renderedBallY}px)`,
               transition: 'transform 1280ms cubic-bezier(0.22, 1, 0.36, 1)',

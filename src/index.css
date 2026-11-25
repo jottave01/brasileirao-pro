@@ -168,6 +168,9 @@
   .animate-score-pulse {
     animation: none !important;
   }
+  .pitch-motion {
+    transition: none !important;
+  }
 }
 
 /* Custom subtle scrollbars */

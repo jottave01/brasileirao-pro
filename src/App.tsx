@@ -24,6 +24,8 @@ import {
 import {
   createLeagueFromConfig,
   generateSchedule,
+  isFixedScheduleExpired,
+  isWithinFixedScheduleWindow,
   reanchorFutureRoundsSchedule,
 } from './engine/leagueGenerator';
 import {
@@ -52,6 +54,7 @@ import {
   getClubTactics,
   getPositionFit,
   isClubInFinancialDebt,
+  normalizePosture,
   PAYROLL_INTERVAL_ROUNDS,
   processBotContractExpirations,
   resolveTransferDispute,
@@ -562,8 +565,15 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
       return true;
     });
 
+    const normalizedPosture = normalizePosture(club.mentality);
+    const resolvedTactics = getClubTactics(club);
+    const needsTacticsMigration =
+      !club.tactics ||
+      !club.tactics.playStyle ||
+      club.mentality !== normalizedPosture;
+
     const needsFinanceMigration =
-      club.tactics === undefined ||
+      needsTacticsMigration ||
       club.stadiumCapacity === undefined ||
       club.finances.wageBudget === undefined ||
       club.finances.revenueTransferPct === undefined ||
@@ -585,7 +595,8 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
     const nextWageBill = calcMonthlyPayrollMillions({ squad: built.squad, tier: club.tier });
     return {
       ...club,
-      tactics: club.tactics ?? getClubTactics(club),
+      mentality: normalizedPosture,
+      tactics: resolvedTactics,
       stadiumCapacity: club.stadiumCapacity ?? template?.stadiumCapacity ?? 35000,
       squad: built.squad,
       lineupSlots: built.lineupSlots,
@@ -602,20 +613,40 @@ function syncOfficialClubSquads(state: LeagueState): LeagueState {
     };
   });
 
-  const needsScheduleMigration =
-    state.config.dailyScheduleTimes?.[0] !== '12:00' ||
-    state.config.dailyScheduleTimes?.[1] === '20:00';
+  const validTimeRe = /^\d{2}:\d{2}$/;
+  const hasValidSchedule =
+    Array.isArray(state.config.dailyScheduleTimes) &&
+    state.config.dailyScheduleTimes.length === 2 &&
+    validTimeRe.test(state.config.dailyScheduleTimes[0]) &&
+    validTimeRe.test(state.config.dailyScheduleTimes[1]);
 
-  if (!changed && !needsScheduleMigration && state.transferDisputes) return state;
+  const effectiveTimes: [string, string] = hasValidSchedule
+    ? state.config.dailyScheduleTimes
+    : ['12:00', '22:00'];
+
+  const curRoundMatches = state.matches.filter((m) => m.round === state.currentRound);
+  const curRoundAllScheduled =
+    curRoundMatches.length > 0 && curRoundMatches.every((m) => m.status === 'agendada');
+  const needsExpiredReanchor =
+    state.status === 'campeonato' &&
+    curRoundAllScheduled &&
+    isFixedScheduleExpired(curRoundMatches[0]?.scheduledAt);
+
+  const nextMatches = needsExpiredReanchor
+    ? reanchorFutureRoundsSchedule(state.matches, state.currentRound, effectiveTimes, Date.now())
+    : state.matches;
+
+  if (!changed && hasValidSchedule && !needsExpiredReanchor && state.transferDisputes) return state;
   return {
     ...state,
-    config: needsScheduleMigration
-      ? {
+    config: hasValidSchedule
+      ? state.config
+      : {
           ...state.config,
-          dailyScheduleTimes: ['12:00', '22:00'],
-        }
-      : state.config,
+          dailyScheduleTimes: effectiveTimes,
+        },
     clubs: nextClubs,
+    matches: nextMatches,
     worldMarket: migratedWorld,
     freeAgents: migratedFree,
     transferDisputes: state.transferDisputes ?? [],
@@ -999,6 +1030,7 @@ function applyUpdateTacticsState(
   mentality: TacticalMentality,
   tactics?: ClubTactics
 ): LeagueState {
+  const normalizedPosture = normalizePosture(mentality);
   return {
     ...prev,
     matches: markMatchManualControl(prev.matches, prev.currentRound, clubId),
@@ -1007,8 +1039,8 @@ function applyUpdateTacticsState(
       const remapped = remapLineupSlotsForFormation(c, formation);
       return {
         ...remapped,
-        mentality,
-        tactics: tactics ?? c.tactics ?? getClubTactics(c),
+        mentality: normalizedPosture,
+        tactics: tactics ?? c.tactics ?? getClubTactics({ ...c, mentality: normalizedPosture }),
       };
     }),
   };
@@ -2010,6 +2042,18 @@ export function App() {
       if (!isValidLeagueState(nextState)) return;
       skipNextSaveRef.current = true;
       setLeague((prev) => {
+        if (nextState.currentRound < prev.currentRound) return prev;
+        if (nextState.currentRound === prev.currentRound) {
+          const prevMaxMin = Math.max(
+            0,
+            ...prev.matches.filter((m) => m.round === prev.currentRound).map((m) => m.currentMinute)
+          );
+          const nextMaxMin = Math.max(
+            0,
+            ...nextState.matches.filter((m) => m.round === nextState.currentRound).map((m) => m.currentMinute)
+          );
+          if (nextMaxMin < prevMaxMin) return prev;
+        }
         const myParticipant = nextState.participants.find((p) => p.id === prev.currentUserId);
         return {
           ...nextState,
@@ -2101,15 +2145,12 @@ export function App() {
         let next = resolveExpiredOrAllDisputes(prev, isWinExpired);
         if (!isWinExpired) return next;
 
-        const rescheduledMatches =
-          next.currentRound >= 2
-            ? reanchorFutureRoundsSchedule(
-                next.matches,
-                next.currentRound,
-                next.config.dailyScheduleTimes,
-                curNow
-              )
-            : next.matches;
+        const rescheduledMatches = reanchorFutureRoundsSchedule(
+          next.matches,
+          next.currentRound,
+          next.config.dailyScheduleTimes,
+          curNow
+        );
 
         return {
           ...next,
@@ -2292,7 +2333,7 @@ export function App() {
     return () => clearInterval(timer);
   }, [liveRoundRunning]);
 
-  // Agendador Automático das Rodadas 2..N nos horários 12:00 e 22:00 (Horário de Brasília)
+  // Agendador Automático estritamente nos horários fixos definidos (Horário de Brasília)
   useEffect(() => {
     if (league.status !== 'campeonato') return;
     if (isSupabaseConfigured && !isAdminUser) return;
@@ -2300,15 +2341,17 @@ export function App() {
     const checkSchedule = () => {
       const nowMs = Date.now();
       const roundMatches = league.matches.filter((m) => m.round === league.currentRound);
-      const isRoundDone =
-        roundMatches.length > 0 && roundMatches.every((m) => m.status === 'finalizada');
+      if (roundMatches.length === 0) return;
 
+      const isRoundDone = roundMatches.every((m) => m.status === 'finalizada');
+      const hasLiveMatch = roundMatches.some((m) => m.status === 'ao_vivo');
+
+      // 1. Rodada atual já finalizada: só avança e inicia a próxima dentro da janela do horário fixo dela
       if (isRoundDone && league.currentRound < league.totalRounds) {
         const nextRoundMatch = league.matches.find((m) => m.round === league.currentRound + 1);
-        const nextTs = nextRoundMatch?.scheduledAt
-          ? new Date(nextRoundMatch.scheduledAt).getTime()
-          : NaN;
-        if (!Number.isNaN(nextTs) && nowMs >= nextTs) {
+        if (!nextRoundMatch?.scheduledAt) return;
+
+        if (isWithinFixedScheduleWindow(nextRoundMatch.scheduledAt, nowMs)) {
           const nowStr = new Date().toLocaleTimeString('pt-BR', {
             hour: '2-digit',
             minute: '2-digit',
@@ -2318,27 +2361,130 @@ export function App() {
             !league.midSeasonWindowDone &&
             league.currentRound === Math.floor(league.totalRounds / 2);
 
-          setLeague((prev) => advanceToNextRoundState(prev, nowStr).nextState);
-          if (!willOpenMidWindow) {
-            setLiveRoundRunning(true);
-          } else {
-            setLiveRoundRunning(false);
-          }
+          setLeague((prev) => {
+            const { nextState } = advanceToNextRoundState(prev, nowStr);
+            if (willOpenMidWindow) return nextState;
+            const startedIso = new Date(nowMs).toISOString();
+            return {
+              ...nextState,
+              matches: nextState.matches.map((m) =>
+                m.round === nextState.currentRound
+                  ? { ...m, liveStartedAt: m.liveStartedAt ?? startedIso }
+                  : m
+              ),
+            };
+          });
+          setLiveRoundRunning(!willOpenMidWindow);
+          return;
+        }
+
+        // Horário fixo da próxima rodada já passou com o app fechado -> reancora para os próximos horários fixos futuros
+        if (isFixedScheduleExpired(nextRoundMatch.scheduledAt, nowMs)) {
+          setLeague((prev) => ({
+            ...prev,
+            matches: reanchorFutureRoundsSchedule(
+              prev.matches,
+              prev.currentRound + 1,
+              prev.config.dailyScheduleTimes,
+              nowMs
+            ),
+          }));
         }
         return;
       }
 
-      if (!isRoundDone && !liveRoundRunning && league.currentRound >= 2) {
-        const curTs = roundMatches[0]?.scheduledAt
-          ? new Date(roundMatches[0].scheduledAt).getTime()
-          : NaN;
-        if (!Number.isNaN(curTs) && nowMs >= curTs) {
-          setLeague((prev) => ({
-            ...prev,
-            clubs: ensureClubsHaveNoSuspendedStarters(prev.clubs),
-          }));
+      if (isRoundDone || liveRoundRunning) return;
+
+      // 2. Rodada atual estava 'ao_vivo' ao abrir o app (ex.: recarregou página)
+      if (hasLiveMatch) {
+        const liveMatch = roundMatches.find((m) => m.status === 'ao_vivo');
+        const isManual = roundMatches.some((m) => Boolean(m.manualStarted));
+        const startedRefMs = liveMatch?.liveStartedAt
+          ? new Date(liveMatch.liveStartedAt).getTime()
+          : new Date(liveMatch?.scheduledAt ?? '').getTime();
+        const withinActiveLiveWindow =
+          !Number.isNaN(startedRefMs) && nowMs - startedRefMs <= 25 * 60 * 1000;
+
+        if (isManual || withinActiveLiveWindow) {
           setLiveRoundRunning(true);
+        } else {
+          // Partida antiga interrompida fora do horário: conclui sem abrir transmissão fora de hora e reancora futuras
+          setLeague((prev) => {
+            let updatedClubs = ensureClubsHaveNoSuspendedStarters(prev.clubs);
+            const finishedInRound: Match[] = [];
+
+            let updatedMatches = prev.matches.map((m) => {
+              if (m.round !== prev.currentRound || m.status === 'finalizada') return m;
+              const remaining = Math.max(1, 90 - m.currentMinute);
+              const home = updatedClubs.find((c) => c.id === m.homeClubId);
+              const away = updatedClubs.find((c) => c.id === m.awayClubId);
+              if (!home || !away) return m;
+              const cleared = m.isHalftime
+                ? { ...m, isHalftime: false, halftimeRemainingSec: 0, halftimeTriggered: true }
+                : m;
+              const res = simulateMatchMinuteStep(cleared, home, away, remaining);
+              if (res.match.status === 'finalizada') finishedInRound.push(res.match);
+              return res.match;
+            });
+
+            finishedInRound.forEach((fm) => {
+              const outcome = applyFinishedMatchToLeague(
+                updatedClubs,
+                fm,
+                prev.totalRounds,
+                updatedMatches
+              );
+              updatedClubs = outcome.clubs;
+              updatedMatches = updatedMatches.map((m) =>
+                m.id === outcome.finishedMatch.id ? outcome.finishedMatch : m
+              );
+            });
+
+            const isSeasonEnd =
+              prev.currentRound >= prev.totalRounds &&
+              updatedMatches.filter((m) => m.round === prev.currentRound).every((m) => m.status === 'finalizada');
+
+            return {
+              ...prev,
+              clubs: updatedClubs,
+              matches: reanchorFutureRoundsSchedule(
+                updatedMatches,
+                prev.currentRound + 1,
+                prev.config.dailyScheduleTimes,
+                nowMs
+              ),
+              status: isSeasonEnd ? 'fim_temporada' : prev.status,
+            };
+          });
         }
+        return;
+      }
+
+      // 3. Rodada atual ainda está 'agendada' (vale para Rodada 1 e todas as demais)
+      const curSchedAt = roundMatches[0]?.scheduledAt;
+      if (isWithinFixedScheduleWindow(curSchedAt, nowMs)) {
+        const startedIso = new Date(nowMs).toISOString();
+        setLeague((prev) => ({
+          ...prev,
+          clubs: ensureClubsHaveNoSuspendedStarters(prev.clubs),
+          matches: prev.matches.map((m) =>
+            m.round === prev.currentRound
+              ? { ...m, liveStartedAt: m.liveStartedAt ?? startedIso }
+              : m
+          ),
+        }));
+        setLiveRoundRunning(true);
+      } else if (isFixedScheduleExpired(curSchedAt, nowMs)) {
+        // Nunca iniciar uma rodada agendada fora do horário fixo só por entrar no app; reancora para os próximos horários fixos
+        setLeague((prev) => ({
+          ...prev,
+          matches: reanchorFutureRoundsSchedule(
+            prev.matches,
+            prev.currentRound,
+            prev.config.dailyScheduleTimes,
+            nowMs
+          ),
+        }));
       }
     };
 
@@ -2350,6 +2496,9 @@ export function App() {
     league.currentRound,
     league.totalRounds,
     league.matches,
+    league.config.dailyScheduleTimes,
+    league.config.homeAndAway,
+    league.midSeasonWindowDone,
     liveRoundRunning,
     isAdminUser,
   ]);
@@ -2746,15 +2895,12 @@ export function App() {
     const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     setLeague((prev) => {
       const resolved = resolveExpiredOrAllDisputes(prev, true);
-      const nextMatches =
-        resolved.currentRound >= 2
-          ? reanchorFutureRoundsSchedule(
-              resolved.matches,
-              resolved.currentRound,
-              resolved.config.dailyScheduleTimes,
-              Date.now()
-            )
-          : resolved.matches;
+      const nextMatches = reanchorFutureRoundsSchedule(
+        resolved.matches,
+        resolved.currentRound,
+        resolved.config.dailyScheduleTimes,
+        Date.now()
+      );
       return {
         ...resolved,
         status: 'campeonato',
@@ -2767,7 +2913,7 @@ export function App() {
             category: 'admin',
             actorName: 'Admin',
             actorType: 'human',
-            message: 'Janela de transferências encerrada! Disputas finalizadas e partidas prontas.',
+            message: 'Janela de transferências encerrada! Disputas finalizadas e partidas agendadas nos horários fixos.',
             timestamp: nowStr,
           },
           ...resolved.feed.slice(0, 24),
@@ -2779,19 +2925,23 @@ export function App() {
 
   const handleStartLiveRound = () => {
     if (isSupabaseConfigured && !isAdminUser) return;
+    const nowMs = Date.now();
+    const startedIso = new Date(nowMs).toISOString();
     setLeague((prev) => {
       const base =
         prev.status === 'janela_mercado' ? resolveExpiredOrAllDisputes(prev, true) : prev;
       const cleanClubs = ensureClubsHaveNoSuspendedStarters(base.clubs);
-      const anchoredMatches =
-        base.currentRound === 1
-          ? reanchorFutureRoundsSchedule(
-              base.matches,
-              2,
-              base.config.dailyScheduleTimes,
-              Date.now()
-            )
-          : base.matches;
+      const taggedCurrent = base.matches.map((m) =>
+        m.round === base.currentRound
+          ? { ...m, manualStarted: true, liveStartedAt: m.liveStartedAt ?? startedIso }
+          : m
+      );
+      const anchoredMatches = reanchorFutureRoundsSchedule(
+        taggedCurrent,
+        base.currentRound + 1,
+        base.config.dailyScheduleTimes,
+        nowMs
+      );
       return {
         ...base,
         status: 'campeonato',

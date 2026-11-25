@@ -26,9 +26,10 @@ import {
   calculateSeasonPrizes,
   evaluateTacticalMatchup,
   FORMATION_LAYOUT,
-  getClubTactics,
   getPositionFit,
+  inferPlayStyleFromClub,
   normalizeMatchStats,
+  normalizePosture,
 } from '../engine/botAI';
 import { TacticalInstructionsPanel } from './TacticalInstructionsPanel';
 import { formatMillionsBRL } from '../data/seedData';
@@ -61,14 +62,6 @@ interface CompetitionViewProps {
   ) => void;
   onStartNextSeason: () => void;
 }
-
-const MENTALITIES: TacticalMentality[] = [
-  'Retranca',
-  'Contra-Ataque',
-  'Equilibrada',
-  'Ofensiva',
-  'Tudo ou Nada',
-];
 
 const EVENT_BADGE: Record<MatchEvent['type'], { label: string; cls: string }> = {
   gol: { label: 'GOL', cls: 'bg-emerald-500 text-slate-950' },
@@ -520,30 +513,28 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                   Transmissão Ao Vivo
                 </div>
-              ) : league.currentRound === 1 ? (
-                isAdmin ? (
-                  <button
-                    type="button"
-                    onClick={onStartLiveRound}
-                    className="px-5 py-3 rounded-md text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 cursor-pointer shrink-0 bg-rose-600 hover:bg-rose-500 text-white shadow-lg transition"
-                  >
-                    <Radio className="w-4 h-4" />
-                    Iniciar 1ª Rodada Ao Vivo
-                  </button>
-                ) : (
-                  <div className="px-3.5 py-2 rounded-md bg-[#090C10]/90 border border-white/12 text-xs font-semibold text-slate-300 shrink-0">
-                    Aguardando Admin (1ª Rodada)
-                  </div>
-                )
               ) : (
-                <div className="px-3.5 py-2 rounded-md bg-emerald-500/15 border border-emerald-500/35 text-xs font-bold text-emerald-300 shrink-0">
-                  Início Automático Programado
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="px-3.5 py-2 rounded-md bg-[#090C10]/90 border border-emerald-500/35 text-xs font-bold text-emerald-300">
+                    Horário Fixo: {scheduledDate} (BRT)
+                  </div>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={onStartLiveRound}
+                      className="px-4 py-2 rounded-md text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer bg-rose-600/90 hover:bg-rose-500 text-white shadow transition"
+                      title="Disparar esta rodada manualmente agora sem aguardar o horário fixo"
+                    >
+                      <Radio className="w-3.5 h-3.5" />
+                      Iniciar Agora (Manual)
+                    </button>
+                  )}
                 </div>
               )
             ) : (
               <div className="px-3.5 py-2 rounded-md bg-amber-400/15 border border-amber-400/35 text-xs font-bold text-amber-300 shrink-0">
                 {league.currentRound < league.totalRounds
-                  ? 'Próx. Rodada Automática'
+                  ? `Próx. Rodada: ${scheduledDate} (BRT)`
                   : 'Temporada Encerrada'}
               </div>
             )}
@@ -884,63 +875,16 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                     </button>
                   </div>
 
-                  {/* Posturas Táticas */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {MENTALITIES.map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() =>
-                          onUpdateTactics(
-                            activeClub.id,
-                            activeClub.formation,
-                            m,
-                            getClubTactics(activeClub)
-                          )
-                        }
-                        className={`px-2.5 py-1.5 rounded text-[11px] font-bold whitespace-nowrap border cursor-pointer transition ${
-                          activeClub.mentality === m
-                            ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                            : 'bg-[#090C10] text-slate-300 border-white/10 hover:border-white/25'
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Troca rápida de formação */}
-                  <div className="flex items-center justify-between text-xs text-slate-300">
-                    <span>Formação em campo:</span>
-                    <select
-                      value={activeClub.formation}
-                      onChange={(e) => {
-                        setSubOutSlotIdx(null);
-                        setSelectedBenchId(null);
-                        onUpdateTactics(
-                          activeClub.id,
-                          e.target.value as Formation,
-                          activeClub.mentality,
-                          getClubTactics(activeClub)
-                        );
-                      }}
-                      className="px-3 py-1.5 rounded bg-[#090C10] border border-white/12 text-xs font-bold text-white"
-                    >
-                      <option value="4-3-3">4-3-3</option>
-                      <option value="4-4-2">4-4-2</option>
-                      <option value="4-2-3-1">4-2-3-1</option>
-                      <option value="3-5-2">3-5-2</option>
-                      <option value="3-4-3">3-4-3</option>
-                      <option value="5-3-2">5-3-2</option>
-                    </select>
-                  </div>
-
                   <TacticalInstructionsPanel
                     club={activeClub}
                     compact
-                    onChangeTactics={(nextFormation, nextMentality, nextTactics) =>
-                      onUpdateTactics(activeClub.id, nextFormation, nextMentality, nextTactics)
-                    }
+                    onChangeTactics={(nextFormation, nextMentality, nextTactics) => {
+                      if (nextFormation !== activeClub.formation) {
+                        setSubOutSlotIdx(null);
+                        setSelectedBenchId(null);
+                      }
+                      onUpdateTactics(activeClub.id, nextFormation, nextMentality, nextTactics);
+                    }}
                   />
 
                   {/* Leitura Tática vs Adversário */}
@@ -949,7 +893,7 @@ export const CompetitionView: React.FC<CompetitionViewProps> = ({
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 truncate">
                           vs {userOpponentClub.shortName} ({userOpponentClub.formation} •{' '}
-                          {userOpponentClub.mentality})
+                          {inferPlayStyleFromClub(userOpponentClub)} · {normalizePosture(userOpponentClub.mentality)})
                         </span>
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${

@@ -16,10 +16,13 @@ import {
   getPositionFit,
 } from './playerAttributes';
 import {
+  buildTacticsForPlayStyle,
   calculateClubStrength,
   evaluateTacticalCompatibility,
   getClubTactics,
   getEffectiveStarters,
+  inferPlayStyleFromClub,
+  normalizePosture,
   tacticsEqual,
 } from './tacticalEngine';
 
@@ -211,7 +214,9 @@ function pickCompatibleFormation(
 ): Formation {
   const viable = preferred.filter((f) => {
     const zags = club.squad.filter((p) => !redCardedIds.includes(p.id) && p.position === 'ZAG').length;
-    if ((f === '3-5-2' || f === '3-4-3' || f === '5-3-2') && zags < 3) return false;
+    if ((f === '3-5-2' || f === '3-4-3' || f === '5-3-2' || f === '5-4-1' || f === '3-4-2-1') && zags < 3) {
+      return false;
+    }
     return true;
   });
   return viable[0] ?? club.formation;
@@ -284,11 +289,14 @@ export function evaluateBotTacticalDecision(params: {
   }
 
   const curTactics = getClubTactics(ownClub);
-  const oppTactics = getClubTactics(oppClub);
+  const curPlayStyle = inferPlayStyleFromClub(ownClub);
+  const curPosture = normalizePosture(ownClub.mentality);
+  const oppPlayStyle = inferPlayStyleFromClub(oppClub);
+  const oppPosture = normalizePosture(oppClub.mentality);
   const starters = getEffectiveStarters(ownClub, ownRedIds);
 
   let candFormation: Formation = ownClub.formation;
-  let candMentality: TacticalMentality = ownClub.mentality;
+  let candMentality: TacticalMentality = curPosture;
   let candTactics: ClubTactics = { ...curTactics };
   let reasonKey = '';
   let reasonText = '';
@@ -300,26 +308,15 @@ export function evaluateBotTacticalDecision(params: {
   if (ownRedIds.length > 0 && !alreadyDid('red_adapt') && (recentRedEmergency || canSeeSignal())) {
     reasonKey = 'red_adapt';
     if (diag.goalDiff >= 0) {
-      candFormation = pickCompatibleFormation(ownClub, ['4-4-2', '5-3-2'], ownRedIds);
-      candMentality = 'Contra-Ataque';
-      candTactics = {
-        buildUpStyle: 'Contra-ataques rápidos',
-        offensiveStyle: 'Transições rápidas',
-        pressing: 'Pressão baixa',
-        defensiveLine: 'Recuada',
-        intensity: 'Normal',
-      };
-      reasonText = `Com um a menos, ${ownClub.shortName} fecha linhas em ${candFormation} (${candMentality}).`;
+      candFormation = pickCompatibleFormation(ownClub, ['4-4-2', '5-3-2', '5-4-1'], ownRedIds);
+      candMentality = 'Defender';
+      candTactics = buildTacticsForPlayStyle('Contra-ataque', candMentality);
+      reasonText = `Com um a menos, ${ownClub.shortName} fecha linhas em ${candFormation} (Contra-ataque).`;
     } else {
       candFormation = pickCompatibleFormation(ownClub, ['4-4-2', '4-2-3-1'], ownRedIds);
-      candMentality = 'Equilibrada';
-      candTactics = {
-        ...curTactics,
-        pressing: 'Bloco médio',
-        defensiveLine: 'Equilibrada',
-        intensity: 'Normal',
-      };
-      reasonText = `Após expulsão, ${ownClub.shortName} ajusta bloco médio para manter equilíbrio.`;
+      candMentality = 'Equilibrado';
+      candTactics = buildTacticsForPlayStyle('Equilibrado', candMentality);
+      reasonText = `Após expulsão, ${ownClub.shortName} ajusta equilíbrio no ${candFormation}.`;
     }
   }
   // Prioridade 2: Adversário com jogador expulso -> explorar vantagem numérica
@@ -331,36 +328,27 @@ export function evaluateBotTacticalDecision(params: {
   ) {
     reasonKey = 'exploit_opp_red';
     candFormation = pickCompatibleFormation(ownClub, ['4-3-3', '4-2-3-1', '3-4-3'], ownRedIds);
-    candMentality = 'Ofensiva';
-    candTactics = {
-      ...curTactics,
-      offensiveStyle:
-        curTactics.offensiveStyle === 'Posse de bola' ? 'Jogo pelas laterais' : curTactics.offensiveStyle,
-      pressing: 'Pressão após perda',
-      defensiveLine: 'Adiantada',
-      intensity: diag.avgStamina >= 62 ? 'Normal' : curTactics.intensity,
-    };
-    reasonText = `${ownClub.shortName} aproveita superioridade numérica e adianta o bloco!`;
+    candMentality = 'Atacar';
+    candTactics = buildTacticsForPlayStyle(
+      curPlayStyle === 'Posse de bola' ? 'Jogo pelas pontas' : curPlayStyle,
+      candMentality
+    );
+    reasonText = `${ownClub.shortName} aproveita superioridade numérica e avança para Atacar!`;
   }
   // Prioridade 3: Sofrendo muitos contra-ataques nas costas
   else if (diag.sufferingCounters && !alreadyDid('fix_counters') && canSeeSignal()) {
     reasonKey = 'fix_counters';
-    candTactics = {
-      ...curTactics,
-      defensiveLine: curTactics.defensiveLine === 'Adiantada' ? 'Equilibrada' : 'Recuada',
-      pressing: curTactics.pressing === 'Pressão alta' ? 'Bloco médio' : curTactics.pressing,
-      buildUpStyle:
-        curTactics.buildUpStyle === 'Saída curta' ? 'Equilibrada' : curTactics.buildUpStyle,
-    };
-    if (ownClub.mentality === 'Tudo ou Nada' && diag.goalDiff >= -1 && minute < 78) {
-      candMentality = 'Ofensiva';
+    candMentality = curPosture === 'Pressão total' ? 'Atacar' : 'Equilibrado';
+    if (ownClub.formation === '3-4-3' || ownClub.formation === '4-2-4') {
+      candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-3-3', '4-1-4-1'], ownRedIds);
     }
-    if (ownClub.formation === '3-4-3') {
-      candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-3-3'], ownRedIds);
-    }
-    reasonText = `Sofrendo contra-ataques: ${ownClub.shortName} recua a linha para fechar as costas da zaga.`;
+    candTactics = buildTacticsForPlayStyle(
+      curPlayStyle === 'Pressão alta' ? 'Equilibrado' : curPlayStyle,
+      candMentality
+    );
+    reasonText = `Sofrendo contra-ataques: ${ownClub.shortName} recua a linha para proteger a zaga.`;
   }
-  // Prioridade 4: Posse estéril (muita posse sem finalizar, apenas quando não está vencendo)
+  // Prioridade 4: Posse estéril (muita posse sem finalizar quando não está vencendo)
   else if (
     diag.sterilePossession &&
     minute >= 30 &&
@@ -369,57 +357,44 @@ export function evaluateBotTacticalDecision(params: {
     canSeeSignal()
   ) {
     reasonKey = 'fix_sterile_pos';
-    candTactics = {
-      ...curTactics,
-      buildUpStyle:
-        curTactics.buildUpStyle === 'Saída curta' ? 'Equilibrada' : curTactics.buildUpStyle,
-      offensiveStyle:
-        curTactics.offensiveStyle === 'Posse de bola'
-          ? ownClub.formation === '4-3-3' || ownClub.formation === '3-4-3'
-            ? 'Jogo pelas laterais'
-            : 'Ataque pelo meio'
-          : curTactics.offensiveStyle,
-      intensity: diag.avgStamina >= 68 ? 'Normal' : curTactics.intensity,
-    };
-    if (diag.goalDiff < 0 && ownClub.mentality === 'Equilibrada') {
-      candMentality = 'Ofensiva';
-    }
-    reasonText = `Posse sem agressividade (${diag.ownPossession}%): ${ownClub.shortName} busca mais profundidade.`;
+    const nextStyle =
+      curPlayStyle === 'Posse de bola'
+        ? ownClub.formation === '4-3-3' || ownClub.formation === '3-4-3'
+          ? 'Jogo pelas pontas'
+          : 'Ataque pelo meio'
+        : curPlayStyle;
+    candMentality = diag.goalDiff < 0 && curPosture === 'Equilibrado' ? 'Atacar' : curPosture;
+    candTactics = buildTacticsForPlayStyle(nextStyle, candMentality);
+    reasonText = `Posse sem agressividade (${diag.ownPossession}%): ${ownClub.shortName} muda para ${nextStyle}.`;
   }
-  // Prioridade 5: Perdendo disputa do meio-campo e sofrendo pressão de finalizações
+  // Prioridade 5: Perdendo disputa do meio-campo e sofrendo pressão
   else if (
     diag.losingMidfield &&
     minute >= 24 &&
     diag.goalDiff <= 0 &&
     diag.oppShots >= diag.ownShots + 3 &&
-    ownClub.mentality !== 'Contra-Ataque' &&
+    curPlayStyle !== 'Contra-ataque' &&
     !alreadyDid('fix_midfield') &&
     canSeeSignal()
   ) {
     reasonKey = 'fix_midfield';
-    candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-3-3'], ownRedIds);
-    candTactics = {
-      ...curTactics,
-      buildUpStyle: 'Equilibrada',
-      offensiveStyle: candFormation === '4-3-3' ? 'Jogo pelas laterais' : 'Ataque pelo meio',
-      pressing: curTactics.pressing === 'Pressão baixa' ? 'Bloco médio' : curTactics.pressing,
-    };
+    candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-1-4-1', '4-3-3'], ownRedIds);
+    candTactics = buildTacticsForPlayStyle(
+      candFormation === '4-3-3' ? 'Jogo pelas pontas' : 'Ataque pelo meio',
+      curPosture === 'Defender' ? 'Equilibrado' : curPosture
+    );
     reasonText = `Inferioridade no meio: ${ownClub.shortName} reorganiza o setor central (${candFormation}).`;
   }
-  // Prioridade 6: Centroavante isolado em ligações diretas sem sucesso
+  // Prioridade 6: Centroavante isolado em ligação direta sem sucesso
   else if (
     diag.isolatedStriker &&
-    curTactics.buildUpStyle === 'Ligações diretas' &&
+    curPlayStyle === 'Ligação direta' &&
     !alreadyDid('fix_isolated_ca') &&
     canSeeSignal()
   ) {
     reasonKey = 'fix_isolated_ca';
     candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-3-3'], ownRedIds);
-    candTactics = {
-      ...curTactics,
-      buildUpStyle: 'Equilibrada',
-      offensiveStyle: 'Ataque pelo meio',
-    };
+    candTactics = buildTacticsForPlayStyle('Ataque pelo meio', curPosture);
     reasonText = `Centroavante isolado: ${ownClub.shortName} aproxima os meias para apoiar o ataque.`;
   }
   // Prioridade 7: Gerenciar vantagem sem entregar o campo cedo demais
@@ -428,27 +403,19 @@ export function evaluateBotTacticalDecision(params: {
     diag.goalDiff <= 2 &&
     minute >= 72 &&
     !alreadyDid('protect_lead') &&
-    (ownClub.mentality === 'Ofensiva' ||
-      ownClub.mentality === 'Tudo ou Nada' ||
-      curTactics.defensiveLine === 'Adiantada') &&
+    (curPosture === 'Atacar' || curPosture === 'Pressão total' || curPlayStyle === 'Pressão alta') &&
     canSeeSignal()
   ) {
     reasonKey = 'protect_lead';
     const isUnderLateSiege = minute >= 82 && diag.oppShots >= diag.ownShots + 3;
-    candMentality = isUnderLateSiege ? 'Retranca' : 'Contra-Ataque';
+    candMentality = 'Defender';
     candFormation = isUnderLateSiege
-      ? pickCompatibleFormation(ownClub, ['5-3-2', '4-4-2'], ownRedIds)
+      ? pickCompatibleFormation(ownClub, ['5-3-2', '5-4-1', '4-4-2'], ownRedIds)
       : ownClub.formation;
-    candTactics = {
-      buildUpStyle: 'Contra-ataques rápidos',
-      offensiveStyle: 'Transições rápidas',
-      pressing: isUnderLateSiege ? 'Pressão baixa' : 'Bloco médio',
-      defensiveLine: isUnderLateSiege || minute >= 78 ? 'Recuada' : 'Equilibrada',
-      intensity: diag.avgStamina < 60 ? 'Baixa' : 'Normal',
-    };
-    reasonText = `Gerenciando vantagem aos ${minute}': ${ownClub.shortName} organiza a transição defensiva.`;
+    candTactics = buildTacticsForPlayStyle('Contra-ataque', candMentality);
+    reasonText = `Gerenciando vantagem aos ${minute}': ${ownClub.shortName} fecha a casinha e joga no contra-ataque.`;
   }
-  // Prioridade 8: Perdendo no 2º tempo -> pressionar sem abrir buracos precipitados
+  // Prioridade 8: Perdendo no 2º tempo -> pressionar buscando o empate
   else if (
     ((diag.goalDiff === -1 && minute >= 64) || (diag.goalDiff <= -2 && minute >= 54)) &&
     !alreadyDid('chase_game_late') &&
@@ -459,129 +426,105 @@ export function evaluateBotTacticalDecision(params: {
     if (alreadyDid(reasonKey)) {
       return { decision: null, nextMemory };
     }
-    const oppSittingDeep =
-      oppTactics.defensiveLine === 'Recuada' ||
-      oppClub.mentality === 'Retranca' ||
-      oppClub.mentality === 'Contra-Ataque';
+    const oppSittingDeep = oppPosture === 'Defender' || oppPlayStyle === 'Contra-ataque';
     candFormation = pickCompatibleFormation(
       ownClub,
-      desperate ? ['4-3-3', '3-4-3', '4-2-3-1'] : ['4-2-3-1', '4-3-3'],
+      desperate ? ['4-2-4', '4-3-3', '3-4-3'] : ['4-2-3-1', '4-3-3'],
       ownRedIds
     );
-    candMentality = desperate ? 'Tudo ou Nada' : 'Ofensiva';
-    candTactics = {
-      buildUpStyle: oppTactics.defensiveLine === 'Adiantada' ? 'Contra-ataques rápidos' : 'Equilibrada',
-      offensiveStyle:
-        oppClub.formation === '3-5-2' || oppClub.formation === '5-3-2' || oppSittingDeep
-          ? 'Jogo pelas laterais'
-          : 'Ataque pelo meio',
-      pressing: 'Pressão após perda',
-      defensiveLine: oppSittingDeep ? 'Equilibrada' : desperate ? 'Adiantada' : 'Equilibrada',
-      intensity: diag.avgStamina >= 56 ? 'Normal' : 'Baixa',
-    };
+    candMentality = desperate ? 'Pressão total' : 'Atacar';
+    const nextStyle =
+      oppPosture === 'Atacar' || oppPosture === 'Pressão total'
+        ? 'Contra-ataque'
+        : oppSittingDeep
+        ? 'Jogo pelas pontas'
+        : 'Ataque pelo meio';
+    candTactics = buildTacticsForPlayStyle(nextStyle, candMentality);
     reasonText = desperate
-      ? `Tudo por empate aos ${minute}': ${ownClub.shortName} avança no ${candFormation} (${candMentality})!`
+      ? `Tudo por empate aos ${minute}': ${ownClub.shortName} parte para ${candFormation} (${candMentality})!`
       : `Em desvantagem, ${ownClub.shortName} assume postura ofensiva (${candFormation}).`;
   }
-  // Prioridade 9: Fadiga mantendo pressão alta / intensidade alta
+  // Prioridade 9: Fadiga mantendo pressão alta / pressão total
   else if (
     (ownClub.botDifficulty !== 'facil' || diag.avgStamina < 46) &&
     diag.avgStamina < (profile.perceptionAccuracy >= 0.88 ? 65 : 54) &&
-    (curTactics.intensity === 'Alta' || curTactics.pressing === 'Pressão alta') &&
+    (curPosture === 'Pressão total' || curPlayStyle === 'Pressão alta') &&
     !alreadyDid('manage_fatigue') &&
     canSeeSignal()
   ) {
     reasonKey = 'manage_fatigue';
-    candTactics = {
-      ...curTactics,
-      pressing: 'Bloco médio',
-      intensity: 'Normal',
-      defensiveLine: curTactics.defensiveLine === 'Adiantada' ? 'Equilibrada' : curTactics.defensiveLine,
-    };
+    candMentality = 'Equilibrado';
+    candTactics = buildTacticsForPlayStyle(
+      curPlayStyle === 'Pressão alta' ? 'Equilibrado' : curPlayStyle,
+      candMentality
+    );
     reasonText = `Desgaste elevado (${Math.round(diag.avgStamina)}%): ${ownClub.shortName} dosa o ritmo para manter eficiência.`;
   }
-  // Prioridade 10 (Difícil/Lendário): Contra-tática específica à linha ou pressão alta do rival
+  // Prioridade 10 (Difícil/Lendário): Contra-tática específica ao estilo rival
   else if (
     profile.perceptionAccuracy >= 0.85 &&
-    (oppTactics.defensiveLine === 'Adiantada' || oppClub.mentality === 'Tudo ou Nada') &&
-    curTactics.buildUpStyle !== 'Contra-ataques rápidos' &&
+    minute >= 28 &&
+    (oppPosture === 'Atacar' || oppPosture === 'Pressão total' || oppPlayStyle === 'Pressão alta' || oppClub.formation === '4-2-4') &&
+    diag.oppShots >= diag.ownShots &&
+    curPlayStyle !== 'Contra-ataque' &&
     !alreadyDid('counter_high_line') &&
     canSeeSignal()
   ) {
     reasonKey = 'counter_high_line';
-    candFormation = pickCompatibleFormation(ownClub, ['4-3-3', '4-4-2', '4-2-3-1'], ownRedIds);
-    candMentality = diag.goalDiff < 0 ? 'Ofensiva' : 'Contra-Ataque';
-    candTactics = {
-      ...curTactics,
-      buildUpStyle: 'Contra-ataques rápidos',
-      offensiveStyle: 'Transições rápidas',
-      pressing: 'Bloco médio',
-      defensiveLine: 'Recuada',
-      intensity: 'Normal',
-    };
-    reasonText = `Leitura tática: ${ownClub.shortName} explora a Linha Adiantada de ${oppClub.shortName} com transições velozes!`;
+    candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-3-3', '4-4-2'], ownRedIds);
+    candMentality = diag.goalDiff >= 1 && minute >= 62 ? 'Defender' : 'Equilibrado';
+    candTactics = buildTacticsForPlayStyle('Contra-ataque', candMentality);
+    reasonText = `Leitura tática: ${ownClub.shortName} arma o Contra-ataque contra a postura ofensiva de ${oppClub.shortName}!`;
   }
   else if (
     profile.perceptionAccuracy >= 0.85 &&
-    oppTactics.pressing === 'Pressão alta' &&
-    curTactics.buildUpStyle === 'Saída curta' &&
+    (oppPlayStyle === 'Pressão alta' || oppPosture === 'Pressão total') &&
+    curPlayStyle === 'Posse de bola' &&
+    diag.oppShots > diag.ownShots &&
     !alreadyDid('escape_high_press') &&
     canSeeSignal()
   ) {
     reasonKey = 'escape_high_press';
-    candTactics = {
-      ...curTactics,
-      buildUpStyle: 'Contra-ataques rápidos',
-      offensiveStyle: 'Transições rápidas',
-      defensiveLine: 'Equilibrada',
-    };
-    reasonText = `Leitura tática: ${ownClub.shortName} acelera a saída de bola para escapar da pressão alta.`;
+    candTactics = buildTacticsForPlayStyle('Ligação direta', 'Equilibrado');
+    reasonText = `Leitura tática: ${ownClub.shortName} usa Ligação direta para escapar da pressão alta.`;
   }
   else if (
     profile.perceptionAccuracy >= 0.85 &&
-    (oppTactics.defensiveLine === 'Recuada' ||
-      oppTactics.pressing === 'Pressão baixa' ||
-      oppClub.formation === '5-3-2') &&
-    diag.goalDiff <= 0 &&
-    curTactics.offensiveStyle !== 'Jogo pelas laterais' &&
+    (oppPosture === 'Defender' || oppClub.formation === '5-3-2' || oppClub.formation === '5-4-1') &&
+    (diag.goalDiff < 0 || (minute >= 52 && diag.goalDiff === 0)) &&
+    curPlayStyle !== 'Ataque pelo meio' &&
     !alreadyDid('stretch_low_block') &&
     canSeeSignal()
   ) {
     reasonKey = 'stretch_low_block';
-    candFormation = pickCompatibleFormation(ownClub, ['4-3-3', '4-2-3-1'], ownRedIds);
-    candMentality = 'Equilibrada';
-    candTactics = {
-      ...curTactics,
-      buildUpStyle: 'Equilibrada',
-      offensiveStyle: 'Jogo pelas laterais',
-      pressing: 'Bloco médio',
-      defensiveLine: 'Equilibrada',
-      intensity: 'Normal',
-    };
-    reasonText = `Leitura tática: ${ownClub.shortName} abre amplitude pelos lados para furar o bloco baixo de ${oppClub.shortName}.`;
+    candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-3-3'], ownRedIds);
+    candMentality = diag.goalDiff < 0 ? 'Atacar' : 'Equilibrado';
+    candTactics = buildTacticsForPlayStyle('Ataque pelo meio', candMentality);
+    reasonText = `Leitura tática: ${ownClub.shortName} trabalha por dentro no ${candFormation} para furar a retranca de ${oppClub.shortName}.`;
   }
-  // Prioridade 11 (Lendário): Otimização de sinergia máxima e fechamento de corredores contra jogo aberto
+  // Prioridade 11 (Lendário): Corrigir baixo encaixe tático ou otimizar elenco em campo
   else if (
     profile.perceptionAccuracy >= 0.94 &&
+    minute >= 24 &&
     !alreadyDid('elite_synergy_lock') &&
-    (curTactics.defensiveLine === 'Adiantada' ||
-      ownClub.formation === '5-3-2' ||
-      curTactics.offensiveStyle === 'Posse de bola')
+    evaluateTacticalCompatibility({
+      formation: ownClub.formation,
+      mentality: curPosture,
+      tactics: curTactics,
+      starters,
+    }).score < 70
   ) {
     reasonKey = 'elite_synergy_lock';
-    candFormation = pickCompatibleFormation(ownClub, ['4-3-3', '4-4-2'], ownRedIds);
-    candMentality = diag.goalDiff >= 1 ? 'Contra-Ataque' : 'Equilibrada';
-    candTactics = {
-      buildUpStyle: oppTactics.defensiveLine === 'Adiantada' ? 'Contra-ataques rápidos' : 'Equilibrada',
-      offensiveStyle:
-        oppTactics.defensiveLine === 'Adiantada' ? 'Transições rápidas' : 'Jogo pelas laterais',
-      pressing: 'Bloco médio',
-      defensiveLine: oppTactics.defensiveLine === 'Adiantada' ? 'Recuada' : 'Equilibrada',
-      intensity: 'Normal',
-    };
-    reasonText = `Leitura de elite: ${ownClub.shortName} equilibra linhas e explora corredores no ${candFormation}.`;
+    candFormation = pickCompatibleFormation(ownClub, ['4-2-3-1', '4-3-3', '4-4-2'], ownRedIds);
+    candMentality = diag.goalDiff < 0 && minute >= 60 ? 'Atacar' : 'Equilibrado';
+    const nextStyle =
+      oppPosture === 'Atacar' || oppPosture === 'Pressão total'
+        ? 'Contra-ataque'
+        : 'Ataque pelo meio';
+    candTactics = buildTacticsForPlayStyle(nextStyle, candMentality);
+    reasonText = `Leitura de elite: ${ownClub.shortName} ajusta para ${candFormation} (${nextStyle}) buscando encaixe máximo.`;
   }
-  // Prioridade 12 (Difícil/Lendário): Adaptação se a mudança anterior piorou o time
+  // Prioridade 12 (Difícil/Lendário): Correção após baixa produção
   else if (
     lastChangeWorsened &&
     profile.perceptionAccuracy >= 0.85 &&
@@ -589,34 +532,25 @@ export function evaluateBotTacticalDecision(params: {
   ) {
     reasonKey = 'pivot_after_review';
     candFormation = pickCompatibleFormation(ownClub, ['4-3-3', '4-2-3-1'], ownRedIds);
-    candMentality = diag.goalDiff >= 0 ? 'Equilibrada' : 'Ofensiva';
-    candTactics = {
-      buildUpStyle: 'Equilibrada',
-      offensiveStyle: 'Jogo pelas laterais',
-      pressing: 'Bloco médio',
-      defensiveLine: 'Equilibrada',
-      intensity: 'Normal',
-    };
-    reasonText = `Leitura tática: ${ownClub.shortName} corrige estratégia anterior após baixa produção.`;
+    candMentality = diag.goalDiff >= 0 ? 'Equilibrado' : 'Atacar';
+    candTactics = buildTacticsForPlayStyle('Jogo pelas pontas', candMentality);
+    reasonText = `Leitura tática: ${ownClub.shortName} corrige estratégia após baixa produção.`;
   }
-  // Em Fácil, técnico novato frequentemente comete erros de alinhamento entre linhas ou decisões precipitadas
+  // Em Fácil, técnico novato frequentemente escolhe combinações de baixo encaixe
   else if (
     ownClub.botDifficulty === 'facil' &&
-    minute >= 14 &&
+    minute >= 16 &&
     !alreadyDid('facil_misalign') &&
     Math.random() < 0.72
   ) {
     reasonKey = 'facil_misalign';
-    candFormation = pickCompatibleFormation(ownClub, ['5-3-2', '3-4-3'], ownRedIds);
-    candMentality = diag.goalDiff > 0 ? 'Retranca' : 'Tudo ou Nada';
-    candTactics = {
-      buildUpStyle: 'Saída curta',
-      offensiveStyle: 'Jogo pelas laterais',
-      pressing: candMentality === 'Retranca' ? 'Pressão alta' : 'Pressão baixa',
-      defensiveLine: candMentality === 'Retranca' ? 'Adiantada' : 'Recuada',
-      intensity: 'Alta',
-    };
-    reasonText = `${ownClub.shortName} altera o posicionamento sem sincronizar pressão e linha defensiva.`;
+    candFormation = pickCompatibleFormation(ownClub, ['4-2-4', '5-4-1', '3-4-3'], ownRedIds);
+    candMentality = candFormation === '4-2-4' ? 'Defender' : 'Pressão total';
+    candTactics = buildTacticsForPlayStyle(
+      candFormation === '5-4-1' ? 'Posse de bola' : 'Jogo pelas pontas',
+      candMentality
+    );
+    reasonText = `${ownClub.shortName} altera a tática de forma descoordenada sem encaixe ideal.`;
   }
   else if (
     ownClub.botDifficulty === 'facil' &&
@@ -626,13 +560,9 @@ export function evaluateBotTacticalDecision(params: {
     Math.random() < 0.65
   ) {
     reasonKey = 'facil_panic';
-    candMentality = 'Tudo ou Nada';
-    candTactics = {
-      ...curTactics,
-      pressing: 'Pressão alta',
-      defensiveLine: 'Recuada',
-      intensity: 'Alta',
-    };
+    candFormation = pickCompatibleFormation(ownClub, ['4-2-4', '3-4-3'], ownRedIds);
+    candMentality = 'Pressão total';
+    candTactics = buildTacticsForPlayStyle('Ligação direta', candMentality);
     reasonText = `${ownClub.shortName} se lança desordenadamente ao ataque buscando reagir.`;
   }
   else if (
@@ -643,17 +573,10 @@ export function evaluateBotTacticalDecision(params: {
     Math.random() < 0.6
   ) {
     reasonKey = 'facil_park';
-    candFormation = pickCompatibleFormation(ownClub, ['5-3-2'], ownRedIds);
-    candMentality = 'Retranca';
-    candTactics = {
-      ...curTactics,
-      buildUpStyle: 'Saída curta',
-      offensiveStyle: 'Jogo pelas laterais',
-      pressing: 'Pressão alta',
-      defensiveLine: 'Adiantada',
-      intensity: 'Baixa',
-    };
-    reasonText = `${ownClub.shortName} tenta segurar o placar com instruções contraditórias.`;
+    candFormation = pickCompatibleFormation(ownClub, ['5-3-2', '5-4-1'], ownRedIds);
+    candMentality = 'Pressão total';
+    candTactics = buildTacticsForPlayStyle('Posse de bola', candMentality);
+    reasonText = `${ownClub.shortName} tenta segurar o placar com postura incompatível.`;
   }
 
   if (!reasonKey) {
@@ -663,7 +586,7 @@ export function evaluateBotTacticalDecision(params: {
   // Evita mudanças sem diferença prática
   if (
     candFormation === ownClub.formation &&
-    candMentality === ownClub.mentality &&
+    candMentality === curPosture &&
     tacticsEqual(candTactics, curTactics)
   ) {
     return { decision: null, nextMemory };
@@ -673,7 +596,7 @@ export function evaluateBotTacticalDecision(params: {
   if (Math.random() < profile.compatibilityDiscipline) {
     const curCompat = evaluateTacticalCompatibility({
       formation: ownClub.formation,
-      mentality: ownClub.mentality,
+      mentality: curPosture,
       tactics: curTactics,
       starters,
     });
@@ -683,17 +606,13 @@ export function evaluateBotTacticalDecision(params: {
       tactics: candTactics,
       starters,
     });
-    if (testCompat.score < 64 && candTactics.defensiveLine === 'Adiantada') {
-      candTactics = { ...candTactics, defensiveLine: 'Equilibrada' };
+    if (testCompat.score < 64 && candMentality === 'Pressão total') {
+      candMentality = 'Atacar';
+      candTactics = buildTacticsForPlayStyle(candTactics.playStyle ?? 'Equilibrado', candMentality);
     }
-    if (testCompat.score < 62 && candTactics.pressing === 'Pressão alta') {
-      candTactics = { ...candTactics, pressing: 'Bloco médio' };
-    }
-    if (candMentality === 'Retranca' && (candTactics.pressing === 'Pressão alta' || candTactics.defensiveLine === 'Adiantada')) {
-      candTactics = { ...candTactics, pressing: 'Pressão baixa', defensiveLine: 'Recuada' };
-    }
-    if (candTactics.pressing === 'Pressão baixa' && candTactics.defensiveLine === 'Adiantada') {
-      candTactics = { ...candTactics, defensiveLine: 'Equilibrada' };
+    if ((candFormation === '5-4-1' || candFormation === '5-3-2') && (candMentality === 'Pressão total' || candMentality === 'Atacar')) {
+      candMentality = 'Defender';
+      candTactics = buildTacticsForPlayStyle('Contra-ataque', candMentality);
     }
     const finalCompat = evaluateTacticalCompatibility({
       formation: candFormation,
@@ -704,12 +623,6 @@ export function evaluateBotTacticalDecision(params: {
     if (finalCompat.score + 6 < curCompat.score && reasonKey !== 'red_adapt') {
       return { decision: null, nextMemory };
     }
-  } else if (ownClub.botDifficulty === 'facil' && Math.random() < 0.55) {
-    // Em Fácil, técnico adversário ocasionalmente desalinha pressão e linha defensiva
-    candTactics = {
-      ...candTactics,
-      defensiveLine: candTactics.pressing === 'Pressão alta' ? 'Recuada' : 'Adiantada',
-    };
   }
 
   const updatedMemory: BotAIMemory = {

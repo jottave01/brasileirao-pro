@@ -24,7 +24,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Club, LeagueState } from '../types/league';
-import { calculateClubStrength } from '../engine/botAI';
+import { calculateClubStrength, inferPlayStyleFromClub, normalizePosture } from '../engine/botAI';
 import { formatMillionsBRL } from '../data/seedData';
 import { BrasileiraoTrophyLogo, ClubCrest, ControllerTag, OvrBadge } from './ClubBadge';
 
@@ -886,9 +886,9 @@ export const LobbyAndAdminView: React.FC<LobbyAndAdminViewProps> = ({
                   </div>
                 </div>
                 <div className="bg-[#090C10] border border-white/[0.07] rounded-md p-3">
-                  <div className="text-[11px] text-slate-400">Postura</div>
-                  <div className="font-display text-xl font-extrabold text-amber-300 mt-0.5 truncate">
-                    {activeClub.mentality}
+                  <div className="text-[11px] text-slate-400">Estilo &amp; Postura</div>
+                  <div className="font-display text-lg font-extrabold text-amber-300 mt-0.5 truncate">
+                    {inferPlayStyleFromClub(activeClub)} · {normalizePosture(activeClub.mentality)}
                   </div>
                 </div>
                 <div className="bg-[#090C10] border border-white/[0.07] rounded-md p-3">

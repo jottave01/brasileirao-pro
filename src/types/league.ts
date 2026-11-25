@@ -28,19 +28,42 @@ export type PlayerPosition =
   | 'CA';
 
 export type Formation =
-  | '4-3-3'
   | '4-4-2'
-  | '4-2-3-1'
+  | '4-3-3'
   | '3-5-2'
   | '3-4-3'
-  | '5-3-2';
+  | '5-4-1'
+  | '4-2-4'
+  | '4-2-3-1'
+  | '4-1-4-1'
+  | '4-3-1-2'
+  | '4-4-2 losango'
+  | '5-3-2'
+  | '3-4-2-1';
 
-export type TacticalMentality =
+export type PlayStyle =
+  | 'Equilibrado'
+  | 'Posse de bola'
+  | 'Contra-ataque'
+  | 'Jogo pelas pontas'
+  | 'Ataque pelo meio'
+  | 'Pressão alta'
+  | 'Ligação direta';
+
+export type TacticalPosture =
+  | 'Atacar'
+  | 'Equilibrado'
+  | 'Defender'
+  | 'Pressão total';
+
+export type LegacyTacticalMentality =
   | 'Retranca'
   | 'Contra-Ataque'
   | 'Equilibrada'
   | 'Ofensiva'
   | 'Tudo ou Nada';
+
+export type TacticalMentality = TacticalPosture | LegacyTacticalMentality;
 
 export type BuildUpStyle =
   | 'Saída curta'
@@ -66,6 +89,7 @@ export type DefensiveLineHeight = 'Recuada' | 'Equilibrada' | 'Adiantada';
 export type TacticalIntensity = 'Baixa' | 'Normal' | 'Alta';
 
 export interface ClubTactics {
+  playStyle?: PlayStyle;
   buildUpStyle: BuildUpStyle;
   offensiveStyle: OffensiveStyle;
   pressing: PressingStyle;
@@ -370,11 +394,16 @@ export interface MatchBoxOfficeReport {
   isRivalry?: boolean;
 }
 
+export type ShotOutcome = 'gol' | 'trave' | 'fora' | 'defesa' | 'bloqueio' | 'escanteio';
+
 export interface Match {
   id: string;
   round: number;
   phaseLabel?: string;
   scheduledAt: string;
+  manualStarted?: boolean;
+  liveStartedAt?: string;
+  halftimeTriggered?: boolean;
   homeClubId: string;
   awayClubId: string;
   homeGoals: number;
@@ -394,6 +423,7 @@ export interface Match {
   secondaryPlayerId?: string;
   fromBallX?: number;
   fromBallY?: number;
+  shotOutcome?: ShotOutcome;
   possessionClubId: string;
   playPhase: PlayPhase;
   lastPlayText: string;
